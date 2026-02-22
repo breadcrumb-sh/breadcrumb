@@ -1,0 +1,29 @@
+{
+  "name": "@breadcrumb/ai-sdk",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "ai": ">=5.0.0 <7.0.0",
+    "@breadcrumb/sdk": "*"
+  },
+  "devDependencies": {
+    "@breadcrumb/sdk": "*",
+    "ai": "^6.0.0",
+    "tsdown": "^0.9",
+    "typescript": "^5.7",
+    "vitest": "^3"
+  }
+}

@@ -27,7 +27,7 @@ export const SpanSchema = z.object({
   trace_id:       traceIdSchema,
   parent_span_id: spanIdSchema.optional(),
   name:           z.string().min(1),
-  type:           z.enum(["llm", "tool", "retrieval", "chain", "custom"]),
+  type:           z.enum(["llm", "tool", "retrieval", "step", "custom"]),
   start_time:     z.string().datetime(),
   end_time:       z.string().datetime(),
   status:         z.enum(["ok", "error"]).default("ok"),

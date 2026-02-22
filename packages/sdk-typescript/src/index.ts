@@ -1,11 +1,13 @@
 export { Breadcrumb } from "./breadcrumb.js";
-export { TraceHandle } from "./trace.js";
-export { SpanHandle } from "./span.js";
+export { Agent } from "./agent.js";
+export { Timer } from "./timer.js";
 export type {
-  TraceOptions,
-  TraceEndOptions,
-  SpanOptions,
-  SpanEndOptions,
+  BreadcrumbOptions,
+  AgentOptions,
+  AgentEndOptions,
+  TrackOptions,
+  TimerEndOptions,
+  Usage,
 } from "./types.js";
 
 // Re-export core primitives so users only need one import

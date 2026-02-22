@@ -1,46 +1,57 @@
-import type { SpanType, Status } from "@breadcrumb/core";
+import type { Status } from "@breadcrumb/core";
 
-export interface TraceOptions {
+export interface BreadcrumbOptions {
+  apiKey: string;
+  baseUrl: string;
+  environment?: string;
+  flushInterval?: number;
+  maxBatchSize?: number;
+  onError?: (err: Error) => void;
+}
+
+export interface AgentOptions {
+  /** Provide your own ID to resume an existing trace (e.g. for multi-turn sessions). */
+  id?: string;
   name: string;
   input?: unknown;
   userId?: string;
   sessionId?: string;
-  environment?: string;
-  tags?: Record<string, string>;
+  metadata?: Record<string, string>;
 }
 
-export interface TraceEndOptions {
+export interface AgentEndOptions {
   output?: unknown;
   status?: Status;
-  /** Human-readable error message when status is "error". */
   statusMessage?: string;
 }
 
-export interface SpanOptions {
-  name: string;
-  type: SpanType;
+export interface TrackOptions {
   input?: unknown;
-  /** e.g. "anthropic", "openai" */
   provider?: string;
-  /** e.g. "claude-opus-4-6", "gpt-4o" */
   model?: string;
   metadata?: Record<string, string>;
 }
 
-export interface SpanEndOptions {
+export interface TimerEndOptions {
   output?: unknown;
   status?: Status;
   statusMessage?: string;
-  /**
-   * Override the model set at span start.
-   * Useful when the model isn't known until the response arrives.
-   */
+  /** Override the model set at track() time. Useful when the model isn't known until the response arrives. */
   model?: string;
   provider?: string;
   inputTokens?: number;
   outputTokens?: number;
+  totalTokens?: number;
   /** Float USD, e.g. 0.000123 */
   inputCostUsd?: number;
   /** Float USD */
+  outputCostUsd?: number;
+}
+
+export interface Usage {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  inputCostUsd?: number;
   outputCostUsd?: number;
 }

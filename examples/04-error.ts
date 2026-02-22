@@ -1,10 +1,11 @@
 /**
- * 04-error — trace with a failed span and error status.
+ * 04-error — agent that fails mid-run.
  *
- * Shows how to record errors: pass status: "error" and a statusMessage
- * to both the span and the trace.
+ * The timer is ended manually with status "error", then the error is thrown.
+ * The callback form catches the throw and automatically closes the agent
+ * with status "error" — no manual agent.end() needed.
  *
- * Run: BREADCRUMB_API_KEY=... npm run error --workspace=examples
+ * Run: npm run error --workspace=examples
  */
 
 import { Breadcrumb } from "@breadcrumb/sdk";
@@ -14,34 +15,32 @@ const bc = new Breadcrumb(config);
 
 const prompt = "Write a 10,000 word essay on the history of computing.";
 
-const trace = bc.trace({
-  name:  "failed-generation",
-  input: { prompt },
-});
+try {
+  await bc.agent(
+    { name: "failed-generation", input: { prompt } },
+    async (agent) => {
+      const t = agent.track("claude-completion", "llm", {
+        provider: "anthropic",
+        model:    "claude-opus-4-6",
+        input:    { prompt },
+      });
 
-console.log("trace started:", trace.id);
+      // Simulate a slow call that exceeds our timeout budget
+      await sleep(2100);
 
-// Span that will time out
-const span = trace.span({
-  name:     "claude-completion",
-  type:     "llm",
-  provider: "anthropic",
-  model:    "claude-opus-4-6",
-  input:    { prompt },
-});
+      t.end({
+        status:        "error",
+        statusMessage: "LLM request timed out after 2000ms",
+      });
 
-// Simulate a slow call that exceeds our timeout budget
-await sleep(2100);
-
-span.end({
-  status:        "error",
-  statusMessage: "LLM request timed out after 2000ms",
-});
-
-trace.end({
-  status:        "error",
-  statusMessage: "Generation failed: LLM request timed out",
-});
+      // Throwing from the callback auto-closes the agent with status: "error"
+      throw new Error("LLM request timed out after 2000ms");
+    },
+  );
+} catch {
+  // expected — agent is already closed
+  console.log("agent closed with error (expected)");
+}
 
 await bc.shutdown();
 console.log("done");

@@ -3,18 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "simple":   "tsx 01-simple.ts",
-    "pipeline": "tsx 02-pipeline.ts",
-    "agent":    "tsx 03-agent.ts",
-    "error":    "tsx 04-error.ts",
+    "simple":    "tsx 01-simple.ts",
+    "pipeline":  "tsx 02-pipeline.ts",
+    "agent":     "tsx 03-agent.ts",
+    "error":     "tsx 04-error.ts",
+    "ai-sdk":    "tsx 05-ai-sdk.ts",
     "seed-many": "tsx seed-many.ts"
   },
   "dependencies": {
-    "@breadcrumb/sdk": "*",
-    "dotenv": "^16"
+    "@breadcrumb/sdk":    "*",
+    "@breadcrumb/ai-sdk": "*",
+    "ai":                 "^6.0.0",
+    "dotenv":             "^16",
+    "zod":                "^3"
   },
   "devDependencies": {
-    "tsx": "^4",
+    "tsx":        "^4",
     "typescript": "^5.7"
   }
 }

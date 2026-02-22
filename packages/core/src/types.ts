@@ -4,7 +4,7 @@ export type TraceId = string;
 /** W3C Trace Context — 64-bit span ID as 16-char lowercase hex. */
 export type SpanId = string;
 
-export type SpanType = "llm" | "tool" | "retrieval" | "chain" | "custom";
+export type SpanType = "llm" | "tool" | "retrieval" | "step" | "custom";
 export type Status   = "ok" | "error";
 
 /**

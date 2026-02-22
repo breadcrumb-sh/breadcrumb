@@ -164,7 +164,7 @@ function makeChainSpan(projectId: string, opts: {
     parent_span_id: opts.parentId ?? "",
     project_id:     projectId,
     name:           opts.name,
-    type:           "chain",
+    type:           "step",
     start_time:     opts.startTime,
     end_time:       opts.endTime,
     status:         "ok",

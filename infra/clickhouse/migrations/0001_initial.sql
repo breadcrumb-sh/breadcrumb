@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS breadcrumb.spans
 
     -- Classification
     name String,
-    type LowCardinality(String), -- 'llm' | 'tool' | 'retrieval' | 'chain' | 'custom'
+    type LowCardinality(String), -- 'llm' | 'tool' | 'retrieval' | 'step' | 'custom'
 
     -- Timing (always present — spans are only inserted on span.end())
     start_time DateTime64(3, 'UTC'),

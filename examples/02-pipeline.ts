@@ -1,82 +1,67 @@
 /**
  * 02-pipeline — retrieval-augmented generation (RAG).
  *
- * Two sequential top-level spans: vector search then LLM generation.
- * Run: BREADCRUMB_API_KEY=... npm run pipeline --workspace=examples
+ * Two sequential timers: vector search then LLM generation.
+ * Run: npm run pipeline --workspace=examples
  */
 
 import { Breadcrumb } from "@breadcrumb/sdk";
 import { config, sleep } from "./config.js";
 
-const bc = new Breadcrumb(config);
+// environment is set once on the constructor, not per trace
+const bc = new Breadcrumb({ ...config, environment: "development" });
 
 const query = "What are the main features of TypeScript?";
 
-const trace = bc.trace({
-  name:        "rag-pipeline",
-  input:       { query },
-  userId:      "user-demo",
-  environment: "development",
-});
+const answer = await bc.agent(
+  { name: "rag-pipeline", input: { query }, userId: "user-demo" },
+  async (agent) => {
+    // ── 1. Retrieval ───────────────────────────────────────────────────────────
 
-console.log("trace started:", trace.id);
+    const retrieval = agent.track("vector-search", "retrieval", {
+      input: { query, topK: 3 },
+    });
 
-// ── 1. Retrieval ──────────────────────────────────────────────────────────────
+    await sleep(120);
 
-const retrieval = trace.span({
-  name:  "vector-search",
-  type:  "retrieval",
-  input: { query, topK: 3 },
-});
+    const docs = [
+      "TypeScript adds optional static typing to JavaScript.",
+      "TypeScript supports interfaces, generics, enums, and decorators.",
+      "TypeScript compiles to plain JavaScript and runs anywhere JS runs.",
+    ];
 
-await sleep(120);
+    retrieval.end({ output: { results: docs, count: docs.length } });
+    console.log("retrieval done");
 
-const docs = [
-  "TypeScript adds optional static typing to JavaScript.",
-  "TypeScript supports interfaces, generics, enums, and decorators.",
-  "TypeScript compiles to plain JavaScript and runs anywhere JS runs.",
-];
+    // ── 2. Generation ──────────────────────────────────────────────────────────
 
-retrieval.end({
-  output: { results: docs, count: docs.length },
-});
+    const llm = agent.track("generate-answer", "llm", {
+      provider: "anthropic",
+      model:    "claude-opus-4-6",
+      input:    { system: "Answer concisely using the provided context only.", context: docs, query },
+    });
 
-console.log("retrieval done");
+    await sleep(890);
 
-// ── 2. Generation ─────────────────────────────────────────────────────────────
+    const text =
+      "TypeScript's main features include optional static typing, " +
+      "interfaces, generics, enums, and decorator support. " +
+      "It compiles to JavaScript and works anywhere JavaScript does.";
 
-const llm = trace.span({
-  name:     "generate-answer",
-  type:     "llm",
-  provider: "anthropic",
-  input: {
-    system:  "Answer concisely using the provided context only.",
-    context: docs,
-    query,
+    llm.end({
+      output:        { content: text },
+      inputTokens:   312,
+      outputTokens:  58,
+      inputCostUsd:  0.000936,
+      outputCostUsd: 0.000870,
+    });
+
+    console.log("generation done");
+    return text;
   },
-});
+);
 
-await sleep(890);
-
-const answer =
-  "TypeScript's main features include optional static typing, " +
-  "interfaces, generics, enums, and decorator support. " +
-  "It compiles to JavaScript and works anywhere JavaScript does.";
-
-llm.end({
-  output:       { content: answer },
-  model:        "claude-opus-4-6",
-  inputTokens:  312,
-  outputTokens: 58,
-  inputCostUsd:  0.000936,
-  outputCostUsd: 0.000870,
-});
-
-console.log("generation done");
-
-// ── Finish ────────────────────────────────────────────────────────────────────
-
-trace.end({ output: { answer } });
+console.log("answer:", answer);
 
 await bc.shutdown();
 console.log("done");
