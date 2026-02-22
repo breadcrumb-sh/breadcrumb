@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { Logo } from "../components/common/logo/Logo";
@@ -156,13 +156,7 @@ function LoginPage() {
             {/* Footer */}
             <div className="border-t border-zinc-800 px-8 py-5">
               <p className="text-center text-xs text-zinc-500">
-                No account?{" "}
-                <Link
-                  to="/signup"
-                  className="text-zinc-300 underline underline-offset-4 transition-colors hover:text-zinc-100"
-                >
-                  Create one
-                </Link>
+                Access is by invitation only.
               </p>
             </div>
           </div>

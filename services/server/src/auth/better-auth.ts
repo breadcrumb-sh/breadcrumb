@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user as userTable } from "../db/schema.js";
 import { env } from "../env.js";
+import { checkSignupAllowed } from "./signup-guard.js";
 
 export const auth = betterAuth({
   secret: env.betterAuthSecret,
@@ -39,6 +40,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        before: async (user) => {
+          await checkSignupAllowed(user.email);
+        },
         after: async (user) => {
           // First user becomes global admin
           const count = await db
