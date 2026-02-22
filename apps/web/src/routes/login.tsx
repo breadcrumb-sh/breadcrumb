@@ -156,7 +156,10 @@ function LoginPage() {
             {/* Footer */}
             <div className="border-t border-zinc-800 px-8 py-5">
               <p className="text-center text-xs text-zinc-500">
-                Access is by invitation only.
+                Don't have an account?{" "}
+                <a href="/signup" className="text-zinc-400 hover:text-zinc-200 transition-colors">
+                  Sign up
+                </a>
               </p>
             </div>
           </div>

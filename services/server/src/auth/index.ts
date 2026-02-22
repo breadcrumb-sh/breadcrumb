@@ -52,16 +52,16 @@ export async function requireApiKey(c: Context, next: Next) {
 
 // ── MCP key auth ─────────────────────────────────────────────────────
 
-const mcpKeyCache = new Map<string, { projectId: string; expiresAt: number }>();
+const mcpKeyCache = new Map<string, { userId: string; expiresAt: number }>();
 
 async function resolveMcpKey(hash: string): Promise<string | null> {
   const cached = mcpKeyCache.get(hash);
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.projectId;
+    return cached.userId;
   }
 
   const [found] = await db
-    .select({ projectId: mcpKeys.projectId })
+    .select({ userId: mcpKeys.userId })
     .from(mcpKeys)
     .where(eq(mcpKeys.keyHash, hash))
     .limit(1);
@@ -72,10 +72,10 @@ async function resolveMcpKey(hash: string): Promise<string | null> {
   }
 
   mcpKeyCache.set(hash, {
-    projectId: found.projectId,
+    userId: found.userId,
     expiresAt: Date.now() + KEY_CACHE_TTL,
   });
-  return found.projectId;
+  return found.userId;
 }
 
 export async function requireMcpKey(c: Context, next: Next) {
@@ -86,11 +86,11 @@ export async function requireMcpKey(c: Context, next: Next) {
     return c.json({ error: "Missing MCP key" }, 401);
   }
 
-  const projectId = await resolveMcpKey(hashApiKey(key));
-  if (!projectId) {
+  const userId = await resolveMcpKey(hashApiKey(key));
+  if (!userId) {
     return c.json({ error: "Invalid MCP key" }, 401);
   }
 
-  c.set("projectId", projectId);
+  c.set("userId", userId);
   await next();
 }

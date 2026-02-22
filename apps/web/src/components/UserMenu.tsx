@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
-import { Sun, Moon, SignOut, User } from "@phosphor-icons/react";
-import { useNavigate } from "@tanstack/react-router";
+import { Sun, Moon, SignOut, User, Gear } from "@phosphor-icons/react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
 import { useTheme } from "../hooks/useTheme";
 
@@ -49,6 +49,15 @@ export function UserMenu() {
           </button>
 
           <div className="my-1 border-t border-zinc-800" />
+
+          <Link
+            to="/settings"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
+          >
+            <Gear size={14} weight="bold" />
+            Settings
+          </Link>
 
           <button
             onClick={handleLogout}

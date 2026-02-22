@@ -49,8 +49,8 @@ app.use("/trpc/*", trpcHandler);
 
 app.all("/mcp", requireMcpKey, async (c) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const projectId = (c as any).get("projectId") as string;
-  const mcpServer = buildMcpServer(projectId);
+  const userId = (c as any).get("userId") as string;
+  const mcpServer = buildMcpServer(userId);
   const transport = new StreamableHTTPTransport();
   await mcpServer.connect(transport);
   return transport.handleRequest(c);

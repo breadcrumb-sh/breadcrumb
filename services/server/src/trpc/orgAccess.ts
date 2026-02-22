@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { db } from "../db/index.js";
-import { member, apiKeys, mcpKeys } from "../db/schema.js";
+import { member, apiKeys } from "../db/schema.js";
 
 /**
  * Throws FORBIDDEN unless the user is a global admin OR has one of the
@@ -51,12 +51,3 @@ export async function getApiKeyOrg(keyId: string): Promise<string> {
   return key.projectId;
 }
 
-/** Resolves the organizationId for an MCP key, throws NOT_FOUND if missing. */
-export async function getMcpKeyOrg(keyId: string): Promise<string> {
-  const [key] = await db
-    .select({ projectId: mcpKeys.projectId })
-    .from(mcpKeys)
-    .where(eq(mcpKeys.id, keyId));
-  if (!key) throw new TRPCError({ code: "NOT_FOUND" });
-  return key.projectId;
-}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { router, authedProcedure } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { mcpKeys } from "../../db/schema.js";
@@ -8,39 +9,29 @@ import {
   hashApiKey,
   getKeyPrefix,
 } from "../../lib/api-keys.js";
-import { requireOrgMember, getMcpKeyOrg } from "../orgAccess.js";
 
 export const mcpKeysRouter = router({
-  list: authedProcedure
-    .input(z.object({ projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
-      return db
-        .select({
-          id: mcpKeys.id,
-          name: mcpKeys.name,
-          keyPrefix: mcpKeys.keyPrefix,
-          createdAt: mcpKeys.createdAt,
-        })
-        .from(mcpKeys)
-        .where(eq(mcpKeys.projectId, input.projectId))
-        .orderBy(mcpKeys.createdAt);
-    }),
+  list: authedProcedure.query(async ({ ctx }) => {
+    return db
+      .select({
+        id: mcpKeys.id,
+        name: mcpKeys.name,
+        keyPrefix: mcpKeys.keyPrefix,
+        createdAt: mcpKeys.createdAt,
+      })
+      .from(mcpKeys)
+      .where(eq(mcpKeys.userId, ctx.user.id))
+      .orderBy(mcpKeys.createdAt);
+  }),
 
   create: authedProcedure
-    .input(
-      z.object({
-        projectId: z.string(),
-        name: z.string().min(1).max(255),
-      })
-    )
+    .input(z.object({ name: z.string().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
       const rawKey = generateMcpKey();
       const [key] = await db
         .insert(mcpKeys)
         .values({
-          projectId: input.projectId,
+          userId: ctx.user.id,
           name: input.name,
           keyHash: hashApiKey(rawKey),
           keyPrefix: getKeyPrefix(rawKey),
@@ -58,8 +49,16 @@ export const mcpKeysRouter = router({
   delete: authedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const orgId = await getMcpKeyOrg(input.id);
-      await requireOrgMember(ctx.user.id, ctx.user.role, orgId);
+      const [key] = await db
+        .select({ userId: mcpKeys.userId })
+        .from(mcpKeys)
+        .where(eq(mcpKeys.id, input.id));
+
+      if (!key) throw new TRPCError({ code: "NOT_FOUND" });
+      if (key.userId !== ctx.user.id && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
       await db.delete(mcpKeys).where(eq(mcpKeys.id, input.id));
     }),
 });

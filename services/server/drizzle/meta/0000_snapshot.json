@@ -1,5 +1,5 @@
 {
-  "id": "4621a415-81c5-4a87-90d0-1091156cc090",
+  "id": "13511a62-4955-4e6d-a044-8a9951abaade",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -275,8 +275,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "project_id": {
-          "name": "project_id",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -309,12 +309,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "mcp_keys_project_id_organization_id_fk": {
-          "name": "mcp_keys_project_id_organization_id_fk",
+        "mcp_keys_user_id_user_id_fk": {
+          "name": "mcp_keys_user_id_user_id_fk",
           "tableFrom": "mcp_keys",
-          "tableTo": "organization",
+          "tableTo": "user",
           "columnsFrom": [
-            "project_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -402,7 +402,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "member_org_user_unique": {
+          "name": "member_org_user_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

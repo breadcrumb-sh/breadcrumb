@@ -117,9 +117,9 @@ export const apiKeys = pgTable("api_keys", {
 
 export const mcpKeys = pgTable("mcp_keys", {
   id: uuid("id").primaryKey().defaultRandom(),
-  projectId: text("project_id")
+  userId: text("user_id")
     .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   keyHash: varchar("key_hash", { length: 64 }).notNull().unique(),
   keyPrefix: varchar("key_prefix", { length: 16 }).notNull(),
