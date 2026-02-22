@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user as userTable } from "../db/schema.js";
 import { env } from "../env.js";
@@ -42,18 +41,14 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           await checkSignupAllowed(user.email);
-        },
-        after: async (user) => {
-          // First user becomes global admin
-          const count = await db
+          // First user to sign up becomes admin — checked before creation
+          // so the role is set correctly when the session is established.
+          const existing = await db
             .select({ id: userTable.id })
             .from(userTable)
-            .limit(2);
-          if (count.length === 1) {
-            await db
-              .update(userTable)
-              .set({ role: "admin" })
-              .where(eq(userTable.id, user.id));
+            .limit(1);
+          if (existing.length === 0) {
+            return { data: { ...user, role: "admin" } };
           }
         },
       },

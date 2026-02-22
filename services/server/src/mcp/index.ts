@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { clickhouse } from "../db/clickhouse.js";
 import { db } from "../db/index.js";
-import { member, organization } from "../db/schema.js";
+import { member, organization, user as userTable } from "../db/schema.js";
 
 import { calcDuration, normMetadata } from "./helpers.js";
 
@@ -16,6 +16,18 @@ const EFFECTIVE_END = `COALESCE(t.end_time, r.max_end_time)`;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getUserProjectIds(userId: string): Promise<string[]> {
+  const [u] = await db
+    .select({ role: userTable.role })
+    .from(userTable)
+    .where(eq(userTable.id, userId))
+    .limit(1);
+
+  // Admins can see all projects
+  if (u?.role === "admin") {
+    const orgs = await db.select({ id: organization.id }).from(organization);
+    return orgs.map((o) => o.id);
+  }
+
   const rows = await db
     .select({ orgId: member.organizationId })
     .from(member)

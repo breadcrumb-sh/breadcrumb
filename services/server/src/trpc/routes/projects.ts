@@ -47,20 +47,28 @@ export const projectsRouter = router({
 
   create: adminProcedure
     .input(z.object({ name: z.string().min(1).max(255) }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const slug = input.name
         .toLowerCase()
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-]/g, "");
+      const orgId = crypto.randomUUID();
       const [org] = await db
         .insert(organization)
         .values({
-          id: crypto.randomUUID(),
+          id: orgId,
           name: input.name,
           slug: slug || crypto.randomUUID(),
           createdAt: new Date(),
         })
         .returning();
+      await db.insert(member).values({
+        id: crypto.randomUUID(),
+        organizationId: orgId,
+        userId: ctx.user.id,
+        role: "owner",
+        createdAt: new Date(),
+      });
       return org;
     }),
 
