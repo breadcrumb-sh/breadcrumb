@@ -20,6 +20,11 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Invalid email" }, 400);
   }
 
+  if (import.meta.env.DEV) {
+    console.log("[waitlist:dev] skipping db —", { email, deploy, scale, comments });
+    return json({ ok: true }, 200);
+  }
+
   try {
     const sql = await getDb();
 

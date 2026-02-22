@@ -1,190 +1,220 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+const codeExample = `import { Breadcrumb } from '@breadcrumb/sdk'
+
+const bc = new Breadcrumb({ apiKey: process.env.KEY })
+
+const result = await bc.trace('chat-response', async (t) => {
+  return t.span('llm-call', () => llm.complete(prompt))
+})`
 ---
 
 <Layout>
   <main>
     <!-- ── HERO ─────────────────────────────────────────── -->
     <section class="pt-20 pb-0">
-      <div class="max-w-[1080px] mx-auto px-6">
-
-        <!-- Brand -->
-        <a href="/" class="inline-flex items-center gap-2 font-display text-sm font-semibold text-fg tracking-tight mb-10">
-          <svg width="18" height="18" viewBox="0 0 278 277" fill="none">
-            <path d="M198.033 0.727C240.224 -5.344 278 27.386 278 70.011c0 17.711-6.668 34.277-18 46.857v86.356c-.167-.001-.333-.003-.5-.003-40.041 0-72.5 32.459-72.5 72.5 0 .167.002.334.003.5H53c-18.778 0-34-15.222-34-34V117.955C7.062 105.25 0 88.237 0 70.011 0 27.386 37.776-5.344 79.967.727l47.639 6.854c7.557 1.088 15.231 1.088 22.788 0l47.639-6.854z" fill="currentColor"/>
-          </svg>
-          <span>breadcrumb</span>
-        </a>
+      <div class="max-w-[1000px] mx-auto px-6">
 
         <!-- Heading block -->
-        <div class="max-w-2xl mb-16">
-          <h1 class="font-display text-[clamp(38px,5.5vw,64px)] font-semibold leading-[1.06] tracking-[-0.03em] text-fg mb-5">
-            Stop guessing what<br />your AI is doing.
+        <div class="mb-16">
+
+          <!-- Logo -->
+          <a href="/" class="block mb-8">
+            <svg width="54" height="54" viewBox="0 0 278 277" fill="none">
+              <path d="M198.033 0.727C240.224 -5.344 278 27.386 278 70.011c0 17.711-6.668 34.277-18 46.857v86.356c-.167-.001-.333-.003-.5-.003-40.041 0-72.5 32.459-72.5 72.5 0 .167.002.334.003.5H53c-18.778 0-34-15.222-34-34V117.955C7.062 105.25 0 88.237 0 70.011 0 27.386 37.776-5.344 79.967.727l47.639 6.854c7.557 1.088 15.231 1.088 22.788 0l47.639-6.854z" fill="currentColor"/>
+            </svg>
+          </a>
+
+          <h1 class="font-display text-[clamp(36px,5vw,62px)] font-semibold text-balance leading-[1.06] tracking-[-0.03em] text-fg mb-5">
+            Simple, open source<br />LLM tracing with breadcrumb
           </h1>
-          <p class="text-[17px] leading-[1.65] text-fg-2 max-w-[480px] mb-8">
-            Breadcrumb logs every LLM call your app makes — prompts, completions,
-            token counts, latency, cost. When something breaks, you'll know
-            exactly where and why.
+
+          <p class="text-[15px] leading-[1.7] text-fg-2 max-w-[440px] mb-8">
+            Log every prompt, completion, token count, latency, and cost.
+            Self-hostable and MIT licensed — integrates in minutes.
           </p>
-          <form id="home-cta" class="flex gap-2 max-w-sm" novalidate>
-            <input
-              type="email" name="email" required
-              placeholder="you@company.com"
-              class="flex-1 min-w-0 px-3.5 py-2.5 text-sm text-fg bg-white border border-border rounded-lg outline-none placeholder:text-fg-3 focus:border-fg transition-colors font-display"
-            />
-            <button
-              type="submit"
-              class="shrink-0 px-4 py-2.5 bg-fg text-white text-sm font-medium rounded-lg hover:opacity-80 active:scale-[0.98] transition-[opacity,transform] font-display whitespace-nowrap"
-            >
-              Get early access
-            </button>
-          </form>
-        </div>
 
-        <!-- ── Abstract trace timeline ───────────────────── -->
-        <div class="border border-border rounded-xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.07),0_4px_16px_rgba(0,0,0,0.04)]">
-
-          <!-- Browser chrome -->
-          <div class="flex items-center gap-2.5 px-4 py-[10px] bg-[#f0f0f0] border-b border-[#e0e0e0]">
-            <div class="flex gap-[5px] shrink-0">
-              <span class="block w-[10px] h-[10px] rounded-full bg-[#d0d0d0]"></span>
-              <span class="block w-[10px] h-[10px] rounded-full bg-[#d0d0d0]"></span>
-              <span class="block w-[10px] h-[10px] rounded-full bg-[#d0d0d0]"></span>
-            </div>
-            <span class="font-mono text-[11px] text-[#999] flex-1 text-center mr-[88px]">
-              app.breadcrumb.sh / my-project / traces
-            </span>
-          </div>
-
-          <!-- App content -->
-          <div class="bg-white">
-
-            <!-- Header bar -->
-            <div class="flex items-center justify-between px-6 py-[11px] border-b border-[#f5f5f5]">
-              <div class="flex items-center gap-[7px]">
-                <span class="relative flex h-[7px] w-[7px]">
-                  <span class="live-ping absolute inset-0 rounded-full" style="background:#22c08b;opacity:0.4"></span>
-                  <span class="relative rounded-full h-[7px] w-[7px]" style="background:#22c08b"></span>
-                </span>
-                <span class="font-display text-[13px] font-semibold text-fg">Traces</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="font-mono text-[10px]" style="color:#ccc">my-project</span>
-                <div class="flex gap-[5px]">
-                  <span class="block w-[7px] h-[7px] rounded-full" style="background:#fbbf24"></span>
-                  <span class="block w-[7px] h-[7px] rounded-full" style="background:#34d399"></span>
-                  <span class="block w-[7px] h-[7px] rounded-full" style="background:#a78bfa"></span>
-                  <span class="block w-[7px] h-[7px] rounded-full" style="background:#f472b6"></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Timeline body -->
-            <div class="px-6 pt-5 pb-7">
-
-              <!-- Time axis -->
-              <div class="flex justify-between mb-[10px]">
-                {['0', '250ms', '500ms', '750ms', '1s+'].map(t => (
-                  <span class="font-mono text-[9px]" style="color:#ddd">{t}</span>
-                ))}
-              </div>
-
-              <!-- Grid + rows -->
-              <div class="relative">
-
-                <!-- Vertical grid lines -->
-                <div class="absolute inset-0 flex pointer-events-none" aria-hidden="true">
-                  <div class="w-1/4 border-r border-[#efefef] h-full"></div>
-                  <div class="w-1/4 border-r border-[#efefef] h-full"></div>
-                  <div class="w-1/4 border-r border-[#efefef] h-full"></div>
-                  <div class="w-1/4 h-full"></div>
-                </div>
-
-                <!-- Rows (populated by JS) -->
-                <div id="tl-rows" class="flex flex-col gap-[13px] relative"></div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
-        <!-- end timeline -->
-
-      </div>
-    </section>
-
-    <!-- ── FEATURES ───────────────────────────────────────── -->
-    <section class="border-t border-border mt-20 py-24">
-      <div class="max-w-[1080px] mx-auto px-6">
-        <div class="grid grid-cols-3 gap-3">
-
-          {[
-            {
-              label: 'Full trace visibility',
-              body:  "Every LLM call gets logged — prompt, completion, token count, latency, cost. Nothing slips through.",
-              icon: (
-                <path d="M3 12l4-4 4 4 4-8 4 4" stroke="#c8903a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-              ),
-            },
-            {
-              label: 'Debug without guessing',
-              body:  "Trace any bad output back to the exact prompt that caused it. No more adding console.logs to your LLM calls.",
-              icon: (
-                <><circle cx="11" cy="11" r="7" stroke="#c8903a" stroke-width="1.75"/><path d="M16.5 16.5L21 21" stroke="#c8903a" stroke-width="1.75" stroke-linecap="round"/></>
-              ),
-            },
-            {
-              label: 'Understand your costs',
-              body:  "Track spend per user, per feature, per conversation. Know what's driving your API bill before it's a problem.",
-              icon: (
-                <path d="M12 2v20M2 12h20" stroke="#c8903a" stroke-width="1.75" stroke-linecap="round"/>
-              ),
-            },
-          ].map((f) => (
-            <div class="p-8 border border-border rounded-xl hover:bg-surface transition-colors">
-              <div class="w-9 h-9 border border-border rounded-lg flex items-center justify-center mb-5 bg-surface">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <Fragment set:html={f.icon} />
-                </svg>
-              </div>
-              <h3 class="font-display text-[15px] font-semibold text-fg mb-2.5 tracking-tight">{f.label}</h3>
-              <p class="text-sm leading-[1.65] text-fg-2">{f.body}</p>
-            </div>
-          ))}
-
-        </div>
-      </div>
-    </section>
-
-    <!-- ── BOTTOM CTA ─────────────────────────────────────── -->
-    <section class="pb-24">
-      <div class="max-w-[1080px] mx-auto px-6">
-        <div class="bg-surface border border-border rounded-2xl px-12 py-16 text-center">
-          <h2 class="font-display text-[clamp(22px,3vw,34px)] font-semibold tracking-tight text-fg mb-3">
-            Ready to see what's actually happening?
-          </h2>
-          <p class="text-[15px] text-fg-2 mb-8">Join the waitlist. We'll reach out when it's ready.</p>
           <a
             href="/early-access"
-            class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-fg text-white text-sm font-medium rounded-lg hover:opacity-80 active:scale-[0.98] transition-[opacity,transform]"
+            class="inline-flex items-center gap-3 px-5 py-3 bg-fg text-white text-[13px] font-semibold hover:opacity-80 transition-opacity font-display"
           >
             Get early access
+            <span>→</span>
           </a>
+
         </div>
+
+        <!-- ── Trace visualization ────────────────────── -->
+        <div class="border border-border bg-white">
+
+          <!-- Header bar -->
+          <div class="flex items-center justify-between px-6 py-3 border-b border-border">
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-[6px] w-[6px]">
+                <span class="live-ping absolute inset-0 rounded-full" style="background:#22c08b;opacity:0.4"></span>
+                <span class="relative rounded-full h-[6px] w-[6px]" style="background:#22c08b"></span>
+              </span>
+              <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">traces — my-project</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="font-mono text-[10px] text-fg-3">live</span>
+              <div class="flex gap-[5px]">
+                <span class="block w-[6px] h-[6px]" style="background:#fbbf24"></span>
+                <span class="block w-[6px] h-[6px]" style="background:#34d399"></span>
+                <span class="block w-[6px] h-[6px]" style="background:#a78bfa"></span>
+                <span class="block w-[6px] h-[6px]" style="background:#f472b6"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline body -->
+          <div class="px-6 pt-5 pb-7">
+
+            <!-- Time axis -->
+            <div class="flex justify-between mb-[10px]">
+              {['0', '250ms', '500ms', '750ms', '1s+'].map(t => (
+                <span class="font-mono text-[9px] text-fg-3" style="opacity:0.4">{t}</span>
+              ))}
+            </div>
+
+            <!-- Grid + rows -->
+            <div class="relative">
+
+              <!-- Vertical grid lines -->
+              <div class="absolute inset-0 flex pointer-events-none" aria-hidden="true">
+                <div class="w-1/4 border-r border-border h-full"></div>
+                <div class="w-1/4 border-r border-border h-full"></div>
+                <div class="w-1/4 border-r border-border h-full"></div>
+                <div class="w-1/4 h-full"></div>
+              </div>
+
+              <!-- Rows (populated by JS) -->
+              <div id="tl-rows" class="flex flex-col gap-[13px] relative"></div>
+
+            </div>
+          </div>
+
+        </div>
+        <!-- end visualization -->
+
+      </div>
+    </section>
+
+    <!-- ── BENTO GRID ─────────────────────────────────────── -->
+    <section class="mt-16 pb-24">
+      <div class="max-w-[1000px] mx-auto px-6">
+
+        <div class="grid grid-cols-3 gap-[1px] bg-border border border-border">
+
+          <!-- 01 — Full trace visibility (2/3 width) -->
+          <div class="col-span-2 bg-white p-8">
+            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase block mb-7">01 — visibility</span>
+            <h3 class="font-display text-[19px] font-semibold text-fg tracking-tight leading-snug mb-3">
+              Full trace visibility
+            </h3>
+            <p class="text-[13px] leading-[1.75] text-fg-2 mb-7 max-w-[300px]">
+              Every LLM call gets logged — prompt, completion, token count,
+              latency, and cost. Nothing slips through the cracks.
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              {['prompts', 'completions', 'token counts', 'latency', 'cost'].map(tag => (
+                <span class="font-mono text-[10px] px-2 py-1 border border-border text-fg-3">{tag}</span>
+              ))}
+            </div>
+          </div>
+
+          <!-- Avg cost metric (1/3 width) -->
+          <div class="bg-white p-8 flex flex-col justify-between">
+            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">avg. cost / trace</span>
+            <div>
+              <div class="font-mono text-[38px] font-light text-fg leading-none tracking-tight mb-1.5">$0.0024</div>
+              <div class="font-mono text-[10px] text-fg-3">placeholder metric</div>
+            </div>
+          </div>
+
+          <!-- Open source (1/3 width) -->
+          <div class="bg-white p-8 flex flex-col justify-between">
+            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">license</span>
+            <div>
+              <div class="font-display text-[34px] font-semibold text-fg leading-none mb-1">MIT</div>
+              <div class="text-[13px] text-fg-2 mb-5">Open source, always.</div>
+              <a href="#" class="font-mono text-[10px] text-fg-3 hover:text-fg transition-colors">
+                ★ — github.com/breadcrumb
+              </a>
+            </div>
+          </div>
+
+          <!-- 02 — Debug without guessing (2/3 width) -->
+          <div class="col-span-2 bg-white p-8">
+            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase block mb-7">02 — debugging</span>
+            <h3 class="font-display text-[19px] font-semibold text-fg tracking-tight leading-snug mb-3">
+              Debug without guessing
+            </h3>
+            <p class="text-[13px] leading-[1.75] text-fg-2 mb-7 max-w-[300px]">
+              Trace any bad output back to the exact prompt that caused it. No more adding
+              <code class="font-mono text-[11px] bg-surface px-1 py-0.5">console.log</code> to your LLM calls.
+            </p>
+            <div class="flex items-center gap-2.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-[6px] h-[6px] rounded-full bg-[#22c08b]"></span>
+                <span class="font-mono text-[10px] text-fg-3">user input</span>
+              </div>
+              <span class="font-mono text-[10px] text-fg-3">→</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-[6px] h-[6px] rounded-full bg-[#fbbf24]"></span>
+                <span class="font-mono text-[10px] text-fg-3">llm-call</span>
+              </div>
+              <span class="font-mono text-[10px] text-fg-3">→</span>
+              <div class="flex items-center gap-1.5">
+                <span class="w-[6px] h-[6px] rounded-full bg-[#f87171]"></span>
+                <span class="font-mono text-[10px] text-fg-3">bad output ✕</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SDK code snippet (2/3 width) -->
+          <div class="col-span-2 bg-surface p-8">
+            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase block mb-5">sdk</span>
+            <pre class="font-mono text-[11.5px] text-fg leading-[1.9] overflow-x-auto"><code set:text={codeExample}></code></pre>
+          </div>
+
+          <!-- CTA (1/3 width) -->
+          <div class="bg-white p-8 flex flex-col justify-between">
+            <div>
+              <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase block mb-5">get access</span>
+              <p class="font-display text-[15px] font-semibold text-fg leading-snug mb-2.5">
+                Ready to see what's happening?
+              </p>
+              <p class="text-[12px] text-fg-2 leading-[1.7]">
+                Join the waitlist. We'll reach out when it's ready.
+              </p>
+            </div>
+            <a
+              href="/early-access"
+              class="inline-flex items-center justify-between w-full px-4 py-3 bg-fg text-white text-[12px] font-semibold hover:opacity-80 transition-opacity font-display mt-6"
+            >
+              Get early access
+              <span>→</span>
+            </a>
+          </div>
+
+        </div>
+
       </div>
     </section>
   </main>
 
   <!-- ── FOOTER ─────────────────────────────────────────── -->
   <footer class="border-t border-border py-6">
-    <div class="max-w-[1080px] mx-auto px-6 flex items-center justify-between">
+    <div class="max-w-[1000px] mx-auto px-6 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 font-display text-[13px] font-medium text-[#bbb]">
         <svg width="14" height="14" viewBox="0 0 278 277" fill="none">
           <path d="M198.033 0.727C240.224 -5.344 278 27.386 278 70.011c0 17.711-6.668 34.277-18 46.857v86.356c-.167-.001-.333-.003-.5-.003-40.041 0-72.5 32.459-72.5 72.5 0 .167.002.334.003.5H53c-18.778 0-34-15.222-34-34V117.955C7.062 105.25 0 88.237 0 70.011 0 27.386 37.776-5.344 79.967.727l47.639 6.854c7.557 1.088 15.231 1.088 22.788 0l47.639-6.854z" fill="currentColor"/>
         </svg>
         breadcrumb
       </a>
-      <p class="text-xs text-[#ccc]">&copy; 2025 Breadcrumb</p>
+      <p class="text-xs text-[#ccc]">&copy; 2026 Breadcrumb</p>
     </div>
   </footer>
 
@@ -198,18 +228,9 @@ import Layout from '../layouts/Layout.astro';
 </style>
 
 <script>
-  // ── Home CTA ──────────────────────────────────────────────────
-  document.getElementById('home-cta')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = (e.currentTarget as HTMLFormElement)
-      .querySelector<HTMLInputElement>('[name=email]')?.value.trim();
-    if (email) window.location.href = `/early-access?email=${encodeURIComponent(email)}`;
-  });
-
   // ── Abstract timeline animation ───────────────────────────────
 
   type BlockColor = 'amber' | 'teal' | 'violet' | 'pink';
-  // [color, startPct, widthPct, growDuration_ms]
   type Block = [BlockColor, number, number, number];
 
   const COLORS: Record<BlockColor, string> = {
@@ -219,44 +240,32 @@ import Layout from '../layouts/Layout.astro';
     pink:   '#f472b6',
   };
 
-  // Each sequence represents one trace's spans laid out on a 0–100% timeline
-  // (baseline ~1000ms). Spans grow left-to-right in order.
   const SEQS: Block[][] = [
-    // context retrieval → llm generation
     [['teal',   0, 13, 240], ['amber', 16, 81, 840]],
-    // agent: plan → search → format → respond
     [['amber',  0, 19, 340], ['teal', 22,  7, 110], ['teal', 31, 5, 80], ['amber', 38, 59, 720]],
-    // single fast llm call
     [['amber',  2, 94, 400]],
-    // embedding pipeline
     [['violet', 0, 45, 440], ['pink', 49, 48, 500]],
-    // cache miss + long generation
     [['teal',   0,  4,  60], ['amber',  7, 90, 980]],
-    // fetch + summarize
     [['teal',   0,  9, 150], ['amber', 12, 85, 860]],
-    // planning chain with two tool calls
     [['violet', 0, 14, 260], ['teal', 17,  6, 100], ['teal', 25, 6, 100], ['amber', 33, 64, 760]],
   ];
 
   const rowsEl = document.getElementById('tl-rows')!;
   const ROW_COUNT = 5;
 
-  // Build row DOM elements
   const rowContainers: HTMLElement[] = [];
   for (let i = 0; i < ROW_COUNT; i++) {
     const row = document.createElement('div');
     row.style.cssText = 'position:relative;height:28px;';
 
-    // Pill-shaped track background
     const track = document.createElement('div');
-    track.style.cssText = 'position:absolute;inset:0;background:#f7f7f7;border-radius:5px;';
+    track.style.cssText = 'position:absolute;inset:0;background:#f0f0f0;border-radius:0;';
     row.appendChild(track);
 
     rowsEl.appendChild(row);
     rowContainers.push(row);
   }
 
-  // Double-rAF: ensures the browser has committed styles before we trigger transition
   const raf2 = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
@@ -269,7 +278,6 @@ import Layout from '../layouts/Layout.astro';
 
       const blockEls: HTMLElement[] = [];
 
-      // Animate blocks in sequence — each grows fully before the next starts
       for (const [color, startPct, widthPct, growMs] of seq) {
         const block = document.createElement('div');
         block.style.cssText = `
@@ -278,7 +286,7 @@ import Layout from '../layouts/Layout.astro';
           left: ${startPct}%;
           width: ${widthPct}%;
           background: ${COLORS[color]};
-          border-radius: 4px;
+          border-radius: 0;
           transform: scaleX(0);
           transform-origin: left center;
           will-change: transform;
@@ -292,10 +300,8 @@ import Layout from '../layouts/Layout.astro';
         await sleep(growMs + 20);
       }
 
-      // Hold the completed trace
       await sleep(1600);
 
-      // Fade all blocks out together
       blockEls.forEach(b => {
         b.style.transition = 'opacity 0.32s ease';
         b.style.opacity = '0';
@@ -307,7 +313,6 @@ import Layout from '../layouts/Layout.astro';
     }
   }
 
-  // Stagger row starts so they're always at different phases
   rowContainers.forEach((row, i) => {
     setTimeout(() => animateRow(row, i), i * 1350);
   });
