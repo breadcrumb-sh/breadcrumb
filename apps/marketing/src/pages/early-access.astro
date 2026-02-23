@@ -3,20 +3,27 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Get notified - Breadcrumb">
-  <main class="min-h-svh px-6 pt-16 pb-24">
-    <div class="max-w-[520px] mx-auto">
 
-      <!-- Logo -->
-      <a href="/" class="block mb-14">
-        <svg width="32" height="32" viewBox="0 0 278 277" fill="none">
+  <!-- ── NAV ─────────────────────────────────────────────── -->
+  <nav>
+    <div class="page-inner h-[64px] flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2.5">
+        <svg width="24" height="24" viewBox="0 0 278 277" fill="none">
           <path d="M198.033 0.727C240.224 -5.344 278 27.386 278 70.011c0 17.711-6.668 34.277-18 46.857v86.356c-.167-.001-.333-.003-.5-.003-40.041 0-72.5 32.459-72.5 72.5 0 .167.002.334.003.5H53c-18.778 0-34-15.222-34-34V117.955C7.062 105.25 0 88.237 0 70.011 0 27.386 37.776-5.344 79.967.727l47.639 6.854c7.557 1.088 15.231 1.088 22.788 0l47.639-6.854z" fill="currentColor"/>
         </svg>
+        <span class="font-display font-semibold text-[16px] tracking-tight text-fg">Breadcrumb</span>
       </a>
+      <a href="/" class="font-mono text-[11px] text-fg-3 hover:text-fg transition-colors">← back</a>
+    </div>
+  </nav>
+
+  <main class="min-h-svh pb-24">
+    <div class="page-inner">
 
       <!-- ── Panel 0: Email ──────────────────────────── -->
-      <div class="step-panel active" id="panel-0">
+      <div class="step-panel active pt-12 sm:pt-16 max-w-[520px]" id="panel-0">
         <div class="font-mono text-[10px] text-fg-3 tracking-widest uppercase mb-8">
-          01 / 02 — email
+          01 / 02 - email
         </div>
         <h1 class="font-display text-[clamp(26px,4vw,36px)] font-semibold tracking-tight text-fg leading-[1.08] mb-3">
           Get notified.
@@ -50,15 +57,15 @@ import Layout from '../layouts/Layout.astro';
       </div>
 
       <!-- ── Panel 1: Tell us more ──────────────────── -->
-      <div class="step-panel" id="panel-1">
+      <div class="step-panel pt-12 sm:pt-16 max-w-[520px]" id="panel-1">
         <div class="font-mono text-[10px] text-fg-3 tracking-widest uppercase mb-8">
-          02 / 02 — tell us more
+          02 / 02 - tell us more
         </div>
         <h1 class="font-display text-[clamp(26px,4vw,36px)] font-semibold tracking-tight text-fg leading-[1.08] mb-3">
           You're on the list.
         </h1>
         <p class="text-[15px] text-fg-2 leading-[1.65] mb-10">
-          Help us build the right thing — tell us a bit about what you're working on.
+          Help us build the right thing - tell us a bit about what you're working on.
         </p>
 
         <form id="detail-form" novalidate class="flex flex-col gap-9">
@@ -131,7 +138,7 @@ import Layout from '../layouts/Layout.astro';
       </div>
 
       <!-- ── Panel: Success ─────────────────────────── -->
-      <div class="step-panel" id="panel-success">
+      <div class="step-panel pt-12 sm:pt-16 max-w-[520px]" id="panel-success">
         <div class="font-mono text-[10px] text-fg-3 tracking-widest uppercase mb-8">
           done
         </div>
@@ -149,6 +156,13 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <style>
+  .page-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
   .step-panel        { display: none; animation: fadeUp 0.18s ease both; }
   .step-panel.active { display: block; }
 
@@ -238,7 +252,7 @@ import Layout from '../layouts/Layout.astro';
     } catch {
       emailSubmit.classList.remove('loading');
       emailSubmit.disabled = false;
-      emailError.textContent = 'Something went wrong — please try again.';
+      emailError.textContent = 'Something went wrong - please try again.';
       emailError.classList.remove('hidden');
     }
   });
