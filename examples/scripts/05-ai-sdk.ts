@@ -1,34 +1,39 @@
 /**
  * 05-ai-sdk — AI SDK integration with @breadcrumb/ai-sdk.
  *
- * traceAgent() creates a trace and sets the ALS context in one call.
- * agent.traceModel() wraps the model — every generateText/streamText call
- * inside is tracked automatically with no extra wiring.
+ * useAiSdkTracing(bc) binds the client once and returns two helpers:
  *
- * subagent.traceModel() continues the same trace inside tool execute()
- * functions via ALS — no explicit passing required.
+ *   trace(opts)       — single call, trace auto-created and auto-closed.
+ *   traceAgent(opts)  — multi-step agent; use .step() per call, .end() when done.
+ *
+ * For nested generateText inside a tool execute(), pass the same step config
+ * to the inner call — OTEL context propagation detects the nesting and places
+ * the inner spans under the outer doGenerate span automatically.
  *
  * Uses MockLanguageModelV3 from "ai/test" so no real API key is needed.
  * In production, swap the mock for a real model:
  *   import { anthropic } from "@ai-sdk/anthropic";
- *   const raw = anthropic("claude-opus-4-6");
+ *   const model = anthropic("claude-opus-4-6");
  *
  * Run: npm run ai-sdk --workspace=examples
  */
 
-import { subagent, traceAgent } from "@breadcrumb/ai-sdk";
+import { useAiSdkTracing } from "@breadcrumb/ai-sdk";
 import { Breadcrumb } from "@breadcrumb/sdk";
 import { generateText, streamText, tool } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import { z } from "zod";
-import { config, sleep } from "./config.js";
+import { config, sleep } from "../config.js";
 
 const bc = new Breadcrumb(config);
 
-// ── Mock models ───────────────────────────────────────────────────────────────
-// In production: const raw = anthropic("claude-opus-4-6")
+// Bind helpers to the client once — export these from a shared module in real apps.
+const { trace, traceAgent } = useAiSdkTracing(bc);
 
-const raw = new MockLanguageModelV3({
+// ── Mock models ───────────────────────────────────────────────────────────────
+// In production: const model = anthropic("claude-opus-4-6")
+
+const model = new MockLanguageModelV3({
   provider: "anthropic.messages",
   modelId: "claude-opus-4-6",
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,12 +59,7 @@ const raw = new MockLanguageModelV3({
           type: "finish",
           finishReason: "stop",
           usage: {
-            inputTokens: {
-              total: 18,
-              noCache: 18,
-              cacheRead: 0,
-              cacheWrite: 0,
-            },
+            inputTokens: { total: 18, noCache: 18, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 8, text: 8, reasoning: 0 },
           },
         });
@@ -69,7 +69,7 @@ const raw = new MockLanguageModelV3({
   })) as any,
 });
 
-const toolCallRaw = new MockLanguageModelV3({
+const toolCallModel = new MockLanguageModelV3({
   provider: "anthropic.messages",
   modelId: "claude-opus-4-6",
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,39 +92,31 @@ const toolCallRaw = new MockLanguageModelV3({
   doStream: undefined as any,
 });
 
-// ── Example 1: generateText ───────────────────────────────────────────────────
+// ── Example 1: trace() — single generateText call ────────────────────────────
+// Trace is created automatically and closed when the call completes.
 
-console.log("─── generateText ───");
+console.log("─── trace() + generateText ───");
 
 const question = "What is the capital of France?";
 
-const chatAgent = traceAgent({
-  client: bc,
-  name: "simple-chat",
-  input: { question },
-});
 const { text: answer } = await generateText({
-  model: chatAgent.traceModel(raw),
+  model,
   prompt: question,
+  experimental_telemetry: trace({ name: "simple-chat", input: { question }, userId: "demo" }),
 });
-chatAgent.end({ output: answer });
 
 console.log("answer:", answer);
 
-// ── Example 2: streamText ─────────────────────────────────────────────────────
+// ── Example 2: trace() — streamText ──────────────────────────────────────────
 
-console.log("\n─── streamText ───");
+console.log("\n─── trace() + streamText ───");
 
 const topic = "TypeScript generics";
 
-const streamAgent = traceAgent({
-  client: bc,
-  name: "stream-chat",
-  input: { topic },
-});
 const { textStream } = streamText({
-  model: streamAgent.traceModel(raw),
+  model,
   prompt: `Explain ${topic} briefly.`,
+  experimental_telemetry: trace({ name: "stream-chat", input: { topic } }),
 });
 
 process.stdout.write("stream: ");
@@ -132,21 +124,14 @@ for await (const chunk of textStream) {
   process.stdout.write(chunk);
 }
 console.log();
-streamAgent.end();
 
-// ── Example 3: Tool calls ─────────────────────────────────────────────────────
-// Tool spans nest automatically under the LLM span.
+// ── Example 3: trace() — tool calls ──────────────────────────────────────────
+// Tool spans nest automatically under the LLM span via OTEL context.
 
-console.log("\n─── tool calls ───");
-
-const weatherAgent = traceAgent({
-  client: bc,
-  name: "weather-agent",
-  input: { task: "What is the weather in Paris?" },
-});
+console.log("\n─── trace() + tool calls ───");
 
 await generateText({
-  model: weatherAgent.traceModel(toolCallRaw),
+  model: toolCallModel,
   prompt: "What is the weather in Paris?",
   tools: {
     get_weather: tool({
@@ -154,64 +139,57 @@ await generateText({
       inputSchema: z.object({ city: z.string() }),
     }),
   },
-}).catch(() => {}); // mock returns tool-call only, no final text — ignore
+  experimental_telemetry: trace({ name: "weather-lookup", input: { query: "weather in Paris" } }),
+}).catch(() => {}); // mock returns tool-call with no execute — ignore the no-result error
 
-weatherAgent.end();
+// ── Example 4: traceAgent() — multi-step ─────────────────────────────────────
+// Several generateText calls grouped under one agent trace.
+// The step config is saved so it can be passed to nested calls inside tool execute().
 
-// ── Example 4: subagent inside tool execute ───────────────────────────────────
-// subagent.traceModel() reads the active agent from ALS — set by traceAgent()
-// above — so nested LLM calls are automatically part of the same trace.
-
-console.log("\n─── subagent in tool execute ───");
+console.log("\n─── traceAgent() ───");
 
 const task = "Summarise the weather in Paris and London";
+const agent = traceAgent({ name: "weather-summary", input: { task }, userId: "demo" });
 
-const multiAgent = traceAgent({
-  client: bc,
-  name: "multi-step",
-  input: { task },
-  userId: "user-demo",
-});
+// Save the step so the nested generateText inside tool execute can reuse the
+// same BcTracer — OTEL context propagation then shows the inner call as a
+// sub-step under the outer doGenerate span.
+const searchStep = agent.step("search");
 
 await generateText({
-  model: multiAgent.traceModel(toolCallRaw),
+  model: toolCallModel,
   prompt: task,
   tools: {
     get_weather: tool({
       description: "Get the weather for a city",
       inputSchema: z.object({ city: z.string() }),
       execute: async ({ city }) => {
-        // subagent reads the active agent from ALS — no explicit passing needed
         const { text } = await generateText({
-          model: subagent.traceModel(raw),
+          model,
           prompt: `Describe the weather in ${city}`,
+          // Same step tracer → OTEL context detects the nesting and places
+          // this LLM call under the outer doGenerate span in the trace view.
+          experimental_telemetry: searchStep,
         });
         return text;
       },
     }),
   },
+  experimental_telemetry: searchStep,
 }).catch(() => {});
 
-multiAgent.end();
+agent.end({ output: "done" });
 
-// ── Example 5: RAG pipeline ───────────────────────────────────────────────────
-// agent.track() adds manual spans alongside the LLM span in the same trace.
+// ── Example 5: traceAgent() + manual spans ───────────────────────────────────
+// agent.track() adds manual spans (e.g. retrieval) alongside LLM spans.
 
-console.log("\n─── RAG pipeline ───");
+console.log("\n─── traceAgent() + manual spans ───");
 
 const ragQuery = "What are the main features of TypeScript?";
+const ragAgent = traceAgent({ name: "rag-pipeline", input: { ragQuery }, userId: "demo" });
 
-const ragAgent = traceAgent({
-  client: bc,
-  name: "rag-pipeline",
-  input: { ragQuery },
-  userId: "user-demo",
-});
-
-// Retrieval step — manually tracked span
-const tSearch = ragAgent.track("vector-search", "retrieval", {
-  input: { ragQuery, topK: 3 },
-});
+// Manual retrieval span
+const tSearch = ragAgent.track("vector-search", "retrieval", { input: { ragQuery, topK: 3 } });
 await sleep(80);
 const docs = [
   "TypeScript adds static typing to JavaScript.",
@@ -219,14 +197,14 @@ const docs = [
 ];
 tSearch.end({ output: { docs } });
 
-// Generation step — subagent.traceModel() continues the same trace
+// Generation step
 const { text: ragAnswer } = await generateText({
-  model: subagent.traceModel(raw),
+  model,
   prompt: `Context:\n${docs.join("\n")}\n\nQuestion: ${ragQuery}`,
+  experimental_telemetry: ragAgent.step("generate"),
 });
 
 ragAgent.end({ output: ragAnswer });
-
 console.log("answer:", ragAnswer);
 
 await bc.shutdown();

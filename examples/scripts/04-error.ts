@@ -9,7 +9,7 @@
  */
 
 import { Breadcrumb } from "@breadcrumb/sdk";
-import { config, sleep } from "./config.js";
+import { config, sleep } from "../config.js";
 
 const bc = new Breadcrumb(config);
 

@@ -1,9 +1,17 @@
-import { useState } from "react";
+import {
+  ArrowLeft,
+  CaretDown,
+  CaretRight,
+  CheckCircle,
+  XCircle,
+} from "@phosphor-icons/react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, CaretRight, CaretDown, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
 
-export const Route = createFileRoute("/_authed/projects/$projectId/trace/$traceId")({
+export const Route = createFileRoute(
+  "/_authed/projects/$projectId/trace/$traceId",
+)({
   component: TraceDetailPage,
 });
 
@@ -37,7 +45,7 @@ type Tab = "tree" | "timeline";
 
 function buildTree(spans: SpanData[]): SpanNode[] {
   const map = new Map<string, SpanNode>(
-    spans.map((s) => [s.id, { ...s, children: [] }])
+    spans.map((s) => [s.id, { ...s, children: [] }]),
   );
   const roots: SpanNode[] = [];
 
@@ -83,8 +91,11 @@ function fmtMs(ms: number): string {
 }
 
 function tryPrettyJson(s: string): string {
-  try { return JSON.stringify(JSON.parse(s), null, 2); }
-  catch { return s; }
+  try {
+    return JSON.stringify(JSON.parse(s), null, 2);
+  } catch {
+    return s;
+  }
 }
 
 function formatCost(usd: number): string {
@@ -96,23 +107,28 @@ function formatCost(usd: number): string {
 
 function formatTime(chDate: string): string {
   return new Date(chDate.replace(" ", "T") + "Z").toLocaleString(undefined, {
-    month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
 const TYPE_CLASSES: Record<string, string> = {
-  llm:       "text-purple-400 bg-purple-400/10 border-purple-400/20",
-  tool:      "text-blue-400 bg-blue-400/10 border-blue-400/20",
+  llm: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+  tool: "text-blue-400 bg-blue-400/10 border-blue-400/20",
   retrieval: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
 };
 function typeClass(type: string) {
-  return TYPE_CLASSES[type] ?? "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
+  return (
+    TYPE_CLASSES[type] ?? "text-zinc-400 bg-zinc-400/10 border-zinc-400/20"
+  );
 }
 
 const BAR_CLASSES: Record<string, string> = {
-  llm:       "bg-purple-500/40 border border-purple-500/60",
-  tool:      "bg-blue-500/40 border border-blue-500/60",
+  llm: "bg-purple-500/40 border border-purple-500/60",
+  tool: "bg-blue-500/40 border border-blue-500/60",
   retrieval: "bg-emerald-500/40 border border-emerald-500/60",
 };
 function barClass(type: string) {
@@ -151,28 +167,43 @@ function SpanRow({
         {/* Expand toggle */}
         <button
           className="shrink-0 w-4 flex items-center justify-center text-zinc-600 hover:text-zinc-400"
-          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen((o) => !o);
+          }}
         >
-          {hasChildren
-            ? (open ? <CaretDown size={10} /> : <CaretRight size={10} />)
-            : <span className="w-2.5" />}
+          {hasChildren ? (
+            open ? (
+              <CaretDown size={10} />
+            ) : (
+              <CaretRight size={10} />
+            )
+          ) : (
+            <span className="w-2.5" />
+          )}
         </button>
 
         {/* Status dot */}
-        <span className={`shrink-0 size-1.5 rounded-full ${
-          node.status === "error" ? "bg-red-500" : "bg-emerald-500"
-        }`} />
+        <span
+          className={`shrink-0 size-1.5 rounded-full ${
+            node.status === "error" ? "bg-red-500" : "bg-emerald-500"
+          }`}
+        />
 
         {/* Name + badge */}
         <span className="text-xs text-zinc-100 font-medium truncate flex-1 min-w-0">
           {node.name}
         </span>
-        <span className={`shrink-0 inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${typeClass(node.type)}`}>
+        <span
+          className={`shrink-0 inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${typeClass(node.type)}`}
+        >
           {node.type}
         </span>
 
         {/* Duration */}
-        <span className="shrink-0 text-[11px] text-zinc-500 tabular-nums w-12 text-right">{dur}</span>
+        <span className="shrink-0 text-[11px] text-zinc-500 tabular-nums w-12 text-right">
+          {dur}
+        </span>
 
         {/* Tokens */}
         {totalTokens > 0 && (
@@ -189,9 +220,16 @@ function SpanRow({
         )}
       </div>
 
-      {open && node.children.map((child) => (
-        <SpanRow key={child.id} node={child} depth={depth + 1} selectedId={selectedId} onSelect={onSelect} />
-      ))}
+      {open &&
+        node.children.map((child) => (
+          <SpanRow
+            key={child.id}
+            node={child}
+            depth={depth + 1}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ))}
     </>
   );
 }
@@ -207,8 +245,12 @@ function SpanDetail({ span }: { span: SpanData }) {
       {/* Span header */}
       <div className="px-5 py-4 border-b border-zinc-800 shrink-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-sm font-semibold text-zinc-100">{span.name}</span>
-          <span className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${typeClass(span.type)}`}>
+          <span className="text-sm font-semibold text-zinc-100">
+            {span.name}
+          </span>
+          <span
+            className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${typeClass(span.type)}`}
+          >
             {span.type}
           </span>
           {span.status === "error" ? (
@@ -224,10 +266,17 @@ function SpanDetail({ span }: { span: SpanData }) {
         <div className="flex items-center gap-4 text-[11px] text-zinc-500 flex-wrap">
           {span.model && <span className="font-mono">{span.model}</span>}
           <span>{dur}</span>
-          {span.inputTokens > 0 && <span>{span.inputTokens.toLocaleString()} in / {span.outputTokens.toLocaleString()} out</span>}
+          {span.inputTokens > 0 && (
+            <span>
+              {span.inputTokens.toLocaleString()} in /{" "}
+              {span.outputTokens.toLocaleString()} out
+            </span>
+          )}
           {totalCost > 0 && <span>{formatCost(totalCost)}</span>}
         </div>
-        <div className="mt-1.5 text-[10px] text-zinc-600 font-mono">{formatTime(span.startTime)}</div>
+        <div className="mt-1.5 text-[10px] text-zinc-600 font-mono">
+          {formatTime(span.startTime)}
+        </div>
         {span.status === "error" && span.statusMessage && (
           <div className="mt-2 text-xs text-red-400">{span.statusMessage}</div>
         )}
@@ -235,15 +284,13 @@ function SpanDetail({ span }: { span: SpanData }) {
 
       {/* Input / Output / Metadata */}
       <div className="flex-1 overflow-y-auto divide-y divide-zinc-800">
-        {span.input && (
-          <Section label="Input" content={span.input} />
-        )}
-        {span.output && (
-          <Section label="Output" content={span.output} />
-        )}
-        {span.metadata && span.metadata !== "{}" && span.metadata !== "null" && (
-          <Section label="Metadata" content={span.metadata} />
-        )}
+        {span.input && <Section label="Input" content={span.input} />}
+        {span.output && <Section label="Output" content={span.output} />}
+        {span.metadata &&
+          span.metadata !== "{}" &&
+          span.metadata !== "null" && (
+            <Section label="Metadata" content={span.metadata} />
+          )}
         {!span.input && !span.output && (
           <div className="flex items-center justify-center py-12 text-xs text-zinc-600">
             No input or output recorded
@@ -257,7 +304,9 @@ function SpanDetail({ span }: { span: SpanData }) {
 function Section({ label, content }: { label: string; content: string }) {
   return (
     <div className="px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+        {label}
+      </p>
       <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-all font-mono leading-relaxed">
         {tryPrettyJson(content)}
       </pre>
@@ -272,8 +321,8 @@ function TimelineView({ tree }: { tree: SpanNode[] }) {
   if (!flat.length) return null;
 
   const allMs = flat.flatMap((s) => [parseMs(s.startTime), parseMs(s.endTime)]);
-  const minT    = Math.min(...allMs);
-  const maxT    = Math.max(...allMs);
+  const minT = Math.min(...allMs);
+  const maxT = Math.max(...allMs);
   const totalMs = maxT - minT || 1;
   const totalDur = fmtMs(totalMs);
 
@@ -290,19 +339,29 @@ function TimelineView({ tree }: { tree: SpanNode[] }) {
       </div>
 
       {flat.map((span) => {
-        const leftPct  = ((parseMs(span.startTime) - minT) / totalMs) * 100;
-        const widthPct = Math.max(((parseMs(span.endTime) - parseMs(span.startTime)) / totalMs) * 100, 0.4);
+        const leftPct = ((parseMs(span.startTime) - minT) / totalMs) * 100;
+        const widthPct = Math.max(
+          ((parseMs(span.endTime) - parseMs(span.startTime)) / totalMs) * 100,
+          0.4,
+        );
         const dur = fmtMs(spanDurationMs(span.startTime, span.endTime));
 
         return (
-          <div key={span.id} className="flex items-center h-9 hover:bg-zinc-900/50 transition-colors">
+          <div
+            key={span.id}
+            className="flex items-center h-9 hover:bg-zinc-900/50 transition-colors"
+          >
             {/* Name */}
             <div
               className="w-52 shrink-0 flex items-center gap-1.5 pr-2 overflow-hidden"
               style={{ paddingLeft: `${12 + span.depth * 12}px` }}
             >
-              <span className={`shrink-0 size-1.5 rounded-full ${span.status === "error" ? "bg-red-500" : "bg-emerald-500"}`} />
-              <span className="text-xs text-zinc-200 truncate">{span.name}</span>
+              <span
+                className={`shrink-0 size-1.5 rounded-full ${span.status === "error" ? "bg-red-500" : "bg-emerald-500"}`}
+              />
+              <span className="text-xs text-zinc-200 truncate">
+                {span.name}
+              </span>
             </div>
 
             {/* Bar */}
@@ -334,19 +393,25 @@ function TraceDetailPage() {
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);
 
   const spans = trpc.traces.spans.useQuery({ projectId, traceId });
-  const tree  = spans.data ? buildTree(spans.data) : [];
-  const flat  = flattenTree(tree);
+  const tree = spans.data ? buildTree(spans.data) : [];
+  const flat = flattenTree(tree);
 
   // Compute trace-level summary from spans
-  const totalCost     = (spans.data ?? []).reduce((s, sp) => s + sp.inputCostUsd + sp.outputCostUsd, 0);
-  const totalTokens   = (spans.data ?? []).reduce((s, sp) => s + sp.inputTokens + sp.outputTokens, 0);
-  const traceMs       = flat.length
-    ? Math.max(...flat.map((s) => parseMs(s.endTime))) - Math.min(...flat.map((s) => parseMs(s.startTime)))
+  const totalCost = (spans.data ?? []).reduce(
+    (s, sp) => s + sp.inputCostUsd + sp.outputCostUsd,
+    0,
+  );
+  const totalTokens = (spans.data ?? []).reduce(
+    (s, sp) => s + sp.inputTokens + sp.outputTokens,
+    0,
+  );
+  const traceMs = flat.length
+    ? Math.max(...flat.map((s) => parseMs(s.endTime))) -
+      Math.min(...flat.map((s) => parseMs(s.startTime)))
     : 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-53px-41px)]">
-
       {/* ── Subheader ── */}
       <div className="px-4 sm:px-8 py-3 border-b border-zinc-800 flex items-center gap-4 shrink-0">
         <button
@@ -360,13 +425,17 @@ function TraceDetailPage() {
         <div className="h-3 w-px bg-zinc-800 shrink-0" />
 
         <div className="min-w-0 flex-1 flex items-center gap-3">
-          <span className="text-xs text-zinc-500 font-mono truncate">{traceId}</span>
+          <span className="text-xs text-zinc-500 font-mono truncate">
+            {traceId}
+          </span>
           {spans.data && (
             <div className="flex items-center gap-3 text-[11px] text-zinc-500 shrink-0">
               <span>{spans.data.length} spans</span>
-              {totalTokens > 0 && <span>{totalTokens.toLocaleString()} tokens</span>}
-              {totalCost > 0  && <span>{formatCost(totalCost)}</span>}
-              {traceMs > 0    && <span>{fmtMs(traceMs)}</span>}
+              {totalTokens > 0 && (
+                <span>{totalTokens.toLocaleString()} tokens</span>
+              )}
+              {totalCost > 0 && <span>{formatCost(totalCost)}</span>}
+              {traceMs > 0 && <span>{fmtMs(traceMs)}</span>}
             </div>
           )}
         </div>
@@ -378,7 +447,9 @@ function TraceDetailPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                tab === t ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+                tab === t
+                  ? "bg-zinc-800 text-zinc-100"
+                  : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {t === "tree" ? "Tree" : "Timeline"}
@@ -407,10 +478,18 @@ function TraceDetailPage() {
           <div className="flex flex-col w-[420px] shrink-0 border-r border-zinc-800 overflow-y-auto">
             {/* Column headers */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800 shrink-0">
-              <span className="flex-1 text-[10px] font-medium text-zinc-600 uppercase tracking-wide pl-6">Span</span>
-              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-12 text-right">Dur</span>
-              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-14 text-right">Tokens</span>
-              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-16 text-right">Cost</span>
+              <span className="flex-1 text-[10px] font-medium text-zinc-600 uppercase tracking-wide pl-6">
+                Span
+              </span>
+              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-12 text-right">
+                Dur
+              </span>
+              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-14 text-right">
+                Tokens
+              </span>
+              <span className="text-[10px] font-medium text-zinc-600 uppercase tracking-wide w-16 text-right">
+                Cost
+              </span>
             </div>
             <div className="flex-1">
               {tree.map((node) => (

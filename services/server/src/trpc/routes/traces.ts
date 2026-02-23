@@ -2,6 +2,14 @@ import { z } from "zod";
 import { router, procedure } from "../trpc.js";
 import { clickhouse } from "../../db/clickhouse.js";
 
+// ClickHouse Map columns (e.g. metadata) come back as JS objects from JSONEachRow.
+// String() on an object produces "[object Object]", so we serialize explicitly.
+function toStr(v: unknown): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "string") return v;
+  return JSON.stringify(v);
+}
+
 // Reusable rollups subquery fragment.
 const ROLLUPS_SUBQUERY = (projectIdParam: string) => `
   SELECT
@@ -460,9 +468,9 @@ export const tracesRouter = router({
         outputTokens:  Number(r["output_tokens"] ?? 0),
         inputCostUsd:  Number(r["input_cost_usd"] ?? 0) / 1_000_000,
         outputCostUsd: Number(r["output_cost_usd"] ?? 0) / 1_000_000,
-        input:         String(r["input"] ?? ""),
-        output:        String(r["output"] ?? ""),
-        metadata:      String(r["metadata"] ?? ""),
+        input:         toStr(r["input"]),
+        output:        toStr(r["output"]),
+        metadata:      toStr(r["metadata"]),
       }));
     }),
 });

@@ -6,7 +6,7 @@
  */
 
 import { Breadcrumb } from "@breadcrumb/sdk";
-import { config, sleep } from "./config.js";
+import { config, sleep } from "../config.js";
 
 // environment is set once on the constructor, not per trace
 const bc = new Breadcrumb({ ...config, environment: "development" });

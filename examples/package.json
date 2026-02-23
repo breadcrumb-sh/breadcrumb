@@ -3,22 +3,36 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "simple":    "tsx 01-simple.ts",
-    "pipeline":  "tsx 02-pipeline.ts",
-    "agent":     "tsx 03-agent.ts",
-    "error":     "tsx 04-error.ts",
-    "ai-sdk":    "tsx 05-ai-sdk.ts",
-    "seed-many": "tsx seed-many.ts"
+    "simple": "tsx scripts/01-simple.ts",
+    "pipeline": "tsx scripts/02-pipeline.ts",
+    "agent": "tsx scripts/03-agent.ts",
+    "error": "tsx scripts/04-error.ts",
+    "ai-sdk": "tsx scripts/05-ai-sdk.ts",
+    "seed-many": "tsx scripts/seed-many.ts",
+    "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\""
   },
   "dependencies": {
-    "@breadcrumb/sdk":    "*",
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/openai": "^3.0.30",
+    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@ai-sdk/react": "^3.0.99",
     "@breadcrumb/ai-sdk": "*",
-    "ai":                 "^6.0.0",
-    "dotenv":             "^16",
-    "zod":                "^3"
+    "@breadcrumb/sdk": "*",
+    "@hono/node-server": "^1",
+    "ai": "^6.0.0",
+    "dotenv": "^16",
+    "hono": "^4",
+    "react": "^19",
+    "react-dom": "^19",
+    "zod": "^3"
   },
   "devDependencies": {
-    "tsx":        "^4",
-    "typescript": "^5.7"
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "concurrently": "^9",
+    "tsx": "^4",
+    "typescript": "^5.7",
+    "vite": "^6"
   }
 }

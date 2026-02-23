@@ -6,7 +6,7 @@
  */
 
 import { Breadcrumb } from "@breadcrumb/sdk";
-import { config, sleep } from "./config.js";
+import { config, sleep } from "../config.js";
 
 const ROUNDS = 5;
 

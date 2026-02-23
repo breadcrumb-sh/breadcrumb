@@ -16,11 +16,13 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "ai": ">=5.0.0 <7.0.0",
-    "@breadcrumb/sdk": "*"
+    "@breadcrumb/sdk": "*",
+    "@opentelemetry/api": ">=1.0.0",
+    "ai": ">=5.0.0 <7.0.0"
   },
   "devDependencies": {
     "@breadcrumb/sdk": "*",
+    "@opentelemetry/api": "^1.0.0",
     "ai": "^6.0.0",
     "tsdown": "^0.9",
     "typescript": "^5.7",
