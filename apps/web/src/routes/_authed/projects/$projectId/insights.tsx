@@ -6,7 +6,7 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
   DateRangePopover,
@@ -14,6 +14,7 @@ import {
   today,
 } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
+import { useToastManager } from "../../../../components/Toasts";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
@@ -27,7 +28,7 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
-export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
+export const Route = createFileRoute("/_authed/projects/$projectId/insights")({
   validateSearch: searchSchema,
   component: TracesPage,
 });
@@ -86,6 +87,24 @@ function TracesPage() {
     environment: envFilter || undefined,
     query: nlpQuery || undefined,
   });
+
+  const toastManager = useToastManager();
+
+  useEffect(() => {
+    if (traces.data?.searchMode !== "text" || !nlpQuery) return;
+    const key = `ai-search-toast-dismissed:${projectId}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+    toastManager.add({
+      title: "Using basic text search",
+      description: "Configure an AI provider for smarter search.",
+      data: {
+        linkText: "Go to AI settings",
+        linkHref: `/projects/${projectId}/settings?tab=ai`,
+      },
+    });
+  }, [traces.data?.searchMode, nlpQuery, toastManager, projectId]);
+
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
@@ -210,7 +229,7 @@ function TracesPage() {
       </div>
 
       {/* ── Trace table ───────────────────────────────────────── */}
-      {traces.isLoading ? null : !traces.data?.length ? (
+      {traces.isLoading ? null : !traces.data?.traces?.length ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-700 py-16 text-center">
           <Pulse size={32} className="text-zinc-600 mb-3" />
           <p className="text-sm text-zinc-400">No traces found</p>
@@ -249,7 +268,7 @@ function TracesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {traces.data.map((trace) => (
+              {traces.data.traces.map((trace) => (
                 <tr
                   key={trace.id}
                   className="hover:bg-zinc-900/50 transition-colors cursor-pointer"

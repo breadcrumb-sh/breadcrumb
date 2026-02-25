@@ -7,6 +7,7 @@ import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { trpc } from "./lib/trpc";
 import { router } from "./router";
+import { ToastProvider } from "./components/Toasts";
 
 function Root() {
   const [queryClient] = useState(() => new QueryClient());
@@ -24,7 +25,9 @@ function Root() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

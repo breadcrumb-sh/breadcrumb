@@ -177,29 +177,38 @@ export const tracesRouter = router({
       )`);                                           params.models = input.models; }
 
       let hasAiClause = false;
+      let searchMode: "ai" | "text" | null = null;
       if (input.query) {
         try {
           const cacheKey = { projectId: input.projectId, query: input.query };
           const clauseSchema = z.object({ clause: z.string().nullable() });
 
           // Check cache first (1 hour TTL)
-          let result = await cache.get("qw", cacheKey, clauseSchema);
-          if (!result) {
+          let aiResult = await cache.get("qw", cacheKey, clauseSchema);
+          if (!aiResult) {
             const model = await getAiModel(input.projectId);
-            result = await writeSearchQuery({
+            aiResult = await writeSearchQuery({
               model,
               query: input.query,
               activeFilters: clauses.length > 0 ? clauses : undefined,
             });
-            await cache.set("qw", cacheKey, result, 60 * 60 * 1000);
+            await cache.set("qw", cacheKey, aiResult, 60 * 60 * 1000);
           }
 
-          if (result.clause) {
-            clauses.push(result.clause);
+          if (aiResult.clause) {
+            clauses.push(aiResult.clause);
             hasAiClause = true;
           }
+          searchMode = "ai";
         } catch {
-          // No AI provider configured or query generation failed — skip AI filtering
+          // No AI provider configured — fall back to text search on trace input/output
+          clauses.push(`t.id IN (
+            SELECT DISTINCT trace_id FROM breadcrumb.spans
+            WHERE project_id = {projectId: UUID}
+              AND (input ilike {searchText: String} OR output ilike {searchText: String} OR name ilike {searchText: String})
+          )`);
+          params.searchText = `%${input.query}%`;
+          searchMode = "text";
         }
       }
 
@@ -253,20 +262,23 @@ export const tracesRouter = router({
 
       const rows = (await result.json()) as Array<Record<string, unknown>>;
 
-      return rows.map((r) => ({
-        id:            String(r["id"]),
-        name:          String(r["name"]),
-        status:        String(r["status"]) as "ok" | "error",
-        statusMessage: String(r["status_message"] ?? ""),
-        startTime:     String(r["start_time"]),
-        endTime:       r["end_time"] != null ? String(r["end_time"]) : null,
-        userId:        String(r["user_id"] ?? ""),
-        environment:   String(r["environment"] ?? ""),
-        inputTokens:   Number(r["input_tokens"] ?? 0),
-        outputTokens:  Number(r["output_tokens"] ?? 0),
-        costUsd:       Number(r["cost_usd"] ?? 0) / 1_000_000,
-        spanCount:     Number(r["span_count"] ?? 0),
-      }));
+      return {
+        traces: rows.map((r) => ({
+          id:            String(r["id"]),
+          name:          String(r["name"]),
+          status:        String(r["status"]) as "ok" | "error",
+          statusMessage: String(r["status_message"] ?? ""),
+          startTime:     String(r["start_time"]),
+          endTime:       r["end_time"] != null ? String(r["end_time"]) : null,
+          userId:        String(r["user_id"] ?? ""),
+          environment:   String(r["environment"] ?? ""),
+          inputTokens:   Number(r["input_tokens"] ?? 0),
+          outputTokens:  Number(r["output_tokens"] ?? 0),
+          costUsd:       Number(r["cost_usd"] ?? 0) / 1_000_000,
+          spanCount:     Number(r["span_count"] ?? 0),
+        })),
+        searchMode,
+      };
     }),
 
   // Per-day metrics (traces, cost, errors) for the overview chart.

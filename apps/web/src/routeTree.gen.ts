@@ -18,8 +18,8 @@ import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedNewRouteImport } from './routes/_authed/new'
 import { Route as AuthedProjectsProjectIdRouteImport } from './routes/_authed/projects/$projectId'
 import { Route as AuthedProjectsProjectIdIndexRouteImport } from './routes/_authed/projects/$projectId/index'
-import { Route as AuthedProjectsProjectIdTracesRouteImport } from './routes/_authed/projects/$projectId/traces'
 import { Route as AuthedProjectsProjectIdSettingsRouteImport } from './routes/_authed/projects/$projectId/settings'
+import { Route as AuthedProjectsProjectIdInsightsRouteImport } from './routes/_authed/projects/$projectId/insights'
 import { Route as AuthedProjectsProjectIdTraceTraceIdRouteImport } from './routes/_authed/projects/$projectId/trace.$traceId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -67,16 +67,16 @@ const AuthedProjectsProjectIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthedProjectsProjectIdRoute,
   } as any)
-const AuthedProjectsProjectIdTracesRoute =
-  AuthedProjectsProjectIdTracesRouteImport.update({
-    id: '/traces',
-    path: '/traces',
-    getParentRoute: () => AuthedProjectsProjectIdRoute,
-  } as any)
 const AuthedProjectsProjectIdSettingsRoute =
   AuthedProjectsProjectIdSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => AuthedProjectsProjectIdRoute,
+  } as any)
+const AuthedProjectsProjectIdInsightsRoute =
+  AuthedProjectsProjectIdInsightsRouteImport.update({
+    id: '/insights',
+    path: '/insights',
     getParentRoute: () => AuthedProjectsProjectIdRoute,
   } as any)
 const AuthedProjectsProjectIdTraceTraceIdRoute =
@@ -94,8 +94,8 @@ export interface FileRoutesByFullPath {
   '/new': typeof AuthedNewRoute
   '/settings': typeof AuthedSettingsRoute
   '/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/insights': typeof AuthedProjectsProjectIdInsightsRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
   '/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
@@ -106,8 +106,8 @@ export interface FileRoutesByTo {
   '/new': typeof AuthedNewRoute
   '/settings': typeof AuthedSettingsRoute
   '/': typeof AuthedIndexRoute
+  '/projects/$projectId/insights': typeof AuthedProjectsProjectIdInsightsRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/projects/$projectId': typeof AuthedProjectsProjectIdIndexRoute
   '/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
@@ -121,8 +121,8 @@ export interface FileRoutesById {
   '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
+  '/_authed/projects/$projectId/insights': typeof AuthedProjectsProjectIdInsightsRoute
   '/_authed/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/_authed/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/_authed/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
   '/_authed/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
@@ -136,8 +136,8 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/projects/$projectId'
+    | '/projects/$projectId/insights'
     | '/projects/$projectId/settings'
-    | '/projects/$projectId/traces'
     | '/projects/$projectId/'
     | '/projects/$projectId/trace/$traceId'
   fileRoutesByTo: FileRoutesByTo
@@ -148,8 +148,8 @@ export interface FileRouteTypes {
     | '/new'
     | '/settings'
     | '/'
+    | '/projects/$projectId/insights'
     | '/projects/$projectId/settings'
-    | '/projects/$projectId/traces'
     | '/projects/$projectId'
     | '/projects/$projectId/trace/$traceId'
   id:
@@ -162,8 +162,8 @@ export interface FileRouteTypes {
     | '/_authed/settings'
     | '/_authed/'
     | '/_authed/projects/$projectId'
+    | '/_authed/projects/$projectId/insights'
     | '/_authed/projects/$projectId/settings'
-    | '/_authed/projects/$projectId/traces'
     | '/_authed/projects/$projectId/'
     | '/_authed/projects/$projectId/trace/$traceId'
   fileRoutesById: FileRoutesById
@@ -240,18 +240,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectsProjectIdIndexRouteImport
       parentRoute: typeof AuthedProjectsProjectIdRoute
     }
-    '/_authed/projects/$projectId/traces': {
-      id: '/_authed/projects/$projectId/traces'
-      path: '/traces'
-      fullPath: '/projects/$projectId/traces'
-      preLoaderRoute: typeof AuthedProjectsProjectIdTracesRouteImport
-      parentRoute: typeof AuthedProjectsProjectIdRoute
-    }
     '/_authed/projects/$projectId/settings': {
       id: '/_authed/projects/$projectId/settings'
       path: '/settings'
       fullPath: '/projects/$projectId/settings'
       preLoaderRoute: typeof AuthedProjectsProjectIdSettingsRouteImport
+      parentRoute: typeof AuthedProjectsProjectIdRoute
+    }
+    '/_authed/projects/$projectId/insights': {
+      id: '/_authed/projects/$projectId/insights'
+      path: '/insights'
+      fullPath: '/projects/$projectId/insights'
+      preLoaderRoute: typeof AuthedProjectsProjectIdInsightsRouteImport
       parentRoute: typeof AuthedProjectsProjectIdRoute
     }
     '/_authed/projects/$projectId/trace/$traceId': {
@@ -265,16 +265,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedProjectsProjectIdRouteChildren {
+  AuthedProjectsProjectIdInsightsRoute: typeof AuthedProjectsProjectIdInsightsRoute
   AuthedProjectsProjectIdSettingsRoute: typeof AuthedProjectsProjectIdSettingsRoute
-  AuthedProjectsProjectIdTracesRoute: typeof AuthedProjectsProjectIdTracesRoute
   AuthedProjectsProjectIdIndexRoute: typeof AuthedProjectsProjectIdIndexRoute
   AuthedProjectsProjectIdTraceTraceIdRoute: typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
 
 const AuthedProjectsProjectIdRouteChildren: AuthedProjectsProjectIdRouteChildren =
   {
+    AuthedProjectsProjectIdInsightsRoute: AuthedProjectsProjectIdInsightsRoute,
     AuthedProjectsProjectIdSettingsRoute: AuthedProjectsProjectIdSettingsRoute,
-    AuthedProjectsProjectIdTracesRoute: AuthedProjectsProjectIdTracesRoute,
     AuthedProjectsProjectIdIndexRoute: AuthedProjectsProjectIdIndexRoute,
     AuthedProjectsProjectIdTraceTraceIdRoute:
       AuthedProjectsProjectIdTraceTraceIdRoute,
