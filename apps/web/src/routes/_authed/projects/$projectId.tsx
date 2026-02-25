@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authed/projects/$projectId")({
 
 const TABS = [
   { label: "Overview", path: "", exact: true },
-  { label: "Insights", path: "/insights", exact: false },
+  { label: "Traces", path: "/traces", exact: false },
   { label: "Settings", path: "/settings", exact: false },
 ] as const;
 
@@ -50,9 +50,7 @@ function ProjectLayout() {
             const href = `/projects/${projectId}${path}`;
             const isActive = exact
               ? pathname === href
-              : pathname.startsWith(href) ||
-                (label === "Insights" &&
-                  pathname.startsWith(`/projects/${projectId}/insights/`));
+              : pathname.startsWith(href);
 
             return (
               <Link
@@ -72,7 +70,9 @@ function ProjectLayout() {
         </nav>
       </header>
 
-      <Outlet />
+      <div className="page-container">
+        <Outlet />
+      </div>
     </div>
   );
 }

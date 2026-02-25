@@ -1,8 +1,13 @@
 import {
+  ChartLine,
   CheckCircle,
+  CurrencyDollar,
   MagnifyingGlass,
   Pulse,
   SpinnerGap,
+  Table,
+  Timer,
+  Warning,
   XCircle,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -17,7 +22,10 @@ import { MultiselectCombobox } from "../../../../components/MultiselectCombobox"
 import { useToastManager } from "../../../../components/Toasts";
 import { trpc } from "../../../../lib/trpc";
 
+type Section = "insights" | "raw";
+
 const searchSchema = z.object({
+  tab: z.enum(["insights", "raw"]).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
@@ -28,12 +36,119 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
-export const Route = createFileRoute("/_authed/projects/$projectId/insights")({
+export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
   validateSearch: searchSchema,
   component: TracesPage,
 });
 
+const SIDEBAR_ITEMS: { id: Section; label: string; icon: React.ReactNode }[] = [
+  { id: "insights", label: "Insights", icon: <ChartLine size={16} /> },
+  { id: "raw", label: "Raw Traces", icon: <Table size={16} /> },
+];
+
 function TracesPage() {
+  const navigate = Route.useNavigate();
+  const { tab } = Route.useSearch();
+  const section: Section = tab ?? "insights";
+
+  const setSection = (next: Section) => {
+    navigate({
+      search: { tab: next },
+      replace: true,
+    });
+  };
+
+  return (
+    <main className="px-4 py-5 sm:px-6">
+      <div className="flex gap-8">
+        <nav className="w-44 shrink-0 space-y-0.5">
+          {SIDEBAR_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setSection(item.id)}
+              className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                section === item.id
+                  ? "bg-zinc-800 text-zinc-100 font-medium"
+                  : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex-1 min-w-0">
+          {section === "insights" && <InsightsSection />}
+          {section === "raw" && <RawTracesSection />}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// ── Insights Section ──────────────────────────────────────────────────────────
+
+function InsightsSection() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <ChartCard
+        icon={<ChartLine size={16} />}
+        label="Trace Volume"
+        value="—"
+        sub="traces in period"
+      />
+      <ChartCard
+        icon={<Warning size={16} />}
+        label="Error Rate"
+        value="—"
+        sub="of all traces"
+      />
+      <ChartCard
+        icon={<CurrencyDollar size={16} />}
+        label="Total Cost"
+        value="—"
+        sub="estimated spend"
+      />
+      <ChartCard
+        icon={<Timer size={16} />}
+        label="Avg Latency"
+        value="—"
+        sub="p50 duration"
+      />
+    </div>
+  );
+}
+
+function ChartCard({
+  icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+      <div className="flex items-center gap-2 text-zinc-500 mb-3">
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <div className="h-40 rounded-md bg-zinc-800/40 border border-dashed border-zinc-700/50 flex items-center justify-center mb-3">
+        <span className="text-xs text-zinc-600">Chart placeholder</span>
+      </div>
+      <p className="text-xl font-semibold text-zinc-100">{value}</p>
+      <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>
+    </div>
+  );
+}
+
+// ── Raw Traces Section ────────────────────────────────────────────────────────
+
+function RawTracesSection() {
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
@@ -59,19 +174,41 @@ function TracesPage() {
       }),
     });
   const handleFromChange = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, from: v, preset: undefined }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        from: v,
+        preset: undefined,
+      }),
+    });
   const handleToChange = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, to: v, preset: undefined }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        to: v,
+        preset: undefined,
+      }),
+    });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
-    navigate({ search: (prev) => ({ ...prev, q: trimmed || undefined }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        q: trimmed || undefined,
+      }),
+    });
   };
 
   const clearSearch = () => {
     setDraft("");
-    navigate({ search: (prev) => ({ ...prev, q: undefined }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        q: undefined,
+      }),
+    });
   };
 
   const traces = trpc.traces.list.useQuery({
@@ -117,7 +254,7 @@ function TracesPage() {
     !!nlpQuery;
 
   return (
-    <main className="px-4 py-5 sm:px-6 space-y-4">
+    <div className="space-y-4">
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <form onSubmit={handleSearch} className="relative">
@@ -161,7 +298,12 @@ function TracesPage() {
           preset={preset}
           onPreset={applyPreset}
           onCustom={() =>
-            navigate({ search: (prev) => ({ ...prev, preset: undefined }) })
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                preset: undefined,
+              }),
+            })
           }
           onFromChange={handleFromChange}
           onToChange={handleToChange}
@@ -174,7 +316,10 @@ function TracesPage() {
           selected={selectedNames}
           onChange={(v) =>
             navigate({
-              search: (prev) => ({ ...prev, names: v.length ? v : undefined }),
+              search: (prev) => ({
+                ...prev,
+                names: v.length ? v : undefined,
+              }),
             })
           }
           placeholder="All traces"
@@ -185,7 +330,10 @@ function TracesPage() {
           selected={selectedModels}
           onChange={(v) =>
             navigate({
-              search: (prev) => ({ ...prev, models: v.length ? v : undefined }),
+              search: (prev) => ({
+                ...prev,
+                models: v.length ? v : undefined,
+              }),
             })
           }
           placeholder="All models"
@@ -313,7 +461,7 @@ function TracesPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

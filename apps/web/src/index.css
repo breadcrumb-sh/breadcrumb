@@ -50,6 +50,11 @@
   box-sizing: border-box;
 }
 
+@utility page-container {
+  max-width: 1400px;
+  margin-inline: auto;
+}
+
 html,
 body {
   margin: 0;
