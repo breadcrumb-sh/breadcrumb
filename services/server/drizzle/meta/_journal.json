@@ -8,6 +8,20 @@
       "when": 1771756181987,
       "tag": "0000_awesome_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771969093873,
+      "tag": "0001_first_magneto",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772012142064,
+      "tag": "0002_true_naoko",
+      "breakpoints": true
     }
   ]
 }

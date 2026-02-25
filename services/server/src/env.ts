@@ -13,5 +13,6 @@ export const env = {
   clickhouseUser: process.env.CLICKHOUSE_USER || "default",
   clickhousePassword: process.env.CLICKHOUSE_PASSWORD || "",
   port: Number(process.env.PORT) || 3100,
+  encryptionKey: process.env.ENCRYPTION_KEY || "",
   nodeEnv: process.env.NODE_ENV || "development",
 };

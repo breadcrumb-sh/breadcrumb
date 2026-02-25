@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { router, procedure } from "../trpc.js";
 import { clickhouse } from "../../db/clickhouse.js";
+import { getAiModel } from "../../lib/ai-provider.js";
+import { writeSearchQuery } from "../../lib/query-writer.js";
+import { cache } from "../../lib/cache.js";
 
 // ClickHouse Map columns (e.g. metadata) come back as JS objects from JSONEachRow.
 // String() on an object produces "[object Object]", so we serialize explicitly.
@@ -152,6 +155,7 @@ export const tracesRouter = router({
         models:      z.array(z.string()).optional(),
         statuses:    z.array(z.enum(["ok", "error"])).optional(),
         environment: z.string().optional(),
+        query:       z.string().optional(),
       })
     )
     .query(async ({ input }) => {
@@ -172,46 +176,79 @@ export const tracesRouter = router({
         WHERE project_id = {projectId: UUID} AND model IN {models: Array(String)}
       )`);                                           params.models = input.models; }
 
+      let hasAiClause = false;
+      if (input.query) {
+        try {
+          const cacheKey = { projectId: input.projectId, query: input.query };
+          const clauseSchema = z.object({ clause: z.string().nullable() });
+
+          // Check cache first (1 hour TTL)
+          let result = await cache.get("qw", cacheKey, clauseSchema);
+          if (!result) {
+            const model = await getAiModel(input.projectId);
+            result = await writeSearchQuery({
+              model,
+              query: input.query,
+              activeFilters: clauses.length > 0 ? clauses : undefined,
+            });
+            await cache.set("qw", cacheKey, result, 60 * 60 * 1000);
+          }
+
+          if (result.clause) {
+            clauses.push(result.clause);
+            hasAiClause = true;
+          }
+        } catch {
+          // No AI provider configured or query generation failed — skip AI filtering
+        }
+      }
+
       const whereStr = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
 
-      const result = await clickhouse.query({
-        query: `
+      const sql = `
+        SELECT
+          t.id,
+          t.name,
+          t.status,
+          t.status_message,
+          t.start_time,
+          COALESCE(t.end_time, r.max_end_time)               AS end_time,
+          t.user_id,
+          t.environment,
+          coalesce(r.input_tokens, 0)                        AS input_tokens,
+          coalesce(r.output_tokens, 0)                       AS output_tokens,
+          coalesce(r.input_cost_usd + r.output_cost_usd, 0)  AS cost_usd,
+          coalesce(r.span_count, 0)                          AS span_count
+        FROM (
           SELECT
-            t.id,
-            t.name,
-            t.status,
-            t.status_message,
-            t.start_time,
-            COALESCE(t.end_time, r.max_end_time)               AS end_time,
-            t.user_id,
-            t.environment,
-            coalesce(r.input_tokens, 0)                        AS input_tokens,
-            coalesce(r.output_tokens, 0)                       AS output_tokens,
-            coalesce(r.input_cost_usd + r.output_cost_usd, 0)  AS cost_usd,
-            coalesce(r.span_count, 0)                          AS span_count
-          FROM (
-            SELECT
-              id,
-              argMax(name, version)           AS name,
-              argMax(status, version)         AS status,
-              argMax(status_message, version) AS status_message,
-              argMax(start_time, version)     AS start_time,
-              argMax(end_time, version)       AS end_time,
-              argMax(user_id, version)        AS user_id,
-              argMax(environment, version)    AS environment
-            FROM breadcrumb.traces
-            WHERE project_id = {projectId: UUID}
-            GROUP BY id
-          ) t
-          LEFT JOIN (
-            ${ROLLUPS_SUBQUERY("projectId")}
-          ) r ON t.id = r.trace_id
-          ${whereStr}
-          ORDER BY t.start_time DESC
-          LIMIT {limit: UInt32} OFFSET {offset: UInt32}
-        `,
+            id,
+            argMax(name, version)           AS name,
+            argMax(status, version)         AS status,
+            argMax(status_message, version) AS status_message,
+            argMax(start_time, version)     AS start_time,
+            argMax(end_time, version)       AS end_time,
+            argMax(user_id, version)        AS user_id,
+            argMax(environment, version)    AS environment
+          FROM breadcrumb.traces
+          WHERE project_id = {projectId: UUID}
+          GROUP BY id
+        ) t
+        LEFT JOIN (
+          ${ROLLUPS_SUBQUERY("projectId")}
+        ) r ON t.id = r.trace_id
+        ${whereStr}
+        ORDER BY t.start_time DESC
+        LIMIT {limit: UInt32} OFFSET {offset: UInt32}
+      `;
+
+      // When the WHERE clause includes AI-generated SQL, enforce read-only
+      // mode at the ClickHouse session level. This is server-enforced —
+      // even if the AI produces destructive SQL, ClickHouse will reject it.
+      const result = await clickhouse.query({
+        query: sql,
         query_params: params,
         format: "JSONEachRow",
+        ...(hasAiClause && { clickhouse_settings: { readonly: "1" } }),
       });
 
       const rows = (await result.json()) as Array<Record<string, unknown>>;

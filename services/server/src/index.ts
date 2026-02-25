@@ -67,6 +67,10 @@ if (env.nodeEnv === "production") {
 async function main() {
   await runMigrations();
   await runClickhouseMigrations();
+
+  const { startCronJobs } = await import("./cron.js");
+  startCronJobs();
+
   serve({ fetch: app.fetch, port: env.port });
   console.log(`server listening on port ${env.port}`);
 }

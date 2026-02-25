@@ -6,6 +6,8 @@ import {
   varchar,
   boolean,
   unique,
+  jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ── Better Auth core tables ──────────────────────────────────────────
@@ -114,6 +116,32 @@ export const apiKeys = pgTable("api_keys", {
   keyPrefix: varchar("key_prefix", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const aiProviders = pgTable("ai_providers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: text("project_id")
+    .notNull()
+    .unique()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 32 }).notNull(),
+  encryptedApiKey: text("encrypted_api_key").notNull(),
+  apiKeyMask: varchar("api_key_mask", { length: 64 }).notNull(),
+  modelId: varchar("model_id", { length: 255 }).notNull(),
+  baseUrl: text("base_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cache = pgTable(
+  "cache",
+  {
+    key: text("key").primaryKey(),
+    value: jsonb("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("cache_expires_at_idx").on(t.expiresAt)]
+);
 
 export const mcpKeys = pgTable("mcp_keys", {
   id: uuid("id").primaryKey().defaultRandom(),
