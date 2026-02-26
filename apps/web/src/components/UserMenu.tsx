@@ -1,12 +1,14 @@
 import { useRef, useState, useEffect } from "react";
-import { Sun, Moon, SignOut, User, Gear } from "@phosphor-icons/react";
+import { Sun, Moon, SignOut, Gear } from "@phosphor-icons/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
+import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
@@ -31,9 +33,11 @@ export function UserMenu() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="User menu"
-        className="flex items-center justify-center size-8 rounded-full bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 transition-colors"
+        className="flex items-center justify-center size-8 rounded-full overflow-hidden hover:opacity-80 transition-opacity"
       >
-        <User size={15} weight="bold" />
+        <div className="size-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-medium text-zinc-300">
+          {(user?.name ?? user?.email ?? "U").charAt(0).toUpperCase()}
+        </div>
       </button>
 
       {open && (

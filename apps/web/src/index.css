@@ -5,43 +5,62 @@
   --font-sans: "Geist", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 
-  /* ── Border radius — squarer corners ─────────────────── */
-  --radius-sm:  1px;
-  --radius:     2px;
-  --radius-md:  3px;
-  --radius-lg:  4px;
-  --radius-xl:  6px;
-  --radius-2xl: 8px;
-  --radius-3xl: 10px;
+  /* ── Chart palette ─────────────────────────────────────── */
+  --color-chart-line: #909091;
+  --color-chart-muted: #52525b;
 
-  /* ── Zinc — warm neutral, slight stone/sand undertone ── */
-  --color-zinc-50:  #faf9f7;
-  --color-zinc-100: #edeae5;
-  --color-zinc-200: #dedad4;
-  --color-zinc-300: #c4bfb8;
-  --color-zinc-400: #9e9990;
-  --color-zinc-500: #7a7570;
-  --color-zinc-600: #524b43;
-  --color-zinc-700: #35302a;
-  --color-zinc-800: #242018;
-  --color-zinc-900: #141210;
-  --color-zinc-950: #0c0b0a;
+  /* ── Data-viz semantic (dark default) ──────────────────── */
+  --color-viz-healthy:   #16a34a;  /* green-600  */
+  --color-viz-warning:   #ca8a04;  /* yellow-600 */
+  --color-viz-danger:    #dc2626;  /* red-600    */
+  --color-viz-primary:   #4f46e5;  /* indigo-600 */
+  --color-viz-secondary: #0284c7;  /* sky-600    */
+  --color-viz-accent:    #c026d3;  /* fuchsia-600 */
+
+  /* ── Border radius — refined, slightly rounded ────────── */
+  --radius-sm:  3px;
+  --radius:     5px;
+  --radius-md:  7px;
+  --radius-lg:  10px;
+  --radius-xl:  14px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+
+  /* ── Zinc — true neutral charcoal ────────────────────── */
+  --color-zinc-50:  #f5f5f6;
+  --color-zinc-100: #e9e9ea;
+  --color-zinc-200: #d2d2d3;
+  --color-zinc-300: #b4b4b5;
+  --color-zinc-400: #909091;
+  --color-zinc-500: #6c6c6d;
+  --color-zinc-600: #4e4e4f;
+  --color-zinc-700: #363637;
+  --color-zinc-800: #282829;
+  --color-zinc-900: #1b1b1c;
+  --color-zinc-950: #121213;
 }
 
 /* ── Light mode: remap zinc to inverted light-appropriate values ── */
 /* Every bg-zinc-*, border-zinc-*, text-zinc-* class adapts for free. */
 :root.light {
-  --color-zinc-950: #fafaf8;
-  --color-zinc-900: #f2f1ee;
-  --color-zinc-800: #e3e0db;
-  --color-zinc-700: #c8c4be;
-  --color-zinc-600: #9e9990;
-  --color-zinc-500: #7a7570;
-  --color-zinc-400: #52504a;
-  --color-zinc-300: #35302a;
-  --color-zinc-200: #282320;
-  --color-zinc-100: #1e1b18;
-  --color-zinc-50:  #1a1714;
+  --color-viz-healthy:   #6ee7b7;  /* mint   */
+  --color-viz-warning:   #fcd34d;  /* butter */
+  --color-viz-danger:    #fca5a5;  /* peach  */
+  --color-viz-primary:   #a5b4fc;  /* lavender */
+  --color-viz-secondary: #7dd3fc;  /* sky    */
+  --color-viz-accent:    #f0abfc;  /* mauve  */
+
+  --color-zinc-950: #f7f7f7;
+  --color-zinc-900: #f0f0f0;
+  --color-zinc-800: #dedede;
+  --color-zinc-700: #c5c5c6;
+  --color-zinc-600: #909091;
+  --color-zinc-500: #6c6c6d;
+  --color-zinc-400: #4e4e4f;
+  --color-zinc-300: #363637;
+  --color-zinc-200: #282829;
+  --color-zinc-100: #1d1d1e;
+  --color-zinc-50:  #171717;
 }
 
 *,
@@ -51,7 +70,7 @@
 }
 
 @utility page-container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin-inline: auto;
 }
 
@@ -63,4 +82,5 @@ body {
   font-family: "Geist", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }

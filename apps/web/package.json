@@ -10,8 +10,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
-    "@nivo/core": "^0.99.0",
-    "@nivo/line": "^0.99.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-query": "^5",
@@ -21,6 +19,7 @@
     "better-auth": "^1.4.18",
     "react": "^19",
     "react-dom": "^19",
+    "recharts": "^2.15.3",
     "superjson": "^2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.1.18",

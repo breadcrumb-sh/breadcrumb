@@ -1,9 +1,20 @@
-import { ResponsiveLine } from "@nivo/line";
-import { CurrencyDollar, Pulse, Timer, XCircle } from "@phosphor-icons/react";
+import { ArrowUp, ArrowDown, SpinnerGap } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useMemo } from "react";
 import { z } from "zod";
 import { trpc } from "../../../../lib/trpc";
-import { useTheme } from "../../../../hooks/useTheme";
 import { DateRangePopover, today, presetFrom } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
 
@@ -13,7 +24,7 @@ const searchSchema = z.object({
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
   names:  z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
-  env:    z.string().optional(),
+  env:    z.array(z.string()).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/")({
@@ -25,7 +36,6 @@ type Metric = "traces" | "cost" | "errors";
 
 function OverviewPage() {
   const { projectId } = Route.useParams();
-  const { theme } = useTheme();
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
 
@@ -34,7 +44,7 @@ function OverviewPage() {
   const preset         = search.preset ?? 30;
   const selectedNames  = search.names  ?? [];
   const selectedModels = search.models ?? [];
-  const envFilter      = search.env    ?? "";
+  const selectedEnvs   = search.env    ?? [];
 
   const applyPreset = (days: 7 | 30 | 90) =>
     navigate({ search: (prev) => ({ ...prev, from: presetFrom(days), to: today(), preset: days }) });
@@ -48,25 +58,22 @@ function OverviewPage() {
     projectId,
     from,
     to,
-    environment: envFilter || undefined,
+    environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
     models:      selectedModels.length > 0 ? selectedModels : undefined,
     names:       selectedNames.length  > 0 ? selectedNames  : undefined,
   };
 
-  const stats      = trpc.traces.stats.useQuery(commonFilters);
-  const daily      = trpc.traces.dailyMetrics.useQuery(commonFilters);
-  const breakdown  = trpc.traces.modelBreakdown.useQuery({ projectId, from, to, models: selectedModels.length > 0 ? selectedModels : undefined });
+  const stats        = trpc.traces.stats.useQuery(commonFilters);
+  const daily        = trpc.traces.dailyMetrics.useQuery(commonFilters);
+  const quality      = trpc.traces.qualityTimeline.useQuery(commonFilters);
+  const failingSpans = trpc.traces.topFailingSpans.useQuery(commonFilters);
+  const slowestSpans = trpc.traces.topSlowestSpans.useQuery(commonFilters);
   const envList    = trpc.traces.environments.useQuery({ projectId });
   const modelList  = trpc.traces.models.useQuery({ projectId });
   const nameList   = trpc.traces.names.useQuery({ projectId });
 
-  const nivoTheme   = buildNivoTheme(theme);
-  const rangeDays   = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1;
-  const xTickValues = rangeDays <= 7 ? "every day" : rangeDays <= 31 ? "every 7 days" : "every 14 days";
-  const totalCost   = stats.data?.totalCostUsd ?? 0;
-
   return (
-    <main className="px-4 py-5 sm:px-8 sm:py-7 space-y-6">
+    <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6">
 
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -94,18 +101,12 @@ function OverviewPage() {
         />
 
         {/* Environment */}
-        {(envList.data?.length ?? 0) > 0 && (
-          <select
-            value={envFilter}
-            onChange={(e) => navigate({ search: (prev) => ({ ...prev, env: e.target.value || undefined }) })}
-            className="h-[30px] rounded-md border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-zinc-400 outline-none focus:border-zinc-600 cursor-pointer"
-          >
-            <option value="">All environments</option>
-            {envList.data!.map((e) => (
-              <option key={e} value={e}>{e}</option>
-            ))}
-          </select>
-        )}
+        <MultiselectCombobox
+          options={envList.data ?? []}
+          selected={selectedEnvs}
+          onChange={(v) => navigate({ search: (prev) => ({ ...prev, env: v.length ? v : undefined }) })}
+          placeholder="All environments"
+        />
 
         {/* Model */}
         <MultiselectCombobox
@@ -117,132 +118,69 @@ function OverviewPage() {
       </div>
 
       {/* ── Stat cards ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:flex gap-4">
-        <StatCard
-          icon={<Pulse size={16} className="text-zinc-400" />}
-          label="Traces"
-          value={stats.data ? stats.data.traceCount.toLocaleString() : "—"}
-          loading={stats.isLoading}
-        />
-        <StatCard
-          icon={<CurrencyDollar size={16} className="text-zinc-400" />}
-          label="Total cost"
-          value={stats.data ? formatCost(stats.data.totalCostUsd) : "—"}
-          loading={stats.isLoading}
-        />
-        <StatCard
-          icon={<Timer size={16} className="text-zinc-400" />}
-          label="Avg duration"
-          value={stats.data ? formatDuration(stats.data.avgDurationMs) : "—"}
-          loading={stats.isLoading}
-        />
-        <StatCard
-          icon={<XCircle size={16} className="text-zinc-400" />}
-          label="Error rate"
-          value={stats.data ? formatErrorRate(stats.data.errorRate) : "—"}
-          loading={stats.isLoading}
-        />
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
+        <StatCell label="Traces" value={stats.data ? stats.data.traceCount.toLocaleString() : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.traceCount, stats.data?.prev?.traceCount)} />
+        <StatCell className="border-l sm:border-l border-zinc-800" label="Total cost" value={stats.data ? formatCost(stats.data.totalCostUsd) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.totalCostUsd, stats.data?.prev?.totalCostUsd)} />
+        <StatCell className="border-t sm:border-t-0 sm:border-l border-zinc-800" label="Avg cost / trace" value={stats.data ? formatCost(stats.data.traceCount > 0 ? stats.data.totalCostUsd / stats.data.traceCount : 0) : "—"} loading={stats.isLoading} delta={pctChange(stats.data && stats.data.traceCount > 0 ? stats.data.totalCostUsd / stats.data.traceCount : undefined, stats.data?.prev && stats.data.prev.traceCount > 0 ? stats.data.prev.totalCostUsd / stats.data.prev.traceCount : undefined)} />
+        <StatCell className="border-t border-l sm:border-t-0 sm:border-l border-zinc-800" label="Avg duration" value={stats.data ? formatDuration(stats.data.avgDurationMs) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.avgDurationMs, stats.data?.prev?.avgDurationMs)} />
+        <StatCell className="border-t sm:border-t-0 sm:border-l border-zinc-800 col-span-2 sm:col-span-1" label="Error rate" value={stats.data ? formatErrorRate(stats.data.errorRate) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.errorRate, stats.data?.prev?.errorRate)} />
       </div>
 
-      {/* ── Charts ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
+      {/* ── Hero: Trace Quality ──────────────────────────────── */}
+      <TraceQualityChart data={quality.data} loading={quality.isLoading} from={from} to={to} />
 
-      {/* Row 1: Traces + Errors */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ── Cost charts ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <ChartCard
-          label="Traces"
-          data={buildChartData(daily.data ?? [], from, to, "traces")}
-          loading={daily.isLoading}
-          nivoTheme={nivoTheme}
-          xTickValues={xTickValues}
-          formatTooltip={(y) => `${y} traces`}
-        />
-        <ChartCard
-          label="Errors"
-          data={buildChartData(daily.data ?? [], from, to, "errors")}
-          loading={daily.isLoading}
-          nivoTheme={nivoTheme}
-          xTickValues={xTickValues}
-          formatTooltip={(y) => `${y} errors`}
-        />
-      </div>
-
-      {/* Row 2: Cost + Model usage */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ChartCard
-          label="Cost"
+          label="Spend over time"
           data={buildChartData(daily.data ?? [], from, to, "cost")}
           loading={daily.isLoading}
-          nivoTheme={nivoTheme}
-          xTickValues={xTickValues}
-          leftMargin={52}
+          leftMargin={50}
           formatAxis={(v) => `$${formatAxisCost(Number(v))}`}
           formatTooltip={(y) => formatCost(Number(y))}
         />
-
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-zinc-800">
-            <p className="text-xs font-medium text-zinc-500">Model usage</p>
-          </div>
-
-          {breakdown.isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
-            </div>
-          ) : (breakdown.data?.length ?? 0) === 0 ? (
-            <div className="flex items-center justify-center py-10">
-              <span className="text-xs text-zinc-600">No model data</span>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 px-5 py-2 border-b border-zinc-800">
-                <p className="flex-1 text-xs font-medium text-zinc-500">Model</p>
-                <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Runs</p>
-                <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Cost</p>
-                <p className="w-20 text-right text-xs font-medium text-zinc-500 shrink-0">% of cost</p>
-              </div>
-              <div className="divide-y divide-zinc-800">
-                {breakdown.data!.map((row) => {
-                  const pct = totalCost > 0 ? Math.round((row.costUsd / totalCost) * 100) : 0;
-                  return (
-                    <div key={`${row.provider}-${row.model}`} className="flex items-center gap-3 px-5 py-2.5">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase tracking-wide">
-                          {row.provider}
-                        </span>
-                        <span className="text-xs font-medium text-zinc-100 truncate">
-                          {row.model}
-                        </span>
-                      </div>
-                      <span className="text-xs text-zinc-500 w-16 text-right shrink-0 tabular-nums">
-                        {row.traceCount.toLocaleString()}
-                      </span>
-                      <span className="text-xs text-zinc-400 w-16 text-right shrink-0 tabular-nums">
-                        {formatCost(row.costUsd)}
-                      </span>
-                      <div className="w-20 shrink-0 flex items-center justify-end gap-2">
-                        <div className="w-10 h-1 rounded-full bg-zinc-800 overflow-hidden">
-                          <div className="h-full bg-zinc-500 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-zinc-500 w-6 text-right tabular-nums">{pct}%</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+        <ChartCard
+          label="Avg cost per trace"
+          data={buildAvgCostData(daily.data ?? [], from, to)}
+          loading={daily.isLoading}
+          leftMargin={50}
+          formatAxis={(v) => `$${formatAxisCost(Number(v))}`}
+          formatTooltip={(y) => formatCost(Number(y))}
+        />
       </div>
 
-      </div>{/* end charts wrapper */}
+      {/* ── Reliability charts ───────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <ChartCard
+          label="Success rate"
+          data={buildSuccessRateData(daily.data ?? [], from, to)}
+          loading={daily.isLoading}
+          yDomain={[0, 100]}
+          formatAxis={(v) => `${Number(v)}%`}
+          formatTooltip={(y) => `${Number(y).toFixed(1)}%`}
+        />
+        <TopFailingSpansTable data={failingSpans.data} loading={failingSpans.isLoading} />
+      </div>
+
+      {/* ── Latency charts ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <ChartCard
+          label="Avg duration over time"
+          data={buildAvgDurationData(daily.data ?? [], from, to)}
+          loading={daily.isLoading}
+          formatAxis={(v) => formatDurationAxis(Number(v))}
+          formatTooltip={(y) => formatDuration(Number(y))}
+        />
+        <TopSlowestSpansTable data={slowestSpans.data} loading={slowestSpans.isLoading} />
+      </div>
+
     </main>
   );
 }
 
 // ── Chart helpers ──────────────────────────────────────────────────────────────
 
-type DailyMetric = { date: string; traces: number; costUsd: number; errors: number };
+type DailyMetric = { date: string; traces: number; costUsd: number; errors: number; avgDurationMs: number };
 
 function buildChartData(rows: DailyMetric[], from: string, to: string, metric: Metric) {
   const map = new Map(
@@ -251,28 +189,54 @@ function buildChartData(rows: DailyMetric[], from: string, to: string, metric: M
       metric === "traces" ? r.traces : metric === "cost" ? r.costUsd : r.errors,
     ])
   );
-  const data: { x: string; y: number }[] = [];
+  const data: { date: string; value: number }[] = [];
   const start = new Date(from);
   const end   = new Date(to);
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
-    data.push({ x: key, y: map.get(key) ?? 0 });
+    data.push({ date: key, value: map.get(key) ?? 0 });
   }
   return data;
 }
 
-function buildNivoTheme(theme: "dark" | "light") {
-  const isDark = theme === "dark";
-  return {
-    background: "transparent",
-    text: { fill: isDark ? "#7a7570" : "#7a7570", fontSize: 11 },
-    axis: {
-      ticks: { text: { fill: isDark ? "#7a7570" : "#7a7570" } },
-      legend: { text: { fill: isDark ? "#7a7570" : "#7a7570" } },
-    },
-    grid: { line: { stroke: isDark ? "#242018" : "#e3e0db", strokeWidth: 1 } },
-    crosshair: { line: { stroke: isDark ? "#35302a" : "#c8c4be" } },
-  };
+function buildAvgCostData(rows: DailyMetric[], from: string, to: string) {
+  const map = new Map(rows.map((r) => [r.date, r]));
+  const data: { date: string; value: number }[] = [];
+  const start = new Date(from);
+  const end   = new Date(to);
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    const row = map.get(key);
+    data.push({ date: key, value: row && row.traces > 0 ? row.costUsd / row.traces : 0 });
+  }
+  return data;
+}
+
+function buildSuccessRateData(rows: DailyMetric[], from: string, to: string) {
+  const map = new Map(rows.map((r) => [r.date, r]));
+  const data: { date: string; value: number }[] = [];
+  const start = new Date(from);
+  const end   = new Date(to);
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    const row = map.get(key);
+    const rate = row && row.traces > 0 ? ((row.traces - row.errors) / row.traces) * 100 : 100;
+    data.push({ date: key, value: rate });
+  }
+  return data;
+}
+
+function buildAvgDurationData(rows: DailyMetric[], from: string, to: string) {
+  const map = new Map(rows.map((r) => [r.date, r]));
+  const data: { date: string; value: number }[] = [];
+  const start = new Date(from);
+  const end   = new Date(to);
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    const row = map.get(key);
+    data.push({ date: key, value: row ? row.avgDurationMs : 0 });
+  }
+  return data;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -281,95 +245,483 @@ function ChartCard({
   label,
   data,
   loading,
-  nivoTheme,
-  xTickValues,
   leftMargin = 36,
+  yDomain,
   formatAxis,
   formatTooltip,
 }: {
   label: string;
-  data: { x: string; y: number }[];
+  data: { date: string; value: number }[];
   loading?: boolean;
-  nivoTheme: object;
-  xTickValues: string;
   leftMargin?: number;
-  formatAxis?: (v: string | number) => string;
-  formatTooltip?: (y: string | number) => string;
+  yDomain?: [number, number];
+  formatAxis?: (v: number) => string;
+  formatTooltip?: (y: number) => string;
 }) {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-5 pb-4">
       <p className="text-xs font-medium text-zinc-500 mb-4">{label}</p>
-      <div style={{ height: 180 }}>
+      <div style={{ height: 220 }}>
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
           </div>
         ) : (
-          <ResponsiveLine
-            data={[{ id: label, data }]}
-            margin={{ top: 4, right: 4, bottom: 32, left: leftMargin }}
-            xScale={{ type: "time", format: "%Y-%m-%d", precision: "day" }}
-            xFormat="time:%b %d"
-            yScale={{ type: "linear", min: 0, nice: true }}
-            axisBottom={{
-              format: "%b %d",
-              tickValues: xTickValues,
-              tickSize: 0,
-              tickPadding: 8,
-            }}
-            axisLeft={{
-              tickSize: 0,
-              tickPadding: 6,
-              tickValues: 3,
-              format: formatAxis,
-            }}
-            enableGridX={false}
-            gridYValues={3}
-            curve="monotoneX"
-            pointSize={0}
-            enableArea
-            areaOpacity={0.08}
-            colors={["#9e9990"]}
-            theme={nivoTheme}
-            isInteractive
-            enableCrosshair={false}
-            tooltip={({ point }) => (
-              <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg">
-                <span className="text-zinc-400">{String(point.data.xFormatted)}</span>
-                {" — "}
-                <span className="font-medium">
-                  {formatTooltip ? formatTooltip(point.data.y) : String(point.data.y)}
-                </span>
-              </div>
-            )}
-          />
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: leftMargin - 36 }}>
+              <defs>
+                <linearGradient id={`grad-${label.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-chart-line)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--color-chart-line)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(v: string) => {
+                  const d = new Date(v + "T00:00:00");
+                  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                }}
+                tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tickCount={4}
+                domain={yDomain}
+                tickFormatter={formatAxis ? (v: number) => formatAxis(v) : undefined}
+                tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                width={leftMargin}
+              />
+              <Tooltip
+                animationDuration={150}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const row = payload[0].payload as { date: string; value: number };
+                  const d = new Date(row.date + "T00:00:00");
+                  const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  return (
+                    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg">
+                      <span className="text-zinc-400">{label}</span>
+                      {" — "}
+                      <span className="font-medium">
+                        {formatTooltip ? formatTooltip(row.value) : String(row.value)}
+                      </span>
+                    </div>
+                  );
+                }}
+                cursor={{ stroke: "var(--color-zinc-700)" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="var(--color-chart-line)"
+                strokeWidth={1.5}
+                fill={`url(#grad-${label.replace(/\s+/g, "-")})`}
+                dot={false}
+                activeDot={{ r: 3, fill: "var(--color-chart-line)" }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
   );
 }
 
-function StatCard({
-  icon, label, value, loading,
+
+// ── Top Failing Spans Table ────────────────────────────────────────────────────
+
+type FailingSpan = { name: string; total: number; errors: number; errorRate: number };
+
+function TopFailingSpansTable({
+  data,
+  loading,
 }: {
-  icon: React.ReactNode;
+  data: FailingSpan[] | undefined;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: 290 }}>
+      <div className="px-5 py-3.5 border-b border-zinc-800 shrink-0">
+        <p className="text-xs font-medium text-zinc-500">Top failing spans</p>
+      </div>
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
+        </div>
+      ) : !data?.length ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs text-zinc-600">No failing spans</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 px-5 py-2 border-b border-zinc-800 shrink-0">
+            <p className="flex-1 text-xs font-medium text-zinc-500">Span</p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Errors</p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Total</p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Error %</p>
+          </div>
+          <div className="divide-y divide-zinc-800 overflow-y-auto flex-1">
+            {data.map((row) => (
+              <div key={row.name} className="flex items-center gap-3 px-5 py-2.5">
+                <span className="text-xs font-medium text-zinc-100 truncate flex-1">{row.name}</span>
+                <span className="text-xs text-viz-danger w-14 text-right shrink-0 tabular-nums">{row.errors.toLocaleString()}</span>
+                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">{row.total.toLocaleString()}</span>
+                <div className="w-16 shrink-0 flex items-center justify-end gap-2">
+                  <div className="w-8 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="h-full bg-viz-danger rounded-full" style={{ width: `${Math.min(row.errorRate, 100)}%` }} />
+                  </div>
+                  <span className="text-xs text-zinc-500 tabular-nums">{row.errorRate}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Top Slowest Spans Table ───────────────────────────────────────────────────
+
+type SlowestSpan = { name: string; total: number; avgDurationMs: number; p95DurationMs: number };
+
+function TopSlowestSpansTable({
+  data,
+  loading,
+}: {
+  data: SlowestSpan[] | undefined;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: 290 }}>
+      <div className="px-5 py-3.5 border-b border-zinc-800 shrink-0">
+        <p className="text-xs font-medium text-zinc-500">Top slowest spans</p>
+      </div>
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
+        </div>
+      ) : !data?.length ? (
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs text-zinc-600">No span data</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 px-5 py-2 border-b border-zinc-800 shrink-0">
+            <p className="flex-1 text-xs font-medium text-zinc-500">Span</p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Count</p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Avg</p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">p95</p>
+          </div>
+          <div className="divide-y divide-zinc-800 overflow-y-auto flex-1">
+            {data.map((row) => (
+              <div key={row.name} className="flex items-center gap-3 px-5 py-2.5">
+                <span className="text-xs font-medium text-zinc-100 truncate flex-1">{row.name}</span>
+                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">{row.total.toLocaleString()}</span>
+                <span className="text-xs text-viz-warning w-16 text-right shrink-0 tabular-nums">{formatDuration(row.avgDurationMs)}</span>
+                <span className="text-xs text-zinc-500 w-16 text-right shrink-0 tabular-nums">{formatDuration(row.p95DurationMs)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Trace Quality Chart ────────────────────────────────────────────────────────
+
+type QualityData = {
+  thresholds: { p75CostUsd: number; p75DurationMs: number };
+  days: Array<{ date: string; healthy: number; expensive: number; failed: number }>;
+};
+
+// Stack order: healthy (bottom) → expensive → failed (top).
+// Only the topmost non-zero segment gets rounded top corners.
+const STACK_KEYS = ["healthy", "expensive", "failed"] as const;
+
+function QualityBarShape(props: unknown) {
+  const { x, y, width, height, fill, dataKey, payload } = props as {
+    x: number; y: number; width: number; height: number;
+    fill: string; dataKey: string; payload: Record<string, number>;
+  };
+  if (!height) return <rect x={x} y={y} width={0} height={0} />;
+
+  const idx = STACK_KEYS.indexOf(dataKey as (typeof STACK_KEYS)[number]);
+  const isTop = STACK_KEYS.slice(idx + 1).every((k) => !payload[k]);
+  const r = isTop ? 3 : 0;
+
+  if (!r) {
+    return <rect x={x} y={y} width={width} height={height} fill={fill} />;
+  }
+
+  return (
+    <path
+      fill={fill}
+      d={`M${x},${y + height}
+          v${-(height - r)}
+          a${r},${r} 0 0 1 ${r},${-r}
+          h${width - 2 * r}
+          a${r},${r} 0 0 1 ${r},${r}
+          v${height - r}
+          z`}
+    />
+  );
+}
+
+const QUALITY_TOOLTIP_CLS =
+  "rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-zinc-300 shadow-lg max-w-[220px]";
+
+function QualityLegendChip({
+  color,
+  label,
+  tooltip,
+}: {
+  color: string;
+  label: string;
+  tooltip: string;
+}) {
+  return (
+    <BaseTooltip.Root>
+      <BaseTooltip.Trigger
+        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 cursor-default"
+        render={<span />}
+      >
+        <span
+          className="inline-block w-2 h-2 rounded-sm shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        {label}
+      </BaseTooltip.Trigger>
+      <BaseTooltip.Portal>
+        <BaseTooltip.Positioner sideOffset={6}>
+          <BaseTooltip.Popup className={QUALITY_TOOLTIP_CLS}>
+            {tooltip}
+          </BaseTooltip.Popup>
+        </BaseTooltip.Positioner>
+      </BaseTooltip.Portal>
+    </BaseTooltip.Root>
+  );
+}
+
+function QualityTooltipContent(props: {
+  active?: boolean;
+  label?: string;
+  payload?: Array<{ name?: string; value?: number; color?: string }>;
+}) {
+  const { active, label, payload } = props;
+  if (!active || !payload?.length || !label) return null;
+  const total = payload.reduce((s, p) => s + (p.value ?? 0), 0);
+  return (
+    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 shadow-lg space-y-1">
+      <div className="font-medium text-zinc-400">
+        {new Date(label + "T00:00:00").toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })}
+      </div>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ backgroundColor: p.color }}
+            />
+            {p.name}
+          </span>
+          <span className="tabular-nums text-zinc-300">
+            {p.value}
+            {total > 0 && (
+              <span className="text-zinc-500 ml-1">
+                ({Math.round(((p.value ?? 0) / total) * 100)}%)
+              </span>
+            )}
+          </span>
+        </div>
+      ))}
+      <div className="flex items-center justify-between border-t border-zinc-700 pt-1 mt-1">
+        <span className="text-zinc-400">Total</span>
+        <span className="tabular-nums text-zinc-100 font-medium">{total}</span>
+      </div>
+    </div>
+  );
+}
+
+function TraceQualityChart({
+  data,
+  loading,
+  from,
+  to,
+}: {
+  data: QualityData | undefined;
+  loading: boolean;
+  from: string;
+  to: string;
+}) {
+  const thresholds = data?.thresholds;
+
+  // Fill in gap days with zeros and add a total field
+  const days = useMemo(() => {
+    const raw = data?.days ?? [];
+    if (!raw.length) return [] as Array<QualityData["days"][number] & { total: number }>;
+    const map = new Map(raw.map((d) => [d.date, d]));
+    const filled: Array<QualityData["days"][number] & { total: number }> = [];
+    const start = new Date(from);
+    const end = new Date(to);
+    for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      const row = map.get(key) ?? { date: key, healthy: 0, expensive: 0, failed: 0 };
+      filled.push({ ...row, total: row.healthy + row.expensive + row.failed });
+    }
+    return filled;
+  }, [data?.days, from, to]);
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-5 pb-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-zinc-500">Trace quality</p>
+        <div className="flex flex-wrap gap-1.5">
+          <QualityLegendChip
+            color="var(--color-viz-healthy)"
+            label="Healthy"
+            tooltip="Succeeded with cost and duration within normal range (below p75)."
+          />
+          <QualityLegendChip
+            color="var(--color-viz-warning)"
+            label="Expensive"
+            tooltip={`Succeeded but cost or duration above p75 threshold.${thresholds ? ` Cost > $${thresholds.p75CostUsd.toFixed(4)}, Duration > ${thresholds.p75DurationMs < 1000 ? `${Math.round(thresholds.p75DurationMs)}ms` : `${(thresholds.p75DurationMs / 1000).toFixed(2)}s`}.` : ""}`}
+          />
+          <QualityLegendChip
+            color="var(--color-viz-danger)"
+            label="Failed"
+            tooltip="Traces that returned an error status."
+          />
+        </div>
+      </div>
+
+      <div style={{ height: 280 }}>
+        {loading ? (
+          <div className="h-full flex items-center justify-center">
+            <SpinnerGap size={20} className="text-zinc-600 animate-spin" />
+          </div>
+        ) : !days.length ? (
+          <div className="h-full flex items-center justify-center">
+            <span className="text-xs text-zinc-600">No trace data</span>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={days}
+              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="var(--color-zinc-800)"
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v: string) =>
+                  new Date(v + "T00:00:00").toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })
+                }
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+                width={36}
+              />
+              <Tooltip
+                animationDuration={150}
+                content={QualityTooltipContent}
+                cursor={{ fill: "var(--color-zinc-800)", opacity: 0.3 }}
+              />
+              <Bar
+                dataKey="healthy"
+                name="Healthy"
+                stackId="quality"
+                fill="var(--color-viz-healthy)"
+                shape={QualityBarShape}
+                isAnimationActive={false}
+              />
+              <Bar
+                dataKey="expensive"
+                name="Expensive"
+                stackId="quality"
+                fill="var(--color-viz-warning)"
+                shape={QualityBarShape}
+                isAnimationActive={false}
+              />
+              <Bar
+                dataKey="failed"
+                name="Failed"
+                stackId="quality"
+                fill="var(--color-viz-danger)"
+                shape={QualityBarShape}
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+function StatCell({
+  label, value, loading, delta, className = "",
+}: {
   label: string;
   value: string;
   loading?: boolean;
+  delta?: number | null;
+  className?: string;
 }) {
+  const showDelta = delta != null && isFinite(delta);
+  const isUp = showDelta && delta > 0;
+  const isDown = showDelta && delta < 0;
+
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-4 space-y-3 min-w-[160px]">
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <p className="text-xs text-zinc-500">{label}</p>
+    <div className={`px-5 py-4 space-y-2 ${className}`}>
+      <p className="text-xs text-zinc-500">{label}</p>
+      <div className="flex items-baseline gap-2">
+        <p className={`text-2xl font-semibold tracking-tight tabular-nums ${
+          loading ? "text-zinc-700 animate-pulse" : "text-zinc-100"
+        }`}>
+          {loading ? "———" : value}
+        </p>
+        {!loading && showDelta && (
+          <span className="inline-flex items-center gap-0.5 text-[11px] tabular-nums font-medium text-zinc-100">
+            {isUp ? <ArrowUp size={11} weight="bold" className="text-viz-healthy" /> : isDown ? <ArrowDown size={11} weight="bold" className="text-viz-danger" /> : null}
+            {Math.abs(Math.round(delta))}%
+          </span>
+        )}
       </div>
-      <p className={`text-2xl font-semibold tracking-tight tabular-nums ${
-        loading ? "text-zinc-700 animate-pulse" : "text-zinc-100"
-      }`}>
-        {loading ? "———" : value}
-      </p>
     </div>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns percentage change or null when comparison isn't meaningful. */
+function pctChange(current?: number, previous?: number): number | null {
+  if (current == null || previous == null) return null;
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return 100; // went from nothing to something
+  return ((current - previous) / previous) * 100;
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -388,6 +740,12 @@ function formatAxisCost(usd: number): string {
   return usd.toFixed(2);
 }
 
+function formatDurationAxis(ms: number): string {
+  if (!ms || ms <= 0) return "0";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function formatDuration(ms: number): string {
   if (!ms || ms <= 0) return "—";
   if (ms < 1000) return `${Math.round(ms)}ms`;
@@ -400,8 +758,3 @@ function formatErrorRate(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`;
 }
 
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}

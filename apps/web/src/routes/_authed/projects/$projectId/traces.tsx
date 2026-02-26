@@ -1,17 +1,26 @@
 import {
   ChartLine,
   CheckCircle,
-  CurrencyDollar,
   MagnifyingGlass,
   Pulse,
   SpinnerGap,
   Table,
-  Timer,
-  Warning,
   XCircle,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Tooltip } from "@base-ui/react/tooltip";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   DateRangePopover,
@@ -32,7 +41,7 @@ const searchSchema = z.object({
   names: z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
   statuses: z.array(z.enum(["ok", "error"])).optional(),
-  env: z.string().optional(),
+  env: z.array(z.string()).optional(),
   q: z.string().optional(),
 });
 
@@ -59,7 +68,7 @@ function TracesPage() {
   };
 
   return (
-    <main className="px-4 py-5 sm:px-6">
+    <main className="px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex gap-8">
         <nav className="w-44 shrink-0 space-y-0.5">
           {SIDEBAR_ITEMS.map((item) => (
@@ -87,61 +96,674 @@ function TracesPage() {
   );
 }
 
-// ── Insights Section ──────────────────────────────────────────────────────────
+// ── Types & helpers ──────────────────────────────────────────────────────────
 
-function InsightsSection() {
+type SampleSpan = {
+  id: string;
+  traceId: string;
+  parentSpanId: string;
+  name: string;
+  type: string;
+  status: "ok" | "error";
+  startTime: string;
+  endTime: string;
+};
+
+type SpanStats = {
+  name: string;
+  type: string;
+  frequency: number;
+  totalTraces: number;
+  avgCount: number;
+  avgDurationMs: number;
+  p95DurationMs: number;
+  errorRate: number;
+};
+
+const CHART_COLORS = [
+  "var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)",
+  "var(--color-chart-4)", "var(--color-chart-5)", "var(--color-chart-6)",
+  "var(--color-chart-7)", "var(--color-chart-8)", "var(--color-chart-9)",
+  "var(--color-chart-10)",
+];
+function flowMs(chDate: string): number {
+  return new Date(chDate.replace(" ", "T") + "Z").getTime();
+}
+
+function flowFmt(ms: number): string {
+  if (!ms || ms < 0) return "\u2014";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function percentile(values: number[], p: number): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.ceil((p / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
+function computeSpanStats(
+  spans: SampleSpan[],
+  totalTraces: number,
+): SpanStats[] {
+  const groups = new Map<string, { byTrace: Set<string>; all: SampleSpan[] }>();
+  for (const s of spans) {
+    const key = `${s.name}\0${s.type}`;
+    if (!groups.has(key)) groups.set(key, { byTrace: new Set(), all: [] });
+    const g = groups.get(key)!;
+    g.byTrace.add(s.traceId);
+    g.all.push(s);
+  }
+  return Array.from(groups.values())
+    .map((g) => {
+      const durations = g.all.map(
+        (s) => flowMs(s.endTime) - flowMs(s.startTime),
+      );
+      const errors = g.all.filter((s) => s.status === "error").length;
+      return {
+        name: g.all[0].name,
+        type: g.all[0].type,
+        frequency: g.byTrace.size,
+        totalTraces,
+        avgCount: g.all.length / g.byTrace.size,
+        avgDurationMs: durations.reduce((s, d) => s + d, 0) / durations.length,
+        p95DurationMs: percentile(durations, 95),
+        errorRate: errors / g.all.length,
+      };
+    })
+    .sort((a, b) => b.frequency - a.frequency);
+}
+
+// ── Span Stats Table ──────────────────────────────────────────────────────────
+
+const STAT_TYPE_CLASSES: Record<string, string> = {
+  llm: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+  tool: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+  retrieval: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+};
+
+function SpanStatsTable({ stats }: { stats: SpanStats[] }) {
+  if (!stats.length) return null;
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <ChartCard
-        icon={<ChartLine size={16} />}
-        label="Trace Volume"
-        value="—"
-        sub="traces in period"
-      />
-      <ChartCard
-        icon={<Warning size={16} />}
-        label="Error Rate"
-        value="—"
-        sub="of all traces"
-      />
-      <ChartCard
-        icon={<CurrencyDollar size={16} />}
-        label="Total Cost"
-        value="—"
-        sub="estimated spend"
-      />
-      <ChartCard
-        icon={<Timer size={16} />}
-        label="Avg Latency"
-        value="—"
-        sub="p50 duration"
-      />
+    <div className="border border-zinc-800 overflow-hidden rounded-lg">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-zinc-800 bg-zinc-900/50">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
+              Span
+            </th>
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
+              Type
+            </th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
+              Frequency
+            </th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
+              Avg #
+            </th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
+              Avg Duration
+            </th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
+              p95 Duration
+            </th>
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
+              Error Rate
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-800">
+          {stats.map((s) => {
+            const freqPct = Math.round(
+              (s.frequency / (s.totalTraces || 1)) * 100,
+            );
+            const errPct = Math.round(s.errorRate * 100);
+            const tc =
+              STAT_TYPE_CLASSES[s.type] ??
+              "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
+            return (
+              <tr key={`${s.name}-${s.type}`} className="hover:bg-zinc-900/50">
+                <td className="px-4 py-2.5 text-zinc-100 font-medium">
+                  {s.name}
+                </td>
+                <td className="px-4 py-2.5">
+                  <span
+                    className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}
+                  >
+                    {s.type}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
+                  {freqPct}%
+                  <span className="text-zinc-600 ml-1 text-xs">
+                    ({s.frequency}/{s.totalTraces})
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
+                  {s.avgCount.toFixed(1)}
+                </td>
+                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
+                  {flowFmt(s.avgDurationMs)}
+                </td>
+                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
+                  {flowFmt(s.p95DurationMs)}
+                </td>
+                <td className="px-4 py-2.5 text-right tabular-nums">
+                  <span
+                    className={errPct > 0 ? "text-red-400" : "text-zinc-600"}
+                  >
+                    {errPct}%
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function ChartCard({
-  icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-}) {
+// ── Span Frequency Chart ──────────────────────────────────────────────────────
+
+type FrequencyDatum = {
+  name: string;
+  type: string;
+  p5: number;
+  p50: number;
+  p95: number;
+  max: number;
+};
+
+function computeSpanFrequency(spans: SampleSpan[], totalTraces: number): FrequencyDatum[] {
+  const leafSpans = spans.filter((s) => s.type !== "step");
+
+  // For each span name, count how many times it appears per trace
+  const byName = new Map<string, { type: string; perTrace: Map<string, number> }>();
+  for (const s of leafSpans) {
+    if (!byName.has(s.name)) byName.set(s.name, { type: s.type, perTrace: new Map() });
+    const entry = byName.get(s.name)!;
+    entry.perTrace.set(s.traceId, (entry.perTrace.get(s.traceId) ?? 0) + 1);
+  }
+
+  return Array.from(byName.entries())
+    .map(([name, { type, perTrace }]) => {
+      // Include traces where this span didn't appear at all (count = 0)
+      const counts = Array.from(perTrace.values());
+      const missingTraces = totalTraces - perTrace.size;
+      for (let i = 0; i < missingTraces; i++) counts.push(0);
+
+      return {
+        name,
+        type,
+        p5: percentile(counts, 5),
+        p50: percentile(counts, 50),
+        p95: percentile(counts, 95),
+        max: Math.max(...counts),
+      };
+    })
+    .sort((a, b) => b.p95 - a.p95 || b.p50 - a.p50);
+}
+
+const FREQ_MARGIN = { top: 8, right: 16, bottom: 24, left: 4 };
+const FREQ_TOOLTIP_CLS = "rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-zinc-300 shadow-lg max-w-[220px]";
+
+function FrequencyTooltipContent(props: { active?: boolean; payload?: Array<{ payload?: FrequencyDatum }> }) {
+  const { active, payload } = props;
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-      <div className="flex items-center gap-2 text-zinc-500 mb-3">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
+    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg space-y-0.5">
+      <div className="font-medium">{d.name} <span className="text-zinc-500">({d.type})</span></div>
+      <div className="text-zinc-400">
+        p5: {d.p5} &middot; p50: {d.p50} &middot; p95: {d.p95} &middot; max: {d.max}
       </div>
-      <div className="h-40 rounded-md bg-zinc-800/40 border border-dashed border-zinc-700/50 flex items-center justify-center mb-3">
-        <span className="text-xs text-zinc-600">Chart placeholder</span>
+    </div>
+  );
+}
+
+function LegendChip({ color, label, tooltip }: { color: string; label: string; tooltip: string }) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 cursor-default"
+        render={<span />}
+      >
+        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+        {label}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner sideOffset={6}>
+          <Tooltip.Popup className={FREQ_TOOLTIP_CLS}>
+            {tooltip}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
+function SpanFrequencyChart({ spans, totalTraces }: { spans: SampleSpan[]; totalTraces: number }) {
+  const data = useMemo(() => computeSpanFrequency(spans, totalTraces), [spans, totalTraces]);
+
+  if (!data.length) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="border border-zinc-800 rounded-lg px-5 pt-4 pb-2" style={{ height: 240 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={FREQ_MARGIN} barGap={2} barCategoryGap="30%">
+            <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "var(--color-zinc-400)", fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              interval={0}
+              angle={-30}
+              textAnchor="end"
+              height={48}
+            />
+            <YAxis
+              tick={AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+              label={{ value: "Count per trace", angle: -90, position: "insideLeft", offset: 8, fill: "var(--color-zinc-500)", fontSize: 11 }}
+            />
+            <RechartsTooltip
+              animationDuration={150}
+              content={FrequencyTooltipContent}
+              cursor={{ fill: "var(--color-zinc-800)", opacity: 0.3 }}
+            />
+            <Bar dataKey="p5" name="p5" fill="var(--color-chart-7)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Bar dataKey="p50" name="p50" fill="var(--color-chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Bar dataKey="p95" name="p95" fill="var(--color-chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <p className="text-xl font-semibold text-zinc-100">{value}</p>
-      <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>
+      {/* Legend with tooltips */}
+      <div className="flex flex-wrap gap-1.5">
+        <LegendChip
+          color="var(--color-chart-7)"
+          label="p5"
+          tooltip="5th percentile — the low end. If this is 0, at least 5% of traces never ran this span at all."
+        />
+        <LegendChip
+          color="var(--color-chart-2)"
+          label="p50"
+          tooltip="Median count per trace. This is how many times the span typically runs in a single trace."
+        />
+        <LegendChip
+          color="var(--color-chart-4)"
+          label="p95"
+          tooltip="95th percentile — the high end. If this is much larger than p50, some traces run this span far more often than usual."
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Trace Scatter Plot ────────────────────────────────────────────────────────
+
+type ScatterDatum = { x: number; y: number; spanName: string; spanType: string; durationMs: number };
+
+// Stable objects hoisted out of render — avoids new refs every frame
+const SCATTER_MARGIN = { top: 16, right: 16, bottom: 24, left: 48 };
+const AXIS_TICK = { fill: "var(--color-zinc-500)", fontSize: 11 } as const;
+const Y_LABEL = { value: "Trace #", angle: -90 as const, position: "insideLeft" as const, offset: -4, fill: "var(--color-zinc-500)", fontSize: 11 };
+const DEFAULT_X_DOMAIN: [number, string] = [0, "auto"];
+
+const SPAN_TYPE_COLORS: Record<string, string> = {
+  llm:       "var(--color-chart-1)",  // purple
+  tool:      "var(--color-chart-2)",  // blue
+  retrieval: "var(--color-chart-3)",  // emerald
+  custom:    "var(--color-chart-4)",  // amber
+};
+const SPAN_TYPE_FALLBACK = "var(--color-chart-muted)";
+
+function ScatterTooltipContent(props: { active?: boolean; payload?: Array<{ payload?: ScatterDatum }> }) {
+  const { active, payload } = props;
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg">
+      <span className="font-medium">{d.spanName}</span>
+      <span className="text-zinc-500 ml-1.5">({d.spanType})</span>
+      <span className="text-zinc-400 ml-2">start: {flowFmt(d.x)}</span>
+      <span className="text-zinc-400 ml-2">dur: {flowFmt(d.durationMs)}</span>
+    </div>
+  );
+}
+
+function TraceScatterPlot({ spans }: { spans: SampleSpan[] }) {
+  const [xDomain, setXDomain] = useState<[number, number] | null>(null);
+  const [highlightedName, setHighlightedName] = useState<string | null>(null);
+
+  // Drag state lives entirely in refs — zero re-renders during drag
+  const dragRef = useRef<{ startPx: number; startVal: number; endVal: number } | null>(null);
+  const selectionRef = useRef<HTMLDivElement>(null);
+
+  // Filter out step spans, group by span name (colored by type)
+  const { seriesMap, colorMap, traceCount, sortedNames } = useMemo(() => {
+    // Exclude "step" type — they're just wrapper/container spans
+    const leafSpans = spans.filter((s) => s.type !== "step");
+    if (!leafSpans.length)
+      return { seriesMap: new Map<string, ScatterDatum[]>(), colorMap: new Map<string, string>(), traceCount: 0, sortedNames: [] as string[] };
+
+    const byTrace = new Map<string, SampleSpan[]>();
+    for (const s of leafSpans) {
+      if (!byTrace.has(s.traceId)) byTrace.set(s.traceId, []);
+      byTrace.get(s.traceId)!.push(s);
+    }
+
+    const traceEntries = Array.from(byTrace.entries()).sort((a, b) => {
+      const aMin = Math.min(...a[1].map((s) => flowMs(s.startTime)));
+      const bMin = Math.min(...b[1].map((s) => flowMs(s.startTime)));
+      return aMin - bMin;
+    });
+
+    // Build name → type mapping for color assignment
+    const nameTypeMap = new Map<string, string>();
+    for (const s of leafSpans) nameTypeMap.set(s.name, s.type);
+    const names = Array.from(nameTypeMap.keys()).sort();
+
+    // Color by span type so same-type spans share a hue family
+    const cMap = new Map<string, string>();
+    // Track how many names per type so we can offset shades
+    const typeCounters = new Map<string, number>();
+    for (const name of names) {
+      const type = nameTypeMap.get(name)!;
+      const idx = typeCounters.get(type) ?? 0;
+      typeCounters.set(type, idx + 1);
+      // First span of each type gets the primary color, extras get offset
+      const baseColors: Record<string, string[]> = {
+        llm:       [CHART_COLORS[0], CHART_COLORS[9], CHART_COLORS[5]],  // purple, violet, pink
+        tool:      [CHART_COLORS[1], CHART_COLORS[6]],                    // blue, cyan
+        retrieval: [CHART_COLORS[2], CHART_COLORS[7]],                    // emerald, lime
+        custom:    [CHART_COLORS[3], CHART_COLORS[8]],                    // amber, orange
+      };
+      const palette = baseColors[type] ?? [CHART_COLORS[idx % CHART_COLORS.length]];
+      cMap.set(name, palette[idx % palette.length]);
+    }
+
+    const dataByName = new Map<string, ScatterDatum[]>();
+    for (const name of names) dataByName.set(name, []);
+
+    traceEntries.forEach(([, traceSpans], traceIndex) => {
+      const traceStart = Math.min(...traceSpans.map((s) => flowMs(s.startTime)));
+      for (const s of traceSpans) {
+        const relStartMs = flowMs(s.startTime) - traceStart;
+        const durationMs = flowMs(s.endTime) - flowMs(s.startTime);
+        dataByName.get(s.name)!.push({
+          x: relStartMs,
+          y: traceIndex,
+          spanName: s.name,
+          spanType: s.type,
+          durationMs,
+        });
+      }
+    });
+
+    return { seriesMap: dataByName, colorMap: cMap, traceCount: traceEntries.length, sortedNames: names };
+  }, [spans]);
+
+  const yDomain = useMemo<[number, number]>(
+    () => [-0.5, traceCount - 0.5],
+    [traceCount],
+  );
+
+  // All drag handlers mutate refs + DOM directly — no setState until mouseUp
+  const handleMouseDown = useCallback((state: { chartX?: number; xValue?: number }) => {
+    if (state.chartX == null || state.xValue == null) return;
+    dragRef.current = { startPx: state.chartX, startVal: state.xValue, endVal: state.xValue };
+    if (selectionRef.current) {
+      selectionRef.current.style.display = "block";
+      selectionRef.current.style.left = `${state.chartX}px`;
+      selectionRef.current.style.width = "0px";
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((state: { chartX?: number; xValue?: number }) => {
+    if (!dragRef.current || state.chartX == null || state.xValue == null) return;
+    dragRef.current.endVal = state.xValue;
+    const el = selectionRef.current;
+    if (el) {
+      const left = Math.min(dragRef.current.startPx, state.chartX);
+      const width = Math.abs(state.chartX - dragRef.current.startPx);
+      el.style.left = `${left}px`;
+      el.style.width = `${width}px`;
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!dragRef.current) return;
+    const { startVal, endVal } = dragRef.current;
+    dragRef.current = null;
+    if (selectionRef.current) selectionRef.current.style.display = "none";
+    const left = Math.min(startVal, endVal);
+    const right = Math.max(startVal, endVal);
+    if (right - left > 1) {
+      setXDomain([left, right]);
+    }
+  }, []);
+
+  const resetZoom = useCallback(() => setXDomain(null), []);
+
+  // Highlight applies via CSS opacity on the SVG groups — avoids re-rendering the chart
+  const highlightStyle = useMemo(() => {
+    if (highlightedName == null) return null;
+    return sortedNames.map((name) => ({
+      name,
+      opacity: name === highlightedName ? 1 : 0.12,
+    }));
+  }, [highlightedName, sortedNames]);
+
+  if (!sortedNames.length) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="border border-zinc-800 rounded-lg relative select-none overflow-hidden" style={{ height: 400 }}>
+        {xDomain && (
+          <button
+            onClick={resetZoom}
+            className="absolute top-2 right-2 z-10 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-[10px] text-zinc-300 hover:bg-zinc-700 transition-colors"
+          >
+            Reset zoom
+          </button>
+        )}
+        {/* DOM selection overlay — positioned via refs, zero re-renders */}
+        <div
+          ref={selectionRef}
+          className="absolute pointer-events-none"
+          style={{
+            display: "none",
+            top: SCATTER_MARGIN.top,
+            bottom: SCATTER_MARGIN.bottom,
+            backgroundColor: "var(--color-zinc-600)",
+            opacity: 0.15,
+          }}
+        />
+        {/* CSS-driven highlight — no chart re-render on legend hover */}
+        {highlightStyle && (
+          <style>{sortedNames.map((_, i) =>
+            `.scatter-plot .scatter-s-${i} { opacity: ${highlightStyle[i].opacity}; transition: opacity 0.15s; }`
+          ).join("\n")}</style>
+        )}
+        {!highlightStyle && (
+          <style>{sortedNames.map((_, i) =>
+            `.scatter-plot .scatter-s-${i} { transition: opacity 0.15s; }`
+          ).join("\n")}</style>
+        )}
+        <ResponsiveContainer width="100%" height="100%" className="scatter-plot">
+          <ScatterChart
+            margin={SCATTER_MARGIN}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
+            <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
+            <XAxis
+              type="number"
+              dataKey="x"
+              domain={xDomain ?? DEFAULT_X_DOMAIN}
+              tickFormatter={flowFmt}
+              tick={AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              allowDataOverflow={!!xDomain}
+            />
+            <YAxis
+              type="number"
+              dataKey="y"
+              domain={yDomain}
+              tick={AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              label={Y_LABEL}
+            />
+            <RechartsTooltip
+              animationDuration={150}
+              content={ScatterTooltipContent}
+              cursor={false}
+            />
+            {sortedNames.map((name, i) => (
+              <Scatter
+                key={name}
+                name={name}
+                data={seriesMap.get(name)}
+                fill={colorMap.get(name) ?? SPAN_TYPE_FALLBACK}
+                className={`scatter-s-${i}`}
+                legendType="none"
+                isAnimationActive={false}
+              />
+            ))}
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      {/* Chip legend */}
+      <div className="flex flex-wrap gap-1.5">
+        {sortedNames.map((name) => (
+          <span
+            key={name}
+            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 cursor-default transition-opacity"
+            style={{ opacity: highlightedName == null || highlightedName === name ? 1 : 0.3 }}
+            onMouseEnter={() => setHighlightedName(name)}
+            onMouseLeave={() => setHighlightedName(null)}
+          >
+            <span
+              className="inline-block w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: colorMap.get(name) }}
+            />
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InsightsSection() {
+  const { projectId } = Route.useParams();
+  const nameList = trpc.traces.names.useQuery({ projectId });
+  const [selectedName, setSelectedName] = useState<string>("");
+
+  // Auto-select first available name
+  useEffect(() => {
+    if (nameList.data?.length && !selectedName) {
+      setSelectedName(nameList.data[0]);
+    }
+  }, [nameList.data, selectedName]);
+
+  // Fetch spans from recent traces in one query
+  const sampleQuery = trpc.traces.spanSample.useQuery(
+    { projectId, traceName: selectedName, traceLimit: 50 },
+    { enabled: !!selectedName },
+  );
+
+  const { stats, rawSpans, traceCount } = useMemo(() => {
+    if (!sampleQuery.data?.spans?.length)
+      return {
+        stats: [] as SpanStats[],
+        rawSpans: [] as SampleSpan[],
+        traceCount: 0,
+      };
+
+    const { traceCount, spans } = sampleQuery.data;
+    const spanStats = computeSpanStats(spans, traceCount);
+
+    return {
+      stats: spanStats,
+      rawSpans: spans,
+      traceCount,
+    };
+  }, [sampleQuery.data]);
+
+  const isLoading =
+    nameList.isLoading || (!!selectedName && sampleQuery.isLoading);
+
+  return (
+    <div className="space-y-6">
+      {/* Trace name selector */}
+      <div className="flex items-center gap-3">
+        <label className="text-xs text-zinc-500">Trace name</label>
+        <select
+          value={selectedName}
+          onChange={(e) => setSelectedName(e.target.value)}
+          disabled={!nameList.data?.length}
+          className="h-[30px] rounded-md border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-zinc-300 outline-none focus:border-zinc-600 cursor-pointer"
+        >
+          {!nameList.data?.length && <option value="">No traces yet</option>}
+          {nameList.data?.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        {sampleQuery.data && (
+          <span className="text-[11px] text-zinc-600">
+            Aggregated from {sampleQuery.data.traceCount} recent traces
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center border border-dashed border-zinc-700 py-24">
+          <SpinnerGap size={20} className="text-zinc-600 animate-spin" />
+        </div>
+      ) : !rawSpans.length ? (
+        <div className="flex flex-col items-center justify-center border border-dashed border-zinc-700 py-24 text-center">
+          <Pulse size={32} className="text-zinc-600 mb-3" />
+          <p className="text-sm text-zinc-400">No trace data</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Select a trace name to see span insights.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div>
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
+              Span Frequency per Trace
+            </h3>
+            <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
+          </div>
+          <div>
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
+              Execution Timeline
+            </h3>
+            <TraceScatterPlot spans={rawSpans} />
+          </div>
+          <div>
+            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
+              Span Statistics
+            </h3>
+            <SpanStatsTable stats={stats} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -159,7 +781,7 @@ function RawTracesSection() {
   const selectedNames = search.names ?? [];
   const selectedModels = search.models ?? [];
   const selectedStatuses = search.statuses ?? [];
-  const envFilter = search.env ?? "";
+  const selectedEnvs = search.env ?? [];
   const nlpQuery = search.q ?? "";
 
   const [draft, setDraft] = useState(nlpQuery);
@@ -221,26 +843,46 @@ function RawTracesSection() {
       selectedStatuses.length > 0
         ? (selectedStatuses as ("ok" | "error")[])
         : undefined,
-    environment: envFilter || undefined,
+    environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
     query: nlpQuery || undefined,
   });
 
   const toastManager = useToastManager();
+  const toastManagerRef = useRef(toastManager);
+  toastManagerRef.current = toastManager;
+
+  const searchMode = traces.data?.searchMode ?? null;
+  const aiError = traces.data?.aiError ?? null;
+  const lastToastedQuery = useRef<string | null>(null);
 
   useEffect(() => {
-    if (traces.data?.searchMode !== "text" || !nlpQuery) return;
-    const key = `ai-search-toast-dismissed:${projectId}`;
-    if (localStorage.getItem(key)) return;
-    localStorage.setItem(key, "1");
-    toastManager.add({
-      title: "Using basic text search",
-      description: "Configure an AI provider for smarter search.",
-      data: {
-        linkText: "Go to AI settings",
-        linkHref: `/projects/${projectId}/settings?tab=ai`,
-      },
-    });
-  }, [traces.data?.searchMode, nlpQuery, toastManager, projectId]);
+    if (searchMode !== "text" || !nlpQuery) return;
+    if (lastToastedQuery.current === nlpQuery) return;
+    lastToastedQuery.current = nlpQuery;
+
+    if (aiError) {
+      toastManagerRef.current.add({
+        title: "AI search failed",
+        description: aiError,
+        data: {
+          linkText: "Check AI settings",
+          linkHref: `/projects/${projectId}/settings?tab=ai`,
+        },
+      });
+    } else {
+      const key = `ai-search-toast-dismissed:${projectId}`;
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+      toastManagerRef.current.add({
+        title: "Using basic text search",
+        description: "Configure an AI provider for smarter search.",
+        data: {
+          linkText: "Go to AI settings",
+          linkHref: `/projects/${projectId}/settings?tab=ai`,
+        },
+      });
+    }
+  }, [searchMode, aiError, nlpQuery, projectId]);
 
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
@@ -250,7 +892,7 @@ function RawTracesSection() {
     selectedNames.length > 0 ||
     selectedModels.length > 0 ||
     selectedStatuses.length > 0 ||
-    !!envFilter ||
+    selectedEnvs.length > 0 ||
     !!nlpQuery;
 
   return (
@@ -353,27 +995,12 @@ function RawTracesSection() {
           placeholder="All statuses"
         />
 
-        {(envList.data?.length ?? 0) > 0 && (
-          <select
-            value={envFilter}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  env: e.target.value || undefined,
-                }),
-              })
-            }
-            className="h-[30px] rounded-md border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-zinc-400 outline-none focus:border-zinc-600 cursor-pointer"
-          >
-            <option value="">All environments</option>
-            {envList.data!.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        )}
+        <MultiselectCombobox
+          options={envList.data ?? []}
+          selected={selectedEnvs}
+          onChange={(v) => navigate({ search: (prev) => ({ ...prev, env: v.length ? v : undefined }) })}
+          placeholder="All environments"
+        />
       </div>
 
       {/* ── Trace table ───────────────────────────────────────── */}
@@ -444,10 +1071,10 @@ function RawTracesSection() {
                   <td className="px-4 py-3 text-zinc-400">
                     {trace.inputTokens + trace.outputTokens > 0
                       ? formatTokens(trace.inputTokens + trace.outputTokens)
-                      : "—"}
+                      : "\u2014"}
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
-                    {trace.costUsd > 0 ? formatCost(trace.costUsd) : "—"}
+                    {trace.costUsd > 0 ? formatCost(trace.costUsd) : "\u2014"}
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
                     {formatDuration(trace.startTime, trace.endTime)}
@@ -500,11 +1127,11 @@ function formatTokens(n: number): string {
 }
 
 function formatDuration(start: string, end: string | null): string {
-  if (!end) return "—";
+  if (!end) return "\u2014";
   const ms =
     new Date(end.replace(" ", "T") + "Z").getTime() -
     new Date(start.replace(" ", "T") + "Z").getTime();
-  if (!ms || ms < 0) return "—";
+  if (!ms || ms < 0) return "\u2014";
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
 }
