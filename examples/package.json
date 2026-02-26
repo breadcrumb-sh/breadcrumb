@@ -9,6 +9,7 @@
     "error": "tsx scripts/04-error.ts",
     "ai-sdk": "tsx scripts/05-ai-sdk.ts",
     "seed-many": "tsx scripts/seed-many.ts",
+    "seed-conversations": "tsx scripts/seed-conversations.ts",
     "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\""
   },
   "dependencies": {
