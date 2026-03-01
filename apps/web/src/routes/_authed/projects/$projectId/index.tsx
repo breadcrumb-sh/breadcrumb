@@ -1,6 +1,7 @@
-import { ArrowUp, ArrowDown, SpinnerGap } from "@phosphor-icons/react";
-import { createFileRoute } from "@tanstack/react-router";
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
+import { ArrowDown, ArrowUp, SpinnerGap } from "@phosphor-icons/react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -12,19 +13,22 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useMemo } from "react";
 import { z } from "zod";
-import { trpc } from "../../../../lib/trpc";
-import { DateRangePopover, today, presetFrom } from "../../../../components/DateRangePopover";
+import {
+  DateRangePopover,
+  presetFrom,
+  today,
+} from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
+import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
-  from:   z.string().optional(),
-  to:     z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
-  names:  z.array(z.string()).optional(),
+  names: z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
-  env:    z.array(z.string()).optional(),
+  env: z.array(z.string()).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/")({
@@ -39,15 +43,22 @@ function OverviewPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
 
-  const from           = search.from   ?? presetFrom(30);
-  const to             = search.to     ?? today();
-  const preset         = search.preset ?? 30;
-  const selectedNames  = search.names  ?? [];
+  const from = search.from ?? presetFrom(30);
+  const to = search.to ?? today();
+  const preset = search.preset ?? 30;
+  const selectedNames = search.names ?? [];
   const selectedModels = search.models ?? [];
-  const selectedEnvs   = search.env    ?? [];
+  const selectedEnvs = search.env ?? [];
 
   const applyPreset = (days: 7 | 30 | 90) =>
-    navigate({ search: (prev) => ({ ...prev, from: presetFrom(days), to: today(), preset: days }) });
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        from: presetFrom(days),
+        to: today(),
+        preset: days,
+      }),
+    });
 
   const handleFromChange = (v: string) =>
     navigate({ search: (prev) => ({ ...prev, from: v, preset: undefined }) });
@@ -59,32 +70,32 @@ function OverviewPage() {
     from,
     to,
     environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
-    models:      selectedModels.length > 0 ? selectedModels : undefined,
-    names:       selectedNames.length  > 0 ? selectedNames  : undefined,
+    models: selectedModels.length > 0 ? selectedModels : undefined,
+    names: selectedNames.length > 0 ? selectedNames : undefined,
   };
 
-  const stats        = trpc.traces.stats.useQuery(commonFilters);
-  const daily        = trpc.traces.dailyMetrics.useQuery(commonFilters);
-  const quality      = trpc.traces.qualityTimeline.useQuery(commonFilters);
+  const stats = trpc.traces.stats.useQuery(commonFilters);
+  const daily = trpc.traces.dailyMetrics.useQuery(commonFilters);
+  const quality = trpc.traces.qualityTimeline.useQuery(commonFilters);
   const failingSpans = trpc.traces.topFailingSpans.useQuery(commonFilters);
   const slowestSpans = trpc.traces.topSlowestSpans.useQuery(commonFilters);
-  const envList    = trpc.traces.environments.useQuery({ projectId });
-  const modelList  = trpc.traces.models.useQuery({ projectId });
-  const nameList   = trpc.traces.names.useQuery({ projectId });
+  const envList = trpc.traces.environments.useQuery({ projectId });
+  const modelList = trpc.traces.models.useQuery({ projectId });
+  const nameList = trpc.traces.names.useQuery({ projectId });
 
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6">
-
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
-
         {/* Date range */}
         <DateRangePopover
           from={from}
           to={to}
           preset={preset}
           onPreset={applyPreset}
-          onCustom={() => navigate({ search: (prev) => ({ ...prev, preset: undefined }) })}
+          onCustom={() =>
+            navigate({ search: (prev) => ({ ...prev, preset: undefined }) })
+          }
           onFromChange={handleFromChange}
           onToChange={handleToChange}
         />
@@ -96,7 +107,11 @@ function OverviewPage() {
         <MultiselectCombobox
           options={nameList.data ?? []}
           selected={selectedNames}
-          onChange={(v) => navigate({ search: (prev) => ({ ...prev, names: v.length ? v : undefined }) })}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, names: v.length ? v : undefined }),
+            })
+          }
           placeholder="All traces"
         />
 
@@ -104,7 +119,11 @@ function OverviewPage() {
         <MultiselectCombobox
           options={envList.data ?? []}
           selected={selectedEnvs}
-          onChange={(v) => navigate({ search: (prev) => ({ ...prev, env: v.length ? v : undefined }) })}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, env: v.length ? v : undefined }),
+            })
+          }
           placeholder="All environments"
         />
 
@@ -112,22 +131,84 @@ function OverviewPage() {
         <MultiselectCombobox
           options={modelList.data ?? []}
           selected={selectedModels}
-          onChange={(v) => navigate({ search: (prev) => ({ ...prev, models: v.length ? v : undefined }) })}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, models: v.length ? v : undefined }),
+            })
+          }
           placeholder="All models"
         />
       </div>
 
       {/* ── Stat cards ────────────────────────────────────────── */}
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
-        <StatCell label="Traces" value={stats.data ? stats.data.traceCount.toLocaleString() : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.traceCount, stats.data?.prev?.traceCount)} />
-        <StatCell className="border-l sm:border-l border-zinc-800" label="Total cost" value={stats.data ? formatCost(stats.data.totalCostUsd) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.totalCostUsd, stats.data?.prev?.totalCostUsd)} />
-        <StatCell className="border-t sm:border-t-0 sm:border-l border-zinc-800" label="Avg cost / trace" value={stats.data ? formatCost(stats.data.traceCount > 0 ? stats.data.totalCostUsd / stats.data.traceCount : 0) : "—"} loading={stats.isLoading} delta={pctChange(stats.data && stats.data.traceCount > 0 ? stats.data.totalCostUsd / stats.data.traceCount : undefined, stats.data?.prev && stats.data.prev.traceCount > 0 ? stats.data.prev.totalCostUsd / stats.data.prev.traceCount : undefined)} />
-        <StatCell className="border-t border-l sm:border-t-0 sm:border-l border-zinc-800" label="Avg duration" value={stats.data ? formatDuration(stats.data.avgDurationMs) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.avgDurationMs, stats.data?.prev?.avgDurationMs)} />
-        <StatCell className="border-t sm:border-t-0 sm:border-l border-zinc-800 col-span-2 sm:col-span-1" label="Error rate" value={stats.data ? formatErrorRate(stats.data.errorRate) : "—"} loading={stats.isLoading} delta={pctChange(stats.data?.errorRate, stats.data?.prev?.errorRate)} />
+        <StatCell
+          label="Traces"
+          value={stats.data ? stats.data.traceCount.toLocaleString() : "—"}
+          loading={stats.isLoading}
+          delta={pctChange(
+            stats.data?.traceCount,
+            stats.data?.prev?.traceCount,
+          )}
+        />
+        <StatCell
+          className="border-l sm:border-l border-zinc-800"
+          label="Total cost"
+          value={stats.data ? formatCost(stats.data.totalCostUsd) : "—"}
+          loading={stats.isLoading}
+          delta={pctChange(
+            stats.data?.totalCostUsd,
+            stats.data?.prev?.totalCostUsd,
+          )}
+        />
+        <StatCell
+          className="border-t sm:border-t-0 sm:border-l border-zinc-800"
+          label="Avg cost / trace"
+          value={
+            stats.data
+              ? formatCost(
+                  stats.data.traceCount > 0
+                    ? stats.data.totalCostUsd / stats.data.traceCount
+                    : 0,
+                )
+              : "—"
+          }
+          loading={stats.isLoading}
+          delta={pctChange(
+            stats.data && stats.data.traceCount > 0
+              ? stats.data.totalCostUsd / stats.data.traceCount
+              : undefined,
+            stats.data?.prev && stats.data.prev.traceCount > 0
+              ? stats.data.prev.totalCostUsd / stats.data.prev.traceCount
+              : undefined,
+          )}
+        />
+        <StatCell
+          className="border-t border-l sm:border-t-0 sm:border-l border-zinc-800"
+          label="Avg duration"
+          value={stats.data ? formatDuration(stats.data.avgDurationMs) : "—"}
+          loading={stats.isLoading}
+          delta={pctChange(
+            stats.data?.avgDurationMs,
+            stats.data?.prev?.avgDurationMs,
+          )}
+        />
+        <StatCell
+          className="border-t sm:border-t-0 sm:border-l border-zinc-800 col-span-2 sm:col-span-1"
+          label="Error rate"
+          value={stats.data ? formatErrorRate(stats.data.errorRate) : "—"}
+          loading={stats.isLoading}
+          delta={pctChange(stats.data?.errorRate, stats.data?.prev?.errorRate)}
+        />
       </div>
 
       {/* ── Hero: Trace Quality ──────────────────────────────── */}
-      <TraceQualityChart data={quality.data} loading={quality.isLoading} from={from} to={to} />
+      <TraceQualityChart
+        data={quality.data}
+        loading={quality.isLoading}
+        from={from}
+        to={to}
+      />
 
       {/* ── Cost charts ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -159,7 +240,10 @@ function OverviewPage() {
           formatAxis={(v) => `${Number(v)}%`}
           formatTooltip={(y) => `${Number(y).toFixed(1)}%`}
         />
-        <TopFailingSpansTable data={failingSpans.data} loading={failingSpans.isLoading} />
+        <TopFailingSpansTable
+          data={failingSpans.data}
+          loading={failingSpans.isLoading}
+        />
       </div>
 
       {/* ── Latency charts ──────────────────────────────────────── */}
@@ -171,27 +255,40 @@ function OverviewPage() {
           formatAxis={(v) => formatDurationAxis(Number(v))}
           formatTooltip={(y) => formatDuration(Number(y))}
         />
-        <TopSlowestSpansTable data={slowestSpans.data} loading={slowestSpans.isLoading} />
+        <TopSlowestSpansTable
+          data={slowestSpans.data}
+          loading={slowestSpans.isLoading}
+        />
       </div>
-
     </main>
   );
 }
 
 // ── Chart helpers ──────────────────────────────────────────────────────────────
 
-type DailyMetric = { date: string; traces: number; costUsd: number; errors: number; avgDurationMs: number };
+type DailyMetric = {
+  date: string;
+  traces: number;
+  costUsd: number;
+  errors: number;
+  avgDurationMs: number;
+};
 
-function buildChartData(rows: DailyMetric[], from: string, to: string, metric: Metric) {
+function buildChartData(
+  rows: DailyMetric[],
+  from: string,
+  to: string,
+  metric: Metric,
+) {
   const map = new Map(
     rows.map((r) => [
       r.date,
       metric === "traces" ? r.traces : metric === "cost" ? r.costUsd : r.errors,
-    ])
+    ]),
   );
   const data: { date: string; value: number }[] = [];
   const start = new Date(from);
-  const end   = new Date(to);
+  const end = new Date(to);
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     data.push({ date: key, value: map.get(key) ?? 0 });
@@ -203,11 +300,14 @@ function buildAvgCostData(rows: DailyMetric[], from: string, to: string) {
   const map = new Map(rows.map((r) => [r.date, r]));
   const data: { date: string; value: number }[] = [];
   const start = new Date(from);
-  const end   = new Date(to);
+  const end = new Date(to);
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     const row = map.get(key);
-    data.push({ date: key, value: row && row.traces > 0 ? row.costUsd / row.traces : 0 });
+    data.push({
+      date: key,
+      value: row && row.traces > 0 ? row.costUsd / row.traces : 0,
+    });
   }
   return data;
 }
@@ -216,11 +316,14 @@ function buildSuccessRateData(rows: DailyMetric[], from: string, to: string) {
   const map = new Map(rows.map((r) => [r.date, r]));
   const data: { date: string; value: number }[] = [];
   const start = new Date(from);
-  const end   = new Date(to);
+  const end = new Date(to);
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     const row = map.get(key);
-    const rate = row && row.traces > 0 ? ((row.traces - row.errors) / row.traces) * 100 : 100;
+    const rate =
+      row && row.traces > 0
+        ? ((row.traces - row.errors) / row.traces) * 100
+        : 100;
     data.push({ date: key, value: rate });
   }
   return data;
@@ -230,7 +333,7 @@ function buildAvgDurationData(rows: DailyMetric[], from: string, to: string) {
   const map = new Map(rows.map((r) => [r.date, r]));
   const data: { date: string; value: number }[] = [];
   const start = new Date(from);
-  const end   = new Date(to);
+  const end = new Date(to);
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     const row = map.get(key);
@@ -264,15 +367,26 @@ function ChartCard({
       <div style={{ height: 220 }}>
         {loading ? (
           <div className="h-full flex items-center justify-center">
-            <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
+            <span className="text-xs text-zinc-600 animate-pulse">
+              Loading…
+            </span>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: leftMargin - 36 }}>
+            <AreaChart
+              data={data}
+              margin={{ top: 4, right: 4, bottom: 0, left: leftMargin - 36 }}
+            >
               <defs>
-                <linearGradient id={`grad-${label.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-line)" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="var(--color-chart-line)" stopOpacity={0} />
+                <linearGradient
+                  id={`grad-${label.replace(/\s+/g, "-")}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor="#58508d" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#58508d" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
@@ -280,7 +394,10 @@ function ChartCard({
                 dataKey="date"
                 tickFormatter={(v: string) => {
                   const d = new Date(v + "T00:00:00");
-                  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  return d.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  });
                 }}
                 tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
                 tickLine={false}
@@ -289,7 +406,9 @@ function ChartCard({
               <YAxis
                 tickCount={4}
                 domain={yDomain}
-                tickFormatter={formatAxis ? (v: number) => formatAxis(v) : undefined}
+                tickFormatter={
+                  formatAxis ? (v: number) => formatAxis(v) : undefined
+                }
                 tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
@@ -299,15 +418,23 @@ function ChartCard({
                 animationDuration={150}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
-                  const row = payload[0].payload as { date: string; value: number };
+                  const row = payload[0].payload as {
+                    date: string;
+                    value: number;
+                  };
                   const d = new Date(row.date + "T00:00:00");
-                  const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  const label = d.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  });
                   return (
                     <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg">
                       <span className="text-zinc-400">{label}</span>
-                      {" — "}
+                      {" - "}
                       <span className="font-medium">
-                        {formatTooltip ? formatTooltip(row.value) : String(row.value)}
+                        {formatTooltip
+                          ? formatTooltip(row.value)
+                          : String(row.value)}
                       </span>
                     </div>
                   );
@@ -315,13 +442,13 @@ function ChartCard({
                 cursor={{ stroke: "var(--color-zinc-700)" }}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="value"
-                stroke="var(--color-chart-line)"
+                stroke="#58508d"
                 strokeWidth={1.5}
                 fill={`url(#grad-${label.replace(/\s+/g, "-")})`}
                 dot={false}
-                activeDot={{ r: 3, fill: "var(--color-chart-line)" }}
+                activeDot={{ r: 3, fill: "#58508d" }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -331,10 +458,14 @@ function ChartCard({
   );
 }
 
-
 // ── Top Failing Spans Table ────────────────────────────────────────────────────
 
-type FailingSpan = { name: string; total: number; errors: number; errorRate: number };
+type FailingSpan = {
+  name: string;
+  total: number;
+  errors: number;
+  errorRate: number;
+};
 
 function TopFailingSpansTable({
   data,
@@ -344,7 +475,10 @@ function TopFailingSpansTable({
   loading: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: 290 }}>
+    <div
+      className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col"
+      style={{ height: 290 }}
+    >
       <div className="px-5 py-3.5 border-b border-zinc-800 shrink-0">
         <p className="text-xs font-medium text-zinc-500">Top failing spans</p>
       </div>
@@ -360,21 +494,41 @@ function TopFailingSpansTable({
         <>
           <div className="flex items-center gap-3 px-5 py-2 border-b border-zinc-800 shrink-0">
             <p className="flex-1 text-xs font-medium text-zinc-500">Span</p>
-            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Errors</p>
-            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Total</p>
-            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Error %</p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">
+              Errors
+            </p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">
+              Total
+            </p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">
+              Error %
+            </p>
           </div>
           <div className="divide-y divide-zinc-800 overflow-y-auto flex-1">
             {data.map((row) => (
-              <div key={row.name} className="flex items-center gap-3 px-5 py-2.5">
-                <span className="text-xs font-medium text-zinc-100 truncate flex-1">{row.name}</span>
-                <span className="text-xs text-viz-danger w-14 text-right shrink-0 tabular-nums">{row.errors.toLocaleString()}</span>
-                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">{row.total.toLocaleString()}</span>
+              <div
+                key={row.name}
+                className="flex items-center gap-3 px-5 py-2.5"
+              >
+                <span className="text-xs font-medium text-zinc-100 truncate flex-1">
+                  {row.name}
+                </span>
+                <span className="text-xs text-viz-danger w-14 text-right shrink-0 tabular-nums">
+                  {row.errors.toLocaleString()}
+                </span>
+                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">
+                  {row.total.toLocaleString()}
+                </span>
                 <div className="w-16 shrink-0 flex items-center justify-end gap-2">
                   <div className="w-8 h-1 rounded-full bg-zinc-800 overflow-hidden">
-                    <div className="h-full bg-viz-danger rounded-full" style={{ width: `${Math.min(row.errorRate, 100)}%` }} />
+                    <div
+                      className="h-full bg-viz-danger rounded-full"
+                      style={{ width: `${Math.min(row.errorRate, 100)}%` }}
+                    />
                   </div>
-                  <span className="text-xs text-zinc-500 tabular-nums">{row.errorRate}%</span>
+                  <span className="text-xs text-zinc-500 tabular-nums">
+                    {row.errorRate}%
+                  </span>
                 </div>
               </div>
             ))}
@@ -387,7 +541,12 @@ function TopFailingSpansTable({
 
 // ── Top Slowest Spans Table ───────────────────────────────────────────────────
 
-type SlowestSpan = { name: string; total: number; avgDurationMs: number; p95DurationMs: number };
+type SlowestSpan = {
+  name: string;
+  total: number;
+  avgDurationMs: number;
+  p95DurationMs: number;
+};
 
 function TopSlowestSpansTable({
   data,
@@ -397,7 +556,10 @@ function TopSlowestSpansTable({
   loading: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: 290 }}>
+    <div
+      className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col"
+      style={{ height: 290 }}
+    >
       <div className="px-5 py-3.5 border-b border-zinc-800 shrink-0">
         <p className="text-xs font-medium text-zinc-500">Top slowest spans</p>
       </div>
@@ -413,17 +575,34 @@ function TopSlowestSpansTable({
         <>
           <div className="flex items-center gap-3 px-5 py-2 border-b border-zinc-800 shrink-0">
             <p className="flex-1 text-xs font-medium text-zinc-500">Span</p>
-            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">Count</p>
-            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">Avg</p>
-            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">p95</p>
+            <p className="w-14 text-right text-xs font-medium text-zinc-500 shrink-0">
+              Count
+            </p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">
+              Avg
+            </p>
+            <p className="w-16 text-right text-xs font-medium text-zinc-500 shrink-0">
+              p95
+            </p>
           </div>
           <div className="divide-y divide-zinc-800 overflow-y-auto flex-1">
             {data.map((row) => (
-              <div key={row.name} className="flex items-center gap-3 px-5 py-2.5">
-                <span className="text-xs font-medium text-zinc-100 truncate flex-1">{row.name}</span>
-                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">{row.total.toLocaleString()}</span>
-                <span className="text-xs text-viz-warning w-16 text-right shrink-0 tabular-nums">{formatDuration(row.avgDurationMs)}</span>
-                <span className="text-xs text-zinc-500 w-16 text-right shrink-0 tabular-nums">{formatDuration(row.p95DurationMs)}</span>
+              <div
+                key={row.name}
+                className="flex items-center gap-3 px-5 py-2.5"
+              >
+                <span className="text-xs font-medium text-zinc-100 truncate flex-1">
+                  {row.name}
+                </span>
+                <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">
+                  {row.total.toLocaleString()}
+                </span>
+                <span className="text-xs text-viz-warning w-16 text-right shrink-0 tabular-nums">
+                  {formatDuration(row.avgDurationMs)}
+                </span>
+                <span className="text-xs text-zinc-500 w-16 text-right shrink-0 tabular-nums">
+                  {formatDuration(row.p95DurationMs)}
+                </span>
               </div>
             ))}
           </div>
@@ -437,7 +616,12 @@ function TopSlowestSpansTable({
 
 type QualityData = {
   thresholds: { p75CostUsd: number; p75DurationMs: number };
-  days: Array<{ date: string; healthy: number; expensive: number; failed: number }>;
+  days: Array<{
+    date: string;
+    healthy: number;
+    expensive: number;
+    failed: number;
+  }>;
 };
 
 // Stack order: healthy (bottom) → expensive → failed (top).
@@ -446,8 +630,13 @@ const STACK_KEYS = ["healthy", "expensive", "failed"] as const;
 
 function QualityBarShape(props: unknown) {
   const { x, y, width, height, fill, dataKey, payload } = props as {
-    x: number; y: number; width: number; height: number;
-    fill: string; dataKey: string; payload: Record<string, number>;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fill: string;
+    dataKey: string;
+    payload: Record<string, number>;
   };
   if (!height) return <rect x={x} y={y} width={0} height={0} />;
 
@@ -492,7 +681,7 @@ function QualityLegendChip({
         render={<span />}
       >
         <span
-          className="inline-block w-2 h-2 rounded-sm shrink-0"
+          className="inline-block w-2 h-2 rounded-full shrink-0"
           style={{ backgroundColor: color }}
         />
         {label}
@@ -567,14 +756,20 @@ function TraceQualityChart({
   // Fill in gap days with zeros and add a total field
   const days = useMemo(() => {
     const raw = data?.days ?? [];
-    if (!raw.length) return [] as Array<QualityData["days"][number] & { total: number }>;
+    if (!raw.length)
+      return [] as Array<QualityData["days"][number] & { total: number }>;
     const map = new Map(raw.map((d) => [d.date, d]));
     const filled: Array<QualityData["days"][number] & { total: number }> = [];
     const start = new Date(from);
     const end = new Date(to);
     for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().slice(0, 10);
-      const row = map.get(key) ?? { date: key, healthy: 0, expensive: 0, failed: 0 };
+      const row = map.get(key) ?? {
+        date: key,
+        healthy: 0,
+        expensive: 0,
+        failed: 0,
+      };
       filled.push({ ...row, total: row.healthy + row.expensive + row.failed });
     }
     return filled;
@@ -676,13 +871,16 @@ function TraceQualityChart({
           </ResponsiveContainer>
         )}
       </div>
-
     </div>
   );
 }
 
 function StatCell({
-  label, value, loading, delta, className = "",
+  label,
+  value,
+  loading,
+  delta,
+  className = "",
 }: {
   label: string;
   value: string;
@@ -698,14 +896,20 @@ function StatCell({
     <div className={`px-5 py-4 space-y-2 ${className}`}>
       <p className="text-xs text-zinc-500">{label}</p>
       <div className="flex items-baseline gap-2">
-        <p className={`text-2xl font-semibold tracking-tight tabular-nums ${
-          loading ? "text-zinc-700 animate-pulse" : "text-zinc-100"
-        }`}>
+        <p
+          className={`text-2xl font-semibold tracking-tight tabular-nums ${
+            loading ? "text-zinc-700 animate-pulse" : "text-zinc-100"
+          }`}
+        >
           {loading ? "———" : value}
         </p>
         {!loading && showDelta && (
           <span className="inline-flex items-center gap-0.5 text-[11px] tabular-nums font-medium text-zinc-100">
-            {isUp ? <ArrowUp size={11} weight="bold" className="text-viz-healthy" /> : isDown ? <ArrowDown size={11} weight="bold" className="text-viz-danger" /> : null}
+            {isUp ? (
+              <ArrowUp size={11} weight="bold" className="text-viz-healthy" />
+            ) : isDown ? (
+              <ArrowDown size={11} weight="bold" className="text-viz-danger" />
+            ) : null}
             {Math.abs(Math.round(delta))}%
           </span>
         )}
@@ -757,4 +961,3 @@ function formatErrorRate(rate: number): string {
   if (rate < 0.001) return "<0.1%";
   return `${(rate * 100).toFixed(1)}%`;
 }
-

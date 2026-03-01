@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { authClient } from "../lib/auth-client";
 import { Logo } from "../components/common/logo/Logo";
+import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -82,7 +82,7 @@ function SignupPage() {
           >
             {/* Brand header */}
             <div className="flex flex-col items-center gap-3 border-b border-zinc-800 px-8 py-8">
-              <Logo className="size-9" />
+              <Logo className="size-5" />
               <span
                 className="text-xs font-medium text-zinc-400"
                 style={{ letterSpacing: "0.16em" }}

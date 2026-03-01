@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { authClient } from "../lib/auth-client";
 import { Logo } from "../components/common/logo/Logo";
+import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/accept-invite")({
   validateSearch: z.object({ token: z.string() }),
@@ -52,7 +52,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <div className="flex flex-col items-center gap-3 border-b border-zinc-800 px-8 py-8">
-              <Logo className="size-9" />
+              <Logo className="size-5" />
               <span
                 className="text-xs font-medium text-zinc-400"
                 style={{ letterSpacing: "0.16em" }}

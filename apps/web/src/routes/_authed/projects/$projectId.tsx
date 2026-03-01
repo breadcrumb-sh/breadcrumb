@@ -33,7 +33,7 @@ function ProjectLayout() {
               to="/"
               className="flex items-center hover:opacity-80 transition-opacity"
             >
-              <Logo className="size-4" />
+              <Logo className="size-5" />
             </Link>
             <span className="text-zinc-700 select-none">/</span>
             <span className="font-medium text-zinc-400">

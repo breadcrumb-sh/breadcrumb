@@ -10,9 +10,9 @@
   --color-chart-muted: #52525b;
 
   /* ── Data-viz semantic (dark default) ──────────────────── */
-  --color-viz-healthy:   var(--color-emerald-500);
-  --color-viz-warning:   var(--color-orange-400);
-  --color-viz-danger:    var(--color-rose-700);
+  --color-viz-healthy:   #58508d;
+  --color-viz-warning:   #b4558d;
+  --color-viz-danger:    #e77371;
   --color-viz-primary:   var(--color-indigo-600);
   --color-viz-secondary: var(--color-sky-600);
   --color-viz-accent:    var(--color-fuchsia-600);
@@ -43,9 +43,9 @@
 /* ── Light mode: remap zinc to inverted light-appropriate values ── */
 /* Every bg-zinc-*, border-zinc-*, text-zinc-* class adapts for free. */
 :root.light {
-  --color-viz-healthy:   var(--color-emerald-400);
-  --color-viz-warning:   var(--color-orange-400);
-  --color-viz-danger:    var(--color-rose-500);
+  --color-viz-healthy:   #58508d;
+  --color-viz-warning:   #b4558d;
+  --color-viz-danger:    #e77371;
   --color-viz-primary:   var(--color-violet-500);
   --color-viz-secondary: var(--color-sky-400);
   --color-viz-accent:    var(--color-fuchsia-400);

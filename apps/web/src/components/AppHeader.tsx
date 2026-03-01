@@ -9,12 +9,12 @@ import { Logo } from "./common/logo/Logo";
 export function AppHeader() {
   return (
     <header className="border-b border-zinc-800 px-4 sm:px-8">
-      <div className="flex items-center justify-between h-[53px]">
+      <div className="flex items-center justify-between h-14">
         <Link
           to="/"
           className="flex items-center hover:opacity-80 transition-opacity"
         >
-          <Logo className="size-4" />
+          <Logo className="size-5" />
         </Link>
         <UserMenu />
       </div>

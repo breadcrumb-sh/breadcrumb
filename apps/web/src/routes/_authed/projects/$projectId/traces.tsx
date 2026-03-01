@@ -1,26 +1,25 @@
+import { Tooltip } from "@base-ui/react/tooltip";
 import {
-  ChartLine,
   CheckCircle,
   MagnifyingGlass,
   Pulse,
   SpinnerGap,
+  SquaresFourIcon,
   Table,
   XCircle,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Tooltip } from "@base-ui/react/tooltip";
+import "@xyflow/react/dist/style.css";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
   Tooltip as RechartsTooltip,
+  ResponsiveContainer,
   XAxis,
   YAxis,
 } from "recharts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   DateRangePopover,
@@ -29,12 +28,13 @@ import {
 } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
 import { useToastManager } from "../../../../components/Toasts";
+import { TraceFlowGraph } from "../../../../components/TraceFlowGraph";
 import { trpc } from "../../../../lib/trpc";
 
-type Section = "insights" | "raw";
+type Section = "overview" | "raw";
 
 const searchSchema = z.object({
-  tab: z.enum(["insights", "raw"]).optional(),
+  tab: z.enum(["overview", "raw"]).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
@@ -51,14 +51,14 @@ export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
 });
 
 const SIDEBAR_ITEMS: { id: Section; label: string; icon: React.ReactNode }[] = [
-  { id: "insights", label: "Insights", icon: <ChartLine size={16} /> },
+  { id: "overview", label: "Overview", icon: <SquaresFourIcon size={16} /> },
   { id: "raw", label: "Raw Traces", icon: <Table size={16} /> },
 ];
 
 function TracesPage() {
   const navigate = Route.useNavigate();
   const { tab } = Route.useSearch();
-  const section: Section = tab ?? "insights";
+  const section: Section = tab ?? "overview";
 
   const setSection = (next: Section) => {
     navigate({
@@ -88,7 +88,7 @@ function TracesPage() {
         </nav>
 
         <div className="flex-1 min-w-0">
-          {section === "insights" && <InsightsSection />}
+          {section === "overview" && <InsightsSection />}
           {section === "raw" && <RawTracesSection />}
         </div>
       </div>
@@ -120,12 +120,6 @@ type SpanStats = {
   errorRate: number;
 };
 
-const CHART_COLORS = [
-  "var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)",
-  "var(--color-chart-4)", "var(--color-chart-5)", "var(--color-chart-6)",
-  "var(--color-chart-7)", "var(--color-chart-8)", "var(--color-chart-9)",
-  "var(--color-chart-10)",
-];
 function flowMs(chDate: string): number {
   return new Date(chDate.replace(" ", "T") + "Z").getTime();
 }
@@ -276,20 +270,25 @@ type FrequencyDatum = {
   max: number;
 };
 
-function computeSpanFrequency(spans: SampleSpan[], totalTraces: number): FrequencyDatum[] {
+function computeSpanFrequency(
+  spans: SampleSpan[],
+  totalTraces: number,
+): FrequencyDatum[] {
   const leafSpans = spans.filter((s) => s.type !== "step");
 
-  // For each span name, count how many times it appears per trace
-  const byName = new Map<string, { type: string; perTrace: Map<string, number> }>();
+  const byName = new Map<
+    string,
+    { type: string; perTrace: Map<string, number> }
+  >();
   for (const s of leafSpans) {
-    if (!byName.has(s.name)) byName.set(s.name, { type: s.type, perTrace: new Map() });
+    if (!byName.has(s.name))
+      byName.set(s.name, { type: s.type, perTrace: new Map() });
     const entry = byName.get(s.name)!;
     entry.perTrace.set(s.traceId, (entry.perTrace.get(s.traceId) ?? 0) + 1);
   }
 
   return Array.from(byName.entries())
     .map(([name, { type, perTrace }]) => {
-      // Include traces where this span didn't appear at all (count = 0)
       const counts = Array.from(perTrace.values());
       const missingTraces = totalTraces - perTrace.size;
       for (let i = 0; i < missingTraces; i++) counts.push(0);
@@ -307,54 +306,88 @@ function computeSpanFrequency(spans: SampleSpan[], totalTraces: number): Frequen
 }
 
 const FREQ_MARGIN = { top: 8, right: 16, bottom: 24, left: 4 };
-const FREQ_TOOLTIP_CLS = "rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-zinc-300 shadow-lg max-w-[220px]";
+const AXIS_TICK = { fill: "var(--color-zinc-500)", fontSize: 11 } as const;
+const FREQ_TOOLTIP_CLS =
+  "rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-zinc-300 shadow-lg max-w-[220px]";
 
-function FrequencyTooltipContent(props: { active?: boolean; payload?: Array<{ payload?: FrequencyDatum }> }) {
+function FrequencyTooltipContent(props: {
+  active?: boolean;
+  payload?: Array<{ payload?: FrequencyDatum }>;
+}) {
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
     <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg space-y-0.5">
-      <div className="font-medium">{d.name} <span className="text-zinc-500">({d.type})</span></div>
+      <div className="font-medium">
+        {d.name} <span className="text-zinc-500">({d.type})</span>
+      </div>
       <div className="text-zinc-400">
-        p5: {d.p5} &middot; p50: {d.p50} &middot; p95: {d.p95} &middot; max: {d.max}
+        p5: {d.p5} &middot; p50: {d.p50} &middot; p95: {d.p95} &middot; max:{" "}
+        {d.max}
       </div>
     </div>
   );
 }
 
-function LegendChip({ color, label, tooltip }: { color: string; label: string; tooltip: string }) {
+function LegendChip({
+  color,
+  label,
+  tooltip,
+}: {
+  color: string;
+  label: string;
+  tooltip: string;
+}) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger
         className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 cursor-default"
         render={<span />}
       >
-        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+        <span
+          className="inline-block w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: color }}
+        />
         {label}
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Positioner sideOffset={6}>
-          <Tooltip.Popup className={FREQ_TOOLTIP_CLS}>
-            {tooltip}
-          </Tooltip.Popup>
+          <Tooltip.Popup className={FREQ_TOOLTIP_CLS}>{tooltip}</Tooltip.Popup>
         </Tooltip.Positioner>
       </Tooltip.Portal>
     </Tooltip.Root>
   );
 }
 
-function SpanFrequencyChart({ spans, totalTraces }: { spans: SampleSpan[]; totalTraces: number }) {
-  const data = useMemo(() => computeSpanFrequency(spans, totalTraces), [spans, totalTraces]);
+function SpanFrequencyChart({
+  spans,
+  totalTraces,
+}: {
+  spans: SampleSpan[];
+  totalTraces: number;
+}) {
+  const data = useMemo(
+    () => computeSpanFrequency(spans, totalTraces),
+    [spans, totalTraces],
+  );
 
   if (!data.length) return null;
 
   return (
     <div className="space-y-2">
-      <div className="border border-zinc-800 rounded-lg px-5 pt-4 pb-2" style={{ height: 240 }}>
+      <div
+        className="border border-zinc-800 rounded-lg px-5 pt-4 pb-2"
+        style={{ height: 240 }}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={FREQ_MARGIN} barGap={2} barCategoryGap="30%">
+          <BarChart
+            data={data}
+            margin={FREQ_MARGIN}
+            barGap={2}
+            barCategoryGap="30%"
+          >
             <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
             <XAxis
               dataKey="name"
@@ -371,16 +404,41 @@ function SpanFrequencyChart({ spans, totalTraces }: { spans: SampleSpan[]; total
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
-              label={{ value: "Count per trace", angle: -90, position: "insideLeft", offset: 8, fill: "var(--color-zinc-500)", fontSize: 11 }}
+              label={{
+                value: "Count per trace",
+                angle: -90,
+                position: "insideLeft",
+                offset: 8,
+                fill: "var(--color-zinc-500)",
+                fontSize: 11,
+              }}
             />
             <RechartsTooltip
               animationDuration={150}
               content={FrequencyTooltipContent}
               cursor={{ fill: "var(--color-zinc-800)", opacity: 0.3 }}
             />
-            <Bar dataKey="p5" name="p5" fill="var(--color-chart-7)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-            <Bar dataKey="p50" name="p50" fill="var(--color-chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-            <Bar dataKey="p95" name="p95" fill="var(--color-chart-4)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Bar
+              dataKey="p5"
+              name="p5"
+              fill="var(--color-chart-7)"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="p50"
+              name="p50"
+              fill="var(--color-chart-2)"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="p95"
+              name="p95"
+              fill="var(--color-chart-4)"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -406,282 +464,59 @@ function SpanFrequencyChart({ spans, totalTraces }: { spans: SampleSpan[]; total
   );
 }
 
-// ── Trace Scatter Plot ────────────────────────────────────────────────────────
-
-type ScatterDatum = { x: number; y: number; spanName: string; spanType: string; durationMs: number };
-
-// Stable objects hoisted out of render — avoids new refs every frame
-const SCATTER_MARGIN = { top: 16, right: 16, bottom: 24, left: 48 };
-const AXIS_TICK = { fill: "var(--color-zinc-500)", fontSize: 11 } as const;
-const Y_LABEL = { value: "Trace #", angle: -90 as const, position: "insideLeft" as const, offset: -4, fill: "var(--color-zinc-500)", fontSize: 11 };
-const DEFAULT_X_DOMAIN: [number, string] = [0, "auto"];
-
-const SPAN_TYPE_COLORS: Record<string, string> = {
-  llm:       "var(--color-chart-1)",  // purple
-  tool:      "var(--color-chart-2)",  // blue
-  retrieval: "var(--color-chart-3)",  // emerald
-  custom:    "var(--color-chart-4)",  // amber
-};
-const SPAN_TYPE_FALLBACK = "var(--color-chart-muted)";
-
-function ScatterTooltipContent(props: { active?: boolean; payload?: Array<{ payload?: ScatterDatum }> }) {
-  const { active, payload } = props;
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload;
-  if (!d) return null;
-  return (
-    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg">
-      <span className="font-medium">{d.spanName}</span>
-      <span className="text-zinc-500 ml-1.5">({d.spanType})</span>
-      <span className="text-zinc-400 ml-2">start: {flowFmt(d.x)}</span>
-      <span className="text-zinc-400 ml-2">dur: {flowFmt(d.durationMs)}</span>
-    </div>
-  );
-}
-
-function TraceScatterPlot({ spans }: { spans: SampleSpan[] }) {
-  const [xDomain, setXDomain] = useState<[number, number] | null>(null);
-  const [highlightedName, setHighlightedName] = useState<string | null>(null);
-
-  // Drag state lives entirely in refs — zero re-renders during drag
-  const dragRef = useRef<{ startPx: number; startVal: number; endVal: number } | null>(null);
-  const selectionRef = useRef<HTMLDivElement>(null);
-
-  // Filter out step spans, group by span name (colored by type)
-  const { seriesMap, colorMap, traceCount, sortedNames } = useMemo(() => {
-    // Exclude "step" type — they're just wrapper/container spans
-    const leafSpans = spans.filter((s) => s.type !== "step");
-    if (!leafSpans.length)
-      return { seriesMap: new Map<string, ScatterDatum[]>(), colorMap: new Map<string, string>(), traceCount: 0, sortedNames: [] as string[] };
-
-    const byTrace = new Map<string, SampleSpan[]>();
-    for (const s of leafSpans) {
-      if (!byTrace.has(s.traceId)) byTrace.set(s.traceId, []);
-      byTrace.get(s.traceId)!.push(s);
-    }
-
-    const traceEntries = Array.from(byTrace.entries()).sort((a, b) => {
-      const aMin = Math.min(...a[1].map((s) => flowMs(s.startTime)));
-      const bMin = Math.min(...b[1].map((s) => flowMs(s.startTime)));
-      return aMin - bMin;
-    });
-
-    // Build name → type mapping for color assignment
-    const nameTypeMap = new Map<string, string>();
-    for (const s of leafSpans) nameTypeMap.set(s.name, s.type);
-    const names = Array.from(nameTypeMap.keys()).sort();
-
-    // Color by span type so same-type spans share a hue family
-    const cMap = new Map<string, string>();
-    // Track how many names per type so we can offset shades
-    const typeCounters = new Map<string, number>();
-    for (const name of names) {
-      const type = nameTypeMap.get(name)!;
-      const idx = typeCounters.get(type) ?? 0;
-      typeCounters.set(type, idx + 1);
-      // First span of each type gets the primary color, extras get offset
-      const baseColors: Record<string, string[]> = {
-        llm:       [CHART_COLORS[0], CHART_COLORS[9], CHART_COLORS[5]],  // purple, violet, pink
-        tool:      [CHART_COLORS[1], CHART_COLORS[6]],                    // blue, cyan
-        retrieval: [CHART_COLORS[2], CHART_COLORS[7]],                    // emerald, lime
-        custom:    [CHART_COLORS[3], CHART_COLORS[8]],                    // amber, orange
-      };
-      const palette = baseColors[type] ?? [CHART_COLORS[idx % CHART_COLORS.length]];
-      cMap.set(name, palette[idx % palette.length]);
-    }
-
-    const dataByName = new Map<string, ScatterDatum[]>();
-    for (const name of names) dataByName.set(name, []);
-
-    traceEntries.forEach(([, traceSpans], traceIndex) => {
-      const traceStart = Math.min(...traceSpans.map((s) => flowMs(s.startTime)));
-      for (const s of traceSpans) {
-        const relStartMs = flowMs(s.startTime) - traceStart;
-        const durationMs = flowMs(s.endTime) - flowMs(s.startTime);
-        dataByName.get(s.name)!.push({
-          x: relStartMs,
-          y: traceIndex,
-          spanName: s.name,
-          spanType: s.type,
-          durationMs,
-        });
-      }
-    });
-
-    return { seriesMap: dataByName, colorMap: cMap, traceCount: traceEntries.length, sortedNames: names };
-  }, [spans]);
-
-  const yDomain = useMemo<[number, number]>(
-    () => [-0.5, traceCount - 0.5],
-    [traceCount],
-  );
-
-  // All drag handlers mutate refs + DOM directly — no setState until mouseUp
-  const handleMouseDown = useCallback((state: { chartX?: number; xValue?: number }) => {
-    if (state.chartX == null || state.xValue == null) return;
-    dragRef.current = { startPx: state.chartX, startVal: state.xValue, endVal: state.xValue };
-    if (selectionRef.current) {
-      selectionRef.current.style.display = "block";
-      selectionRef.current.style.left = `${state.chartX}px`;
-      selectionRef.current.style.width = "0px";
-    }
-  }, []);
-
-  const handleMouseMove = useCallback((state: { chartX?: number; xValue?: number }) => {
-    if (!dragRef.current || state.chartX == null || state.xValue == null) return;
-    dragRef.current.endVal = state.xValue;
-    const el = selectionRef.current;
-    if (el) {
-      const left = Math.min(dragRef.current.startPx, state.chartX);
-      const width = Math.abs(state.chartX - dragRef.current.startPx);
-      el.style.left = `${left}px`;
-      el.style.width = `${width}px`;
-    }
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    if (!dragRef.current) return;
-    const { startVal, endVal } = dragRef.current;
-    dragRef.current = null;
-    if (selectionRef.current) selectionRef.current.style.display = "none";
-    const left = Math.min(startVal, endVal);
-    const right = Math.max(startVal, endVal);
-    if (right - left > 1) {
-      setXDomain([left, right]);
-    }
-  }, []);
-
-  const resetZoom = useCallback(() => setXDomain(null), []);
-
-  // Highlight applies via CSS opacity on the SVG groups — avoids re-rendering the chart
-  const highlightStyle = useMemo(() => {
-    if (highlightedName == null) return null;
-    return sortedNames.map((name) => ({
-      name,
-      opacity: name === highlightedName ? 1 : 0.12,
-    }));
-  }, [highlightedName, sortedNames]);
-
-  if (!sortedNames.length) return null;
-
-  return (
-    <div className="space-y-2">
-      <div className="border border-zinc-800 rounded-lg relative select-none overflow-hidden" style={{ height: 400 }}>
-        {xDomain && (
-          <button
-            onClick={resetZoom}
-            className="absolute top-2 right-2 z-10 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1 text-[10px] text-zinc-300 hover:bg-zinc-700 transition-colors"
-          >
-            Reset zoom
-          </button>
-        )}
-        {/* DOM selection overlay — positioned via refs, zero re-renders */}
-        <div
-          ref={selectionRef}
-          className="absolute pointer-events-none"
-          style={{
-            display: "none",
-            top: SCATTER_MARGIN.top,
-            bottom: SCATTER_MARGIN.bottom,
-            backgroundColor: "var(--color-zinc-600)",
-            opacity: 0.15,
-          }}
-        />
-        {/* CSS-driven highlight — no chart re-render on legend hover */}
-        {highlightStyle && (
-          <style>{sortedNames.map((_, i) =>
-            `.scatter-plot .scatter-s-${i} { opacity: ${highlightStyle[i].opacity}; transition: opacity 0.15s; }`
-          ).join("\n")}</style>
-        )}
-        {!highlightStyle && (
-          <style>{sortedNames.map((_, i) =>
-            `.scatter-plot .scatter-s-${i} { transition: opacity 0.15s; }`
-          ).join("\n")}</style>
-        )}
-        <ResponsiveContainer width="100%" height="100%" className="scatter-plot">
-          <ScatterChart
-            margin={SCATTER_MARGIN}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-          >
-            <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
-            <XAxis
-              type="number"
-              dataKey="x"
-              domain={xDomain ?? DEFAULT_X_DOMAIN}
-              tickFormatter={flowFmt}
-              tick={AXIS_TICK}
-              tickLine={false}
-              axisLine={false}
-              allowDataOverflow={!!xDomain}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              domain={yDomain}
-              tick={AXIS_TICK}
-              tickLine={false}
-              axisLine={false}
-              label={Y_LABEL}
-            />
-            <RechartsTooltip
-              animationDuration={150}
-              content={ScatterTooltipContent}
-              cursor={false}
-            />
-            {sortedNames.map((name, i) => (
-              <Scatter
-                key={name}
-                name={name}
-                data={seriesMap.get(name)}
-                fill={colorMap.get(name) ?? SPAN_TYPE_FALLBACK}
-                className={`scatter-s-${i}`}
-                legendType="none"
-                isAnimationActive={false}
-              />
-            ))}
-          </ScatterChart>
-        </ResponsiveContainer>
-      </div>
-      {/* Chip legend */}
-      <div className="flex flex-wrap gap-1.5">
-        {sortedNames.map((name) => (
-          <span
-            key={name}
-            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 cursor-default transition-opacity"
-            style={{ opacity: highlightedName == null || highlightedName === name ? 1 : 0.3 }}
-            onMouseEnter={() => setHighlightedName(name)}
-            onMouseLeave={() => setHighlightedName(null)}
-          >
-            <span
-              className="inline-block w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: colorMap.get(name) }}
-            />
-            {name}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+// ── Insights Section ──────────────────────────────────────────────────────────
 
 function InsightsSection() {
   const { projectId } = Route.useParams();
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
+
+  const from = search.from ?? presetFrom(30);
+  const to = search.to ?? today();
+  const preset = search.preset ?? 30;
+  const selectedNames = search.names ?? [];
+  const selectedStatuses = search.statuses ?? [];
+
+  const applyPreset = (days: 7 | 30 | 90) =>
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        from: presetFrom(days),
+        to: today(),
+        preset: days,
+      }),
+    });
+  const handleFromChange = (v: string) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: v, preset: undefined }),
+    });
+  const handleToChange = (v: string) =>
+    navigate({
+      search: (prev) => ({ ...prev, to: v, preset: undefined }),
+    });
+
   const nameList = trpc.traces.names.useQuery({ projectId });
-  const [selectedName, setSelectedName] = useState<string>("");
+
+  const activeName = selectedNames[0] ?? "";
 
   // Auto-select first available name
   useEffect(() => {
-    if (nameList.data?.length && !selectedName) {
-      setSelectedName(nameList.data[0]);
+    if (nameList.data?.length && !activeName) {
+      navigate({
+        search: (prev) => ({ ...prev, names: [nameList.data![0]] }),
+        replace: true,
+      });
     }
-  }, [nameList.data, selectedName]);
+  }, [nameList.data, activeName, navigate]);
 
-  // Fetch spans from recent traces in one query
   const sampleQuery = trpc.traces.spanSample.useQuery(
-    { projectId, traceName: selectedName, traceLimit: 50 },
-    { enabled: !!selectedName },
+    { projectId, traceName: activeName, traceLimit: 50 },
+    { enabled: !!activeName },
+  );
+
+  const happyPathQuery = trpc.traces.happyPath.useQuery(
+    { projectId, traceName: activeName, traceLimit: 50 },
+    { enabled: !!activeName },
   );
 
   const { stats, rawSpans, traceCount } = useMemo(() => {
@@ -693,26 +528,55 @@ function InsightsSection() {
       };
 
     const { traceCount, spans } = sampleQuery.data;
-    const spanStats = computeSpanStats(spans, traceCount);
+
+    // Client-side status filter
+    const filtered =
+      selectedStatuses.length > 0
+        ? spans.filter((s: SampleSpan) => selectedStatuses.includes(s.status))
+        : spans;
+
+    const spanStats = computeSpanStats(filtered, traceCount);
 
     return {
       stats: spanStats,
-      rawSpans: spans,
+      rawSpans: filtered,
       traceCount,
     };
-  }, [sampleQuery.data]);
+  }, [sampleQuery.data, selectedStatuses]);
 
   const isLoading =
-    nameList.isLoading || (!!selectedName && sampleQuery.isLoading);
+    nameList.isLoading || (!!activeName && sampleQuery.isLoading);
 
   return (
     <div className="space-y-6">
-      {/* Trace name selector */}
-      <div className="flex items-center gap-3">
-        <label className="text-xs text-zinc-500">Trace name</label>
+      {/* ── Filter bar ────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <DateRangePopover
+          from={from}
+          to={to}
+          preset={preset}
+          onPreset={applyPreset}
+          onCustom={() =>
+            navigate({
+              search: (prev) => ({ ...prev, preset: undefined }),
+            })
+          }
+          onFromChange={handleFromChange}
+          onToChange={handleToChange}
+        />
+
+        <div className="h-4 w-px bg-zinc-800" />
+
         <select
-          value={selectedName}
-          onChange={(e) => setSelectedName(e.target.value)}
+          value={activeName}
+          onChange={(e) =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                names: e.target.value ? [e.target.value] : undefined,
+              }),
+            })
+          }
           disabled={!nameList.data?.length}
           className="h-[30px] rounded-md border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-zinc-300 outline-none focus:border-zinc-600 cursor-pointer"
         >
@@ -723,11 +587,37 @@ function InsightsSection() {
             </option>
           ))}
         </select>
+
+        <MultiselectCombobox
+          options={["ok", "error"]}
+          selected={selectedStatuses}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                statuses: v.length ? (v as ("ok" | "error")[]) : undefined,
+              }),
+            })
+          }
+          placeholder="All statuses"
+        />
+
         {sampleQuery.data && (
           <span className="text-[11px] text-zinc-600">
             Aggregated from {sampleQuery.data.traceCount} recent traces
           </span>
         )}
+      </div>
+
+      <div>
+        <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
+          Execution Flow
+        </h3>
+        <TraceFlowGraph
+          edges={happyPathQuery.data?.edges ?? []}
+          totalTraces={happyPathQuery.data?.totalTraces ?? 0}
+          isLoading={!!activeName && happyPathQuery.isLoading}
+        />
       </div>
 
       {isLoading ? (
@@ -749,12 +639,6 @@ function InsightsSection() {
               Span Frequency per Trace
             </h3>
             <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
-          </div>
-          <div>
-            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
-              Execution Timeline
-            </h3>
-            <TraceScatterPlot spans={rawSpans} />
           </div>
           <div>
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
@@ -998,7 +882,11 @@ function RawTracesSection() {
         <MultiselectCombobox
           options={envList.data ?? []}
           selected={selectedEnvs}
-          onChange={(v) => navigate({ search: (prev) => ({ ...prev, env: v.length ? v : undefined }) })}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, env: v.length ? v : undefined }),
+            })
+          }
           placeholder="All environments"
         />
       </div>

@@ -1,4 +1,4 @@
-import { Check } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 
 interface Step {
   label: string;
@@ -30,7 +30,7 @@ export function StepIndicator({
                     : "bg-zinc-800 text-zinc-500"
               }`}
             >
-              {i < current ? <Check size={12} weight="bold" /> : i + 1}
+              {i < current ? <CheckIcon size={12} weight="bold" /> : i + 1}
             </div>
             <span
               className={`text-sm ${
