@@ -70,7 +70,7 @@
 }
 
 @utility page-container {
-  max-width: 1200px;
+  max-width: 1250px;
   margin-inline: auto;
 }
 
@@ -83,4 +83,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-gutter: stable;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
 }

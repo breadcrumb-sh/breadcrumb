@@ -45,7 +45,7 @@ function ProjectLayout() {
         </div>
 
         {/* Tab row */}
-        <nav className="flex items-end gap-1 -mb-px max-w-[1200px] px-4 sm:px-8 mx-auto">
+        <nav className="flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
           {TABS.map(({ label, path, exact }) => {
             const href = `/projects/${projectId}${path}`;
             const isActive = exact
