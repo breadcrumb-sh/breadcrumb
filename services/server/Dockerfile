@@ -29,6 +29,8 @@ ENV NODE_ENV=production
 # Copy server build + dependencies
 COPY --from=build /app/services/server/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
+# Overlay server-specific dependency versions (npm may nest versions that differ from hoisted ones)
+COPY --from=build /app/services/server/node_modules/ ./node_modules/
 COPY --from=build /app/services/server/package.json ./
 
 # Copy web build as static files
