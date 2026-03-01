@@ -227,6 +227,8 @@ export const tracesRouter = router({
         statuses:    z.array(z.enum(["ok", "error"])).optional(),
         environments: z.array(z.string()).optional(),
         query:       z.string().optional(),
+        sortBy:      z.enum(["name","status","spanCount","tokens","cost","duration","startTime"]).default("startTime"),
+        sortDir:     z.enum(["asc","desc"]).default("desc"),
       })
     )
     .query(async ({ input }) => {
@@ -287,6 +289,18 @@ export const tracesRouter = router({
 
       const whereStr = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
 
+      const sortExprMap: Record<string, string> = {
+        name:      "t.name",
+        status:    "t.status",
+        spanCount: "coalesce(r.span_count, 0)",
+        tokens:    "coalesce(r.input_tokens, 0) + coalesce(r.output_tokens, 0)",
+        cost:      "coalesce(r.input_cost_usd + r.output_cost_usd, 0)",
+        duration:  "if(isNotNull(COALESCE(t.end_time, r.max_end_time)), toInt64(toUnixTimestamp64Milli(COALESCE(t.end_time, r.max_end_time))) - toInt64(toUnixTimestamp64Milli(t.start_time)), 0)",
+        startTime: "t.start_time",
+      };
+      const sortExpr = sortExprMap[input.sortBy] ?? "t.start_time";
+      const sortDirection = input.sortDir === "asc" ? "ASC" : "DESC";
+
       const sql = `
         SELECT
           t.id,
@@ -319,7 +333,7 @@ export const tracesRouter = router({
           ${ROLLUPS_SUBQUERY("projectId")}
         ) r ON t.id = r.trace_id
         ${whereStr}
-        ORDER BY t.start_time DESC
+        ORDER BY ${sortExpr} ${sortDirection}
         LIMIT {limit: UInt32} OFFSET {offset: UInt32}
       `;
 
@@ -825,14 +839,19 @@ export const tracesRouter = router({
       return rows.map((r) => ({ date: String(r["day"]), count: Number(r["trace_count"]) }));
     }),
 
-  // Lightweight spans from recent traces of a given name — for aggregate insights.
+  // All spans from traces of a given name — for aggregate insights.
   spanSample: procedure
     .input(z.object({
       projectId:  z.string().uuid(),
       traceName:  z.string(),
-      traceLimit: z.number().int().min(1).max(50).default(20),
+      from:       z.string().optional(),
+      to:         z.string().optional(),
     }))
     .query(async ({ input }) => {
+      const dateFilter = input.from && input.to
+        ? `AND start_time >= {from: String} AND start_time < {to: String} + INTERVAL 1 DAY`
+        : "";
+
       const traceResult = await clickhouse.query({
         query: `
           SELECT id
@@ -843,10 +862,9 @@ export const tracesRouter = router({
             GROUP BY id
           )
           WHERE name = {traceName: String}
-          ORDER BY start_time DESC
-          LIMIT {traceLimit: UInt32}
+            ${dateFilter}
         `,
-        query_params: { projectId: input.projectId, traceName: input.traceName, traceLimit: input.traceLimit },
+        query_params: { projectId: input.projectId, traceName: input.traceName, from: input.from ?? "", to: input.to ?? "" },
         format: "JSONEachRow",
       });
 
@@ -886,121 +904,7 @@ export const tracesRouter = router({
       };
     }),
 
-  // Most common execution flow (edges between parent→child spans) across recent traces.
-  happyPath: procedure
-    .input(z.object({
-      projectId:  z.string().uuid(),
-      traceName:  z.string(),
-      traceLimit: z.number().int().min(1).max(200).default(50),
-    }))
-    .query(async ({ input }) => {
-      const result = await clickhouse.query({
-        query: `
-          WITH
-            trace_ids AS (
-              SELECT id FROM (
-                SELECT id, argMax(name, version) AS name, argMax(start_time, version) AS st
-                FROM breadcrumb.traces
-                WHERE project_id = {projectId: UUID}
-                GROUP BY id
-              )
-              WHERE name = {traceName: String}
-              ORDER BY st DESC
-              LIMIT {traceLimit: UInt32}
-            ),
-            all_spans AS (
-              SELECT id, trace_id, parent_span_id, name, type, start_time
-              FROM breadcrumb.spans
-              WHERE project_id = {projectId: UUID}
-                AND trace_id IN (SELECT id FROM trace_ids)
-            ),
-            root_ordered AS (
-              SELECT trace_id, name, type,
-                row_number() OVER (PARTITION BY trace_id ORDER BY start_time) AS rn
-              FROM all_spans
-              WHERE parent_span_id = ''
-            )
-          SELECT parent_name, parent_type, child_name, child_type,
-                 sum(tc) AS trace_count
-          FROM (
-            -- 1. Parent-child edges (spans with an explicit parent)
-            SELECT
-              parent.name                        AS parent_name,
-              parent.type                        AS parent_type,
-              child.name                         AS child_name,
-              child.type                         AS child_type,
-              count(DISTINCT child.trace_id)     AS tc
-            FROM all_spans child
-            JOIN all_spans parent
-              ON child.parent_span_id = parent.id
-              AND child.trace_id = parent.trace_id
-            WHERE child.parent_span_id != ''
-            GROUP BY parent_name, parent_type, child_name, child_type
-
-            UNION ALL
-
-            -- 2. Sequential edges between root spans (ordered by start_time)
-            SELECT
-              r1.name                            AS parent_name,
-              r1.type                            AS parent_type,
-              r2.name                            AS child_name,
-              r2.type                            AS child_type,
-              count(DISTINCT r1.trace_id)        AS tc
-            FROM root_ordered r1
-            JOIN root_ordered r2
-              ON r1.trace_id = r2.trace_id AND r2.rn = r1.rn + 1
-            GROUP BY parent_name, parent_type, child_name, child_type
-          )
-          GROUP BY parent_name, parent_type, child_name, child_type
-          ORDER BY trace_count DESC
-        `,
-        query_params: {
-          projectId: input.projectId,
-          traceName: input.traceName,
-          traceLimit: input.traceLimit,
-        },
-        format: "JSONEachRow",
-      });
-
-      const rows = (await result.json()) as Array<Record<string, unknown>>;
-
-      // Get total trace count from a separate lightweight query
-      const countResult = await clickhouse.query({
-        query: `
-          SELECT count() AS cnt FROM (
-            SELECT id FROM (
-              SELECT id, argMax(name, version) AS name, argMax(start_time, version) AS st
-              FROM breadcrumb.traces
-              WHERE project_id = {projectId: UUID}
-              GROUP BY id
-            )
-            WHERE name = {traceName: String}
-            ORDER BY st DESC
-            LIMIT {traceLimit: UInt32}
-          )
-        `,
-        query_params: {
-          projectId: input.projectId,
-          traceName: input.traceName,
-          traceLimit: input.traceLimit,
-        },
-        format: "JSONEachRow",
-      });
-      const countRows = (await countResult.json()) as Array<Record<string, unknown>>;
-      const totalTraces = Number(countRows[0]?.["cnt"] ?? 0);
-
-      return {
-        totalTraces,
-        edges: rows.map((r) => ({
-          parentName:  String(r["parent_name"]),
-          parentType:  String(r["parent_type"]),
-          childName:   String(r["child_name"]),
-          childType:   String(r["child_type"]),
-          traceCount:  Number(r["trace_count"]),
-        })),
-      };
-    }),
-
+  // Greedy most-common-next-span funnel sequence across traces.
   // All spans for a single trace, ordered by start_time.
   spans: procedure
     .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))

@@ -1,5 +1,6 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { ArrowDown, ArrowUp, SpinnerGap } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp } from "@phosphor-icons/react";
+import { ChartSkeleton } from "../../../../components/ChartSkeleton";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
@@ -366,11 +367,7 @@ function ChartCard({
       <p className="text-xs font-medium text-zinc-500 mb-4">{label}</p>
       <div style={{ height: 220 }}>
         {loading ? (
-          <div className="h-full flex items-center justify-center">
-            <span className="text-xs text-zinc-600 animate-pulse">
-              Loading…
-            </span>
-          </div>
+          <ChartSkeleton variant="area" />
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
@@ -483,9 +480,7 @@ function TopFailingSpansTable({
         <p className="text-xs font-medium text-zinc-500">Top failing spans</p>
       </div>
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
-        </div>
+        <ChartSkeleton variant="table" rows={4} />
       ) : !data?.length ? (
         <div className="flex-1 flex items-center justify-center">
           <span className="text-xs text-zinc-600">No failing spans</span>
@@ -564,9 +559,7 @@ function TopSlowestSpansTable({
         <p className="text-xs font-medium text-zinc-500">Top slowest spans</p>
       </div>
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <span className="text-xs text-zinc-600 animate-pulse">Loading…</span>
-        </div>
+        <ChartSkeleton variant="table" rows={4} />
       ) : !data?.length ? (
         <div className="flex-1 flex items-center justify-center">
           <span className="text-xs text-zinc-600">No span data</span>
@@ -800,9 +793,7 @@ function TraceQualityChart({
 
       <div style={{ height: 280 }}>
         {loading ? (
-          <div className="h-full flex items-center justify-center">
-            <SpinnerGap size={20} className="text-zinc-600 animate-spin" />
-          </div>
+          <ChartSkeleton variant="bar" />
         ) : !days.length ? (
           <div className="h-full flex items-center justify-center">
             <span className="text-xs text-zinc-600">No trace data</span>

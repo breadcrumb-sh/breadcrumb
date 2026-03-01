@@ -8,8 +8,8 @@ import {
   Table,
   XCircle,
 } from "@phosphor-icons/react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import "@xyflow/react/dist/style.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
@@ -28,7 +28,8 @@ import {
 } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
 import { useToastManager } from "../../../../components/Toasts";
-import { TraceFlowGraph } from "../../../../components/TraceFlowGraph";
+import { ChartSkeleton } from "../../../../components/ChartSkeleton";
+import { DataTable, type Column, type SortState } from "../../../../components/DataTable";
 import { trpc } from "../../../../lib/trpc";
 
 type Section = "overview" | "raw";
@@ -43,6 +44,9 @@ const searchSchema = z.object({
   statuses: z.array(z.enum(["ok", "error"])).optional(),
   env: z.array(z.string()).optional(),
   q: z.string().optional(),
+  steps: z.array(z.string()).optional(),
+  sortBy: z.enum(["name","status","spanCount","tokens","cost","duration","startTime"]).optional(),
+  sortDir: z.enum(["asc","desc"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
@@ -169,7 +173,43 @@ function computeSpanStats(
     .sort((a, b) => b.frequency - a.frequency);
 }
 
-// ── Span Stats Table ──────────────────────────────────────────────────────────
+/** Filter spans to only those under selected steps (excluding nested step subtrees). */
+function filterBySteps(
+  spans: SampleSpan[],
+  selectedStepNames: string[],
+): SampleSpan[] {
+  if (!selectedStepNames.length) return spans;
+
+  // Build parent→children index
+  const childrenOf = new Map<string, SampleSpan[]>();
+  for (const s of spans) {
+    const key = s.parentSpanId || "";
+    if (!childrenOf.has(key)) childrenOf.set(key, []);
+    childrenOf.get(key)!.push(s);
+  }
+
+  const keep = new Set<string>();
+
+  // Find all matching step spans
+  const seeds = spans.filter(
+    (s) => s.type === "step" && selectedStepNames.includes(s.name),
+  );
+
+  for (const stepSpan of seeds) {
+    keep.add(stepSpan.id);
+
+    // BFS descendants — stop at nested step spans
+    const queue = [...(childrenOf.get(stepSpan.id) ?? [])];
+    while (queue.length) {
+      const child = queue.shift()!;
+      if (child.type === "step") continue; // prune nested step subtrees
+      keep.add(child.id);
+      queue.push(...(childrenOf.get(child.id) ?? []));
+    }
+  }
+
+  return spans.filter((s) => keep.has(s.id));
+}
 
 const STAT_TYPE_CLASSES: Record<string, string> = {
   llm: "text-purple-400 bg-purple-400/10 border-purple-400/20",
@@ -177,87 +217,77 @@ const STAT_TYPE_CLASSES: Record<string, string> = {
   retrieval: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
 };
 
-function SpanStatsTable({ stats }: { stats: SpanStats[] }) {
-  if (!stats.length) return null;
-  return (
-    <div className="border border-zinc-800 overflow-hidden rounded-lg">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-zinc-800 bg-zinc-900/50">
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-              Span
-            </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-              Type
-            </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
-              Frequency
-            </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
-              Avg #
-            </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
-              Avg Duration
-            </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
-              p95 Duration
-            </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-zinc-500">
-              Error Rate
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-800">
-          {stats.map((s) => {
-            const freqPct = Math.round(
-              (s.frequency / (s.totalTraces || 1)) * 100,
-            );
-            const errPct = Math.round(s.errorRate * 100);
-            const tc =
-              STAT_TYPE_CLASSES[s.type] ??
-              "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
-            return (
-              <tr key={`${s.name}-${s.type}`} className="hover:bg-zinc-900/50">
-                <td className="px-4 py-2.5 text-zinc-100 font-medium">
-                  {s.name}
-                </td>
-                <td className="px-4 py-2.5">
-                  <span
-                    className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}
-                  >
-                    {s.type}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
-                  {freqPct}%
-                  <span className="text-zinc-600 ml-1 text-xs">
-                    ({s.frequency}/{s.totalTraces})
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
-                  {s.avgCount.toFixed(1)}
-                </td>
-                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
-                  {flowFmt(s.avgDurationMs)}
-                </td>
-                <td className="px-4 py-2.5 text-right text-zinc-400 tabular-nums">
-                  {flowFmt(s.p95DurationMs)}
-                </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">
-                  <span
-                    className={errPct > 0 ? "text-red-400" : "text-zinc-600"}
-                  >
-                    {errPct}%
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
+  {
+    key: "name",
+    header: "Span",
+    sortable: true,
+    render: (s) => <span className="text-zinc-100 font-medium">{s.name}</span>,
+  },
+  {
+    key: "type",
+    header: "Type",
+    sortable: true,
+    render: (s) => {
+      const tc = STAT_TYPE_CLASSES[s.type] ?? "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
+      return (
+        <span className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}>
+          {s.type}
+        </span>
+      );
+    },
+  },
+  {
+    key: "frequency",
+    header: "Frequency",
+    align: "right",
+    sortable: true,
+    render: (s) => {
+      const freqPct = Math.round((s.frequency / (s.totalTraces || 1)) * 100);
+      return (
+        <span className="text-zinc-400 tabular-nums">
+          {freqPct}%
+          <span className="text-zinc-600 ml-1 text-xs">({s.frequency}/{s.totalTraces})</span>
+        </span>
+      );
+    },
+  },
+  {
+    key: "avgCount",
+    header: "Avg #",
+    align: "right",
+    sortable: true,
+    render: (s) => <span className="text-zinc-400 tabular-nums">{s.avgCount.toFixed(1)}</span>,
+  },
+  {
+    key: "avgDurationMs",
+    header: "Avg Duration",
+    align: "right",
+    sortable: true,
+    render: (s) => <span className="text-zinc-400 tabular-nums">{flowFmt(s.avgDurationMs)}</span>,
+  },
+  {
+    key: "p95DurationMs",
+    header: "p95 Duration",
+    align: "right",
+    sortable: true,
+    render: (s) => <span className="text-zinc-400 tabular-nums">{flowFmt(s.p95DurationMs)}</span>,
+  },
+  {
+    key: "errorRate",
+    header: "Error Rate",
+    align: "right",
+    sortable: true,
+    render: (s) => {
+      const errPct = Math.round(s.errorRate * 100);
+      return (
+        <span className={`tabular-nums ${errPct > 0 ? "text-red-400" : "text-zinc-600"}`}>
+          {errPct}%
+        </span>
+      );
+    },
+  },
+];
 
 // ── Span Frequency Chart ──────────────────────────────────────────────────────
 
@@ -305,28 +335,36 @@ function computeSpanFrequency(
     .sort((a, b) => b.p95 - a.p95 || b.p50 - a.p50);
 }
 
-const FREQ_MARGIN = { top: 8, right: 16, bottom: 24, left: 4 };
-const AXIS_TICK = { fill: "var(--color-zinc-500)", fontSize: 11 } as const;
 const FREQ_TOOLTIP_CLS =
   "rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-zinc-300 shadow-lg max-w-[220px]";
 
+const FREQ_COLORS = { p5: "#58508d", p50: "#b4558d", p95: "#e77371" } as const;
+
 function FrequencyTooltipContent(props: {
   active?: boolean;
-  payload?: Array<{ payload?: FrequencyDatum }>;
+  payload?: Array<{ name?: string; value?: number; color?: string; payload?: FrequencyDatum }>;
 }) {
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-100 shadow-lg space-y-0.5">
-      <div className="font-medium">
+    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 shadow-lg space-y-1">
+      <div className="font-medium text-zinc-400">
         {d.name} <span className="text-zinc-500">({d.type})</span>
       </div>
-      <div className="text-zinc-400">
-        p5: {d.p5} &middot; p50: {d.p50} &middot; p95: {d.p95} &middot; max:{" "}
-        {d.max}
-      </div>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ backgroundColor: p.color }}
+            />
+            {p.name}
+          </span>
+          <span className="tabular-nums text-zinc-300">{p.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -376,42 +414,54 @@ function SpanFrequencyChart({
   if (!data.length) return null;
 
   return (
-    <div className="space-y-2">
-      <div
-        className="border border-zinc-800 rounded-lg px-5 pt-4 pb-2"
-        style={{ height: 240 }}
-      >
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-5 pb-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-zinc-500">Span frequency per trace</p>
+        <div className="flex flex-wrap gap-1.5">
+          <LegendChip
+            color={FREQ_COLORS.p5}
+            label="p5"
+            tooltip="5th percentile — the low end. If this is 0, at least 5% of traces never ran this span at all."
+          />
+          <LegendChip
+            color={FREQ_COLORS.p50}
+            label="p50"
+            tooltip="Median count per trace. This is how many times the span typically runs in a single trace."
+          />
+          <LegendChip
+            color={FREQ_COLORS.p95}
+            label="p95"
+            tooltip="95th percentile — the high end. If this is much larger than p50, some traces run this span far more often than usual."
+          />
+        </div>
+      </div>
+
+      <div style={{ height: 280 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            margin={FREQ_MARGIN}
+            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
             barGap={2}
             barCategoryGap="30%"
           >
-            <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
+            <CartesianGrid
+              vertical={false}
+              stroke="var(--color-zinc-800)"
+              strokeDasharray="3 3"
+            />
             <XAxis
               dataKey="name"
-              tick={{ fill: "var(--color-zinc-400)", fontSize: 11 }}
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              interval={0}
-              angle={-30}
-              textAnchor="end"
-              height={48}
+              interval="preserveStartEnd"
             />
             <YAxis
-              tick={AXIS_TICK}
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
-              label={{
-                value: "Count per trace",
-                angle: -90,
-                position: "insideLeft",
-                offset: 8,
-                fill: "var(--color-zinc-500)",
-                fontSize: 11,
-              }}
+              width={36}
             />
             <RechartsTooltip
               animationDuration={150}
@@ -421,44 +471,26 @@ function SpanFrequencyChart({
             <Bar
               dataKey="p5"
               name="p5"
-              fill="var(--color-chart-7)"
+              fill={FREQ_COLORS.p5}
               radius={[3, 3, 0, 0]}
               isAnimationActive={false}
             />
             <Bar
               dataKey="p50"
               name="p50"
-              fill="var(--color-chart-2)"
+              fill={FREQ_COLORS.p50}
               radius={[3, 3, 0, 0]}
               isAnimationActive={false}
             />
             <Bar
               dataKey="p95"
               name="p95"
-              fill="var(--color-chart-4)"
+              fill={FREQ_COLORS.p95}
               radius={[3, 3, 0, 0]}
               isAnimationActive={false}
             />
           </BarChart>
         </ResponsiveContainer>
-      </div>
-      {/* Legend with tooltips */}
-      <div className="flex flex-wrap gap-1.5">
-        <LegendChip
-          color="var(--color-chart-7)"
-          label="p5"
-          tooltip="5th percentile — the low end. If this is 0, at least 5% of traces never ran this span at all."
-        />
-        <LegendChip
-          color="var(--color-chart-2)"
-          label="p50"
-          tooltip="Median count per trace. This is how many times the span typically runs in a single trace."
-        />
-        <LegendChip
-          color="var(--color-chart-4)"
-          label="p95"
-          tooltip="95th percentile — the high end. If this is much larger than p50, some traces run this span far more often than usual."
-        />
       </div>
     </div>
   );
@@ -476,6 +508,7 @@ function InsightsSection() {
   const preset = search.preset ?? 30;
   const selectedNames = search.names ?? [];
   const selectedStatuses = search.statuses ?? [];
+  const selectedSteps = search.steps ?? [];
 
   const applyPreset = (days: 7 | 30 | 90) =>
     navigate({
@@ -509,43 +542,71 @@ function InsightsSection() {
     }
   }, [nameList.data, activeName, navigate]);
 
-  const sampleQuery = trpc.traces.spanSample.useQuery(
-    { projectId, traceName: activeName, traceLimit: 50 },
+  const spansQuery = trpc.traces.spanSample.useQuery(
+    { projectId, traceName: activeName, from, to },
     { enabled: !!activeName },
   );
 
-  const happyPathQuery = trpc.traces.happyPath.useQuery(
-    { projectId, traceName: activeName, traceLimit: 50 },
-    { enabled: !!activeName },
-  );
+  // Distinct step span names available in the data
+  const stepNames = useMemo(() => {
+    if (!spansQuery.data?.spans?.length) return [];
+    const names = new Set<string>();
+    for (const s of spansQuery.data.spans) {
+      if (s.type === "step") names.add(s.name);
+    }
+    return Array.from(names).sort();
+  }, [spansQuery.data]);
 
   const { stats, rawSpans, traceCount } = useMemo(() => {
-    if (!sampleQuery.data?.spans?.length)
+    if (!spansQuery.data?.spans?.length)
       return {
         stats: [] as SpanStats[],
         rawSpans: [] as SampleSpan[],
         traceCount: 0,
       };
 
-    const { traceCount, spans } = sampleQuery.data;
+    const { spans } = spansQuery.data;
+
+    // Apply step filter first (structural, prunes subtrees)
+    const afterSteps = filterBySteps(spans, selectedSteps);
 
     // Client-side status filter
     const filtered =
       selectedStatuses.length > 0
-        ? spans.filter((s: SampleSpan) => selectedStatuses.includes(s.status))
-        : spans;
+        ? afterSteps.filter((s: SampleSpan) =>
+            selectedStatuses.includes(s.status),
+          )
+        : afterSteps;
 
-    const spanStats = computeSpanStats(filtered, traceCount);
+    // Trace count = unique traces that still have spans after filtering
+    const traceIds = new Set(filtered.map((s) => s.traceId));
+    const count = selectedSteps.length > 0 ? traceIds.size : spansQuery.data.traceCount;
+
+    const spanStats = computeSpanStats(filtered, count);
 
     return {
       stats: spanStats,
       rawSpans: filtered,
-      traceCount,
+      traceCount: count,
     };
-  }, [sampleQuery.data, selectedStatuses]);
+  }, [spansQuery.data, selectedStatuses, selectedSteps]);
 
   const isLoading =
-    nameList.isLoading || (!!activeName && sampleQuery.isLoading);
+    nameList.isLoading || (!!activeName && spansQuery.isLoading);
+
+  const [spanSort, setSpanSort] = useState<SortState | null>(null);
+
+  const sortedStats = useMemo(() => {
+    if (!spanSort) return stats;
+    const { key, dir } = spanSort;
+    const sorted = [...stats].sort((a, b) => {
+      const av = a[key as keyof SpanStats];
+      const bv = b[key as keyof SpanStats];
+      if (typeof av === "string" && typeof bv === "string") return av.localeCompare(bv);
+      return (av as number) - (bv as number);
+    });
+    return dir === "desc" ? sorted.reverse() : sorted;
+  }, [stats, spanSort]);
 
   return (
     <div className="space-y-6">
@@ -574,6 +635,7 @@ function InsightsSection() {
               search: (prev) => ({
                 ...prev,
                 names: e.target.value ? [e.target.value] : undefined,
+                steps: undefined,
               }),
             })
           }
@@ -589,6 +651,20 @@ function InsightsSection() {
         </select>
 
         <MultiselectCombobox
+          options={stepNames}
+          selected={selectedSteps}
+          onChange={(v) =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                steps: v.length ? v : undefined,
+              }),
+            })
+          }
+          placeholder="All steps"
+        />
+
+        <MultiselectCombobox
           options={["ok", "error"]}
           selected={selectedStatuses}
           onChange={(v) =>
@@ -602,27 +678,16 @@ function InsightsSection() {
           placeholder="All statuses"
         />
 
-        {sampleQuery.data && (
-          <span className="text-[11px] text-zinc-600">
-            Aggregated from {sampleQuery.data.traceCount} recent traces
-          </span>
-        )}
-      </div>
-
-      <div>
-        <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
-          Execution Flow
-        </h3>
-        <TraceFlowGraph
-          edges={happyPathQuery.data?.edges ?? []}
-          totalTraces={happyPathQuery.data?.totalTraces ?? 0}
-          isLoading={!!activeName && happyPathQuery.isLoading}
-        />
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center border border-dashed border-zinc-700 py-24">
-          <SpinnerGap size={20} className="text-zinc-600 animate-spin" />
+        <div className="space-y-6">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900" style={{ height: 340 }}>
+            <ChartSkeleton variant="bar" />
+          </div>
+          <div className="rounded-md border border-zinc-800" style={{ height: 280 }}>
+            <ChartSkeleton variant="table" rows={5} />
+          </div>
         </div>
       ) : !rawSpans.length ? (
         <div className="flex flex-col items-center justify-center border border-dashed border-zinc-700 py-24 text-center">
@@ -634,17 +699,18 @@ function InsightsSection() {
         </div>
       ) : (
         <>
-          <div>
-            <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
-              Span Frequency per Trace
-            </h3>
-            <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
-          </div>
+          <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
           <div>
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
               Span Statistics
             </h3>
-            <SpanStatsTable stats={stats} />
+            <DataTable
+              columns={SPAN_STATS_COLUMNS}
+              data={sortedStats}
+              rowKey={(s) => `${s.name}-${s.type}`}
+              sort={spanSort}
+              onSortChange={setSpanSort}
+            />
           </div>
         </>
       )}
@@ -653,6 +719,85 @@ function InsightsSection() {
 }
 
 // ── Raw Traces Section ────────────────────────────────────────────────────────
+
+type TraceRow = {
+  id: string;
+  name: string;
+  status: "ok" | "error";
+  statusMessage: string;
+  startTime: string;
+  endTime: string | null;
+  userId: string;
+  environment: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  spanCount: number;
+};
+
+const TRACE_COLUMNS: Column<TraceRow>[] = [
+  {
+    key: "name",
+    header: "Name",
+    sortable: true,
+    render: (t) => (
+      <>
+        <span className="font-medium text-zinc-100">{t.name}</span>
+        {t.userId && <span className="ml-2 text-xs text-zinc-500">{t.userId}</span>}
+      </>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortable: true,
+    render: (t) => <StatusBadge status={t.status} />,
+  },
+  {
+    key: "spanCount",
+    header: "Spans",
+    sortable: true,
+    render: (t) => <span className="text-zinc-400">{t.spanCount}</span>,
+  },
+  {
+    key: "tokens",
+    header: "Tokens",
+    sortable: true,
+    render: (t) => (
+      <span className="text-zinc-400">
+        {t.inputTokens + t.outputTokens > 0
+          ? formatTokens(t.inputTokens + t.outputTokens)
+          : "\u2014"}
+      </span>
+    ),
+  },
+  {
+    key: "cost",
+    header: "Cost",
+    sortable: true,
+    render: (t) => (
+      <span className="text-zinc-400">
+        {t.costUsd > 0 ? formatCost(t.costUsd) : "\u2014"}
+      </span>
+    ),
+  },
+  {
+    key: "duration",
+    header: "Duration",
+    sortable: true,
+    render: (t) => (
+      <span className="text-zinc-400">{formatDuration(t.startTime, t.endTime)}</span>
+    ),
+  },
+  {
+    key: "startTime",
+    header: "Time",
+    sortable: true,
+    render: (t) => (
+      <span className="text-zinc-500 text-xs">{formatTime(t.startTime)}</span>
+    ),
+  },
+];
 
 function RawTracesSection() {
   const { projectId } = Route.useParams();
@@ -717,19 +862,38 @@ function RawTracesSection() {
     });
   };
 
-  const traces = trpc.traces.list.useQuery({
-    projectId,
-    from,
-    to,
-    names: selectedNames.length > 0 ? selectedNames : undefined,
-    models: selectedModels.length > 0 ? selectedModels : undefined,
-    statuses:
-      selectedStatuses.length > 0
-        ? (selectedStatuses as ("ok" | "error")[])
-        : undefined,
-    environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
-    query: nlpQuery || undefined,
-  });
+  const sortBy = search.sortBy ?? "startTime";
+  const sortDir = search.sortDir ?? "desc";
+  const sort: SortState = { key: sortBy, dir: sortDir };
+
+  const handleSortChange = (next: SortState | null) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        sortBy: next?.key as typeof sortBy | undefined,
+        sortDir: next?.dir,
+      }),
+    });
+  };
+
+  const traces = trpc.traces.list.useQuery(
+    {
+      projectId,
+      from,
+      to,
+      names: selectedNames.length > 0 ? selectedNames : undefined,
+      models: selectedModels.length > 0 ? selectedModels : undefined,
+      statuses:
+        selectedStatuses.length > 0
+          ? (selectedStatuses as ("ok" | "error")[])
+          : undefined,
+      environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
+      query: nlpQuery || undefined,
+      sortBy,
+      sortDir,
+    },
+    { placeholderData: keepPreviousData },
+  );
 
   const toastManager = useToastManager();
   const toastManagerRef = useRef(toastManager);
@@ -903,78 +1067,19 @@ function RawTracesSection() {
           </p>
         </div>
       ) : (
-        <div className="rounded-md border border-zinc-800 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-900/50">
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Name
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Status
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Spans
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Tokens
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Cost
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Duration
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">
-                  Time
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {traces.data.traces.map((trace) => (
-                <tr
-                  key={trace.id}
-                  className="hover:bg-zinc-900/50 transition-colors cursor-pointer"
-                  onClick={() =>
-                    navigate({
-                      to: "/projects/$projectId/trace/$traceId",
-                      params: { projectId, traceId: trace.id },
-                    })
-                  }
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-zinc-100">
-                      {trace.name}
-                    </span>
-                    {trace.userId && (
-                      <span className="ml-2 text-xs text-zinc-500">
-                        {trace.userId}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={trace.status} />
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">{trace.spanCount}</td>
-                  <td className="px-4 py-3 text-zinc-400">
-                    {trace.inputTokens + trace.outputTokens > 0
-                      ? formatTokens(trace.inputTokens + trace.outputTokens)
-                      : "\u2014"}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">
-                    {trace.costUsd > 0 ? formatCost(trace.costUsd) : "\u2014"}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">
-                    {formatDuration(trace.startTime, trace.endTime)}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-500 text-xs">
-                    {formatTime(trace.startTime)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={TRACE_COLUMNS}
+          data={traces.data.traces}
+          rowKey={(t) => t.id}
+          onRowClick={(trace) =>
+            navigate({
+              to: "/projects/$projectId/trace/$traceId",
+              params: { projectId, traceId: trace.id },
+            })
+          }
+          sort={sort}
+          onSortChange={handleSortChange}
+        />
       )}
     </div>
   );
