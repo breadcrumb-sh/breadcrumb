@@ -28,5 +28,8 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1"
+  },
+  "overrides": {
+    "rollup": ">=4.59.0"
   }
 }
