@@ -17,14 +17,14 @@
   --color-viz-secondary: var(--color-sky-600);
   --color-viz-accent:    var(--color-fuchsia-600);
 
-  /* ── Border radius — refined, slightly rounded ────────── */
-  --radius-sm:  3px;
-  --radius:     5px;
-  --radius-md:  7px;
-  --radius-lg:  10px;
-  --radius-xl:  14px;
-  --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  /* ── Border radius — sharp corners ────────── */
+  --radius-sm:  0px;
+  --radius:     0px;
+  --radius-md:  0px;
+  --radius-lg:  0px;
+  --radius-xl:  0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 
   /* ── Zinc — true neutral charcoal ────────────────────── */
   --color-zinc-50:  #f5f5f6;
