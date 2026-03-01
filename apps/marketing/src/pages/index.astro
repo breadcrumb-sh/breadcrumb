@@ -94,69 +94,28 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- ── SCREENSHOT 2: Trace detail ─────────────────────── -->
+  <!-- ── SCREENSHOT 2: Dashboard ───────────────────────── -->
   <section class="border-b border-border">
-    <div class="inner">
-      <div class="border-x border-border min-w-0">
-        <div class="border-b border-border px-4 sm:px-5 py-3 flex items-center justify-between gap-4">
-          <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">span detail</span>
-          <span class="font-mono text-[10px] text-fg-3 hidden sm:block">1,847 tokens · $0.0028 · 1.23s</span>
-        </div>
-
-        <div class="border-b border-border">
-          <div class="flex items-center gap-3 px-4 sm:px-5 py-[9px] border-b border-border">
-            <span class="w-[6px] h-[6px] rounded-full flex-shrink-0" style="background:#e77371"></span>
-            <span class="font-mono text-[10px] text-fg w-28 sm:w-36 flex-shrink-0 truncate">chat-response</span>
-            <div class="flex-1 h-[13px] bg-surface-2 relative overflow-hidden">
-              <div class="absolute inset-y-0 left-0" style="width:98%;background:#e77371;opacity:0.3"></div>
-            </div>
-            <span class="font-mono text-[10px] text-fg-3 w-12 text-right flex-shrink-0">1234ms</span>
+    <div class="inner pt-8 sm:pt-12">
+      <div class="browser-window">
+        <div class="browser-toolbar">
+          <div class="browser-dots">
+            <span class="browser-dot" style="background:#ff5f57"></span>
+            <span class="browser-dot" style="background:#febc2e"></span>
+            <span class="browser-dot" style="background:#28c840"></span>
           </div>
-          <div class="flex items-center gap-3 px-4 sm:px-5 py-[9px] border-b border-border" style="padding-left: calc(1rem + 14px)">
-            <span class="w-[6px] h-[6px] rounded-full flex-shrink-0" style="background:#b4558d"></span>
-            <span class="font-mono text-[10px] text-fg w-28 sm:w-36 flex-shrink-0 truncate">retrieve-context</span>
-            <div class="flex-1 h-[13px] bg-surface-2 relative overflow-hidden">
-              <div class="absolute inset-y-0 left-0" style="width:9%;background:#b4558d;opacity:0.3"></div>
-            </div>
-            <span class="font-mono text-[10px] text-fg-3 w-12 text-right flex-shrink-0">112ms</span>
+          <div class="browser-address-bar">
+            <span class="font-mono text-[10px] text-fg-3">app.breadcrumb.sh</span>
           </div>
-          <div class="flex items-center gap-3 px-4 sm:px-5 py-[9px] border-b border-border bg-surface" style="padding-left: calc(1rem + 14px)">
-            <span class="w-[6px] h-[6px] rounded-full flex-shrink-0" style="background:#58508d"></span>
-            <span class="font-mono text-[10px] text-fg w-28 sm:w-36 flex-shrink-0 truncate font-medium">llm-call</span>
-            <div class="flex-1 h-[13px] bg-surface-2 relative overflow-hidden">
-              <div class="absolute inset-y-0 left-0" style="width:87%;background:#58508d;opacity:0.3"></div>
-            </div>
-            <span class="font-mono text-[10px] text-fg-3 w-12 text-right flex-shrink-0">1089ms</span>
-          </div>
-          <div class="flex items-center gap-3 px-4 sm:px-5 py-[9px]" style="padding-left: calc(1rem + 14px)">
-            <span class="w-[6px] h-[6px] rounded-full flex-shrink-0" style="background:#7b6aad"></span>
-            <span class="font-mono text-[10px] text-fg w-28 sm:w-36 flex-shrink-0 truncate">parse-output</span>
-            <div class="flex-1 h-[13px] bg-surface-2 relative overflow-hidden">
-              <div class="absolute inset-y-0 left-0" style="width:3%;background:#7b6aad;opacity:0.3"></div>
-            </div>
-            <span class="font-mono text-[10px] text-fg-3 w-12 text-right flex-shrink-0">33ms</span>
+          <div class="browser-dots" style="visibility:hidden">
+            <span class="browser-dot"></span>
+            <span class="browser-dot"></span>
+            <span class="browser-dot"></span>
           </div>
         </div>
-
-        <div class="px-4 sm:px-5 py-4">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="w-[6px] h-[6px] rounded-full flex-shrink-0" style="background:#58508d"></span>
-            <span class="font-mono text-[11px] text-fg">llm-call</span>
-            <span class="font-mono text-[10px] text-fg-3 ml-auto">gpt-4o · 1,847 tokens</span>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="bg-surface p-3">
-              <span class="font-mono text-[9px] text-fg-3 uppercase tracking-widest block mb-2">prompt</span>
-              <p class="font-mono text-[10px] sm:text-[10.5px] text-fg-2 leading-[1.75]">You are a helpful assistant. The user asked: "How do I implement rate limiting in Node.js?"</p>
-            </div>
-            <div class="bg-surface p-3">
-              <span class="font-mono text-[9px] text-fg-3 uppercase tracking-widest block mb-2">completion</span>
-              <p class="font-mono text-[10px] sm:text-[10.5px] text-fg-2 leading-[1.75]">Rate limiting in Node.js can be done with express-rate-limit. Install it, then apply it as middleware...</p>
-            </div>
-          </div>
+        <div class="browser-content">
+          <img src="/dashboard.png" alt="Breadcrumb dashboard" class="w-full block" />
         </div>
-      </div>
-
       </div>
     </div>
   </section>
@@ -267,6 +226,55 @@ import Layout from '../layouts/Layout.astro';
       padding-left: 1.25rem;
       padding-right: 1.25rem;
     }
+  }
+
+  /* Browser window */
+  .browser-window {
+    border: 1px solid #282829;
+    overflow: hidden;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .browser-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid #282829;
+    background: #1b1b1c;
+  }
+
+  .browser-dots {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .browser-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .browser-address-bar {
+    flex: 1;
+    max-width: 240px;
+    margin: 0 14px;
+    padding: 5px 10px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #121213;
+    border: 1px solid #282829;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .browser-content {
+    line-height: 0;
+    padding: 16px 16px 0;
+    background: #121213;
   }
 
   /* Live ping */
