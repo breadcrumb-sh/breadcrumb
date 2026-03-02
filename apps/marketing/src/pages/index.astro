@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-
+import { Image } from 'astro:assets';
+import dashboardImage from '../assets/dashboard.png';
 ---
 
 <Layout>
@@ -16,8 +17,7 @@ import Layout from '../layouts/Layout.astro';
           <span class="font-display font-semibold text-[16px] tracking-tight text-fg">Breadcrumb</span>
         </a>
         <div class="hidden sm:flex items-center gap-5">
-          <!-- <a href="#" class="font-mono text-[11px] text-fg-3 hover:text-fg transition-colors">docs</a>
-          <a href="https://github.com/joshuaKnauber/breadcrumb" class="font-mono text-[11px] text-fg-3 hover:text-fg transition-colors">github</a> -->
+          <a href="https://github.com/joshuaKnauber/breadcrumb" class="font-mono text-[11px] text-fg-3 hover:text-fg transition-colors">github</a>
         </div>
       </div>
     </div>
@@ -27,7 +27,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="border-b border-border">
     <div class="inner pt-14 pb-14 sm:pt-20 sm:pb-20">
       <h1 class="font-display text-[clamp(32px,5vw,58px)] font-semibold text-fg leading-[1.04] tracking-[-0.03em] text-balance mb-5">
-        Simple, self-hosted LLM observability for Typescript
+        Simple, self-hosted LLM observability for TypeScript
       </h1>
       <p class="text-[14px] sm:text-[15px] leading-[1.75] text-fg-2 mb-8 max-w-[430px]">
         Breadcrumb logs every prompt, completion, token count, latency, and cost. Open source and self-hostable in one click, so your data stays in your stack.
@@ -86,7 +86,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="border-b border-border">
     <div class="inner py-10 sm:py-12">
       <h2 class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3">
-        Two lines of code. Full visibility.
+        Full LLM tracing with two lines of code.
       </h2>
       <p class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[420px]">
         Wrap a function, name a span. That's it. Every call your app makes gets logged with its prompt, completion, tokens, latency, and cost. No agents, no config files, no SDKs with a 30-page setup guide.
@@ -114,7 +114,7 @@ import Layout from '../layouts/Layout.astro';
           </div>
         </div>
         <div class="browser-content">
-          <img src="/dashboard.png" alt="Breadcrumb dashboard" class="w-full block" />
+          <Image src={dashboardImage} alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs" loading="lazy" format="webp" quality={80} widths={[640, 1024, 1400, 2062]} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1000px" class="w-full block" />
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@ import Layout from '../layouts/Layout.astro';
   <section class="border-b border-border">
     <div class="inner py-10 sm:py-12">
       <h2 class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3">
-        Production is not a black box.
+        Monitor every LLM call in production.
       </h2>
       <p class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[400px]">
         Every LLM call your app makes in production gets logged. Real prompts, real responses, real token counts. Not samples. All of them.
