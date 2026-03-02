@@ -904,7 +904,159 @@ export const tracesRouter = router({
       };
     }),
 
-  // Greedy most-common-next-span funnel sequence across traces.
+  // Span loopback rate — detects spans that disappear then reappear across traces.
+  loopbackRate: procedure
+    .input(z.object({
+      projectId: z.string().uuid(),
+      traceName: z.string(),
+      from:      z.string().optional(),
+      to:        z.string().optional(),
+      sortBy:    z.enum(["rate", "loopbacks"]).default("rate"),
+    }))
+    .query(async ({ input }) => {
+      const dateFilter = input.from && input.to
+        ? `AND start_time >= {from: String} AND start_time < {to: String} + INTERVAL 1 DAY`
+        : "";
+
+      const baseParams: Record<string, unknown> = {
+        projectId: input.projectId,
+        traceName: input.traceName,
+        from: input.from ?? "",
+        to: input.to ?? "",
+      };
+
+      // Query 1: loopback rates (top 10)
+      const rateResult = await clickhouse.query({
+        query: `
+          WITH
+          filtered_traces AS (
+            SELECT id, start_time,
+              ROW_NUMBER() OVER (ORDER BY start_time, id) AS trace_seq
+            FROM (
+              SELECT id, argMax(name, version) AS name, argMax(start_time, version) AS start_time
+              FROM breadcrumb.traces WHERE project_id = {projectId: UUID} GROUP BY id
+            )
+            WHERE name = {traceName: String} ${dateFilter}
+          ),
+          span_trace AS (
+            SELECT s.name AS span_name, any(s.type) AS span_type, s.trace_id, ft.trace_seq,
+              min(s.start_time) AS span_first_start
+            FROM breadcrumb.spans s
+            INNER JOIN filtered_traces ft ON s.trace_id = ft.id
+            WHERE s.project_id = {projectId: UUID} AND s.type != 'step'
+            GROUP BY s.name, s.trace_id, ft.trace_seq
+          ),
+          with_prev AS (
+            SELECT *, lagInFrame(trace_seq, 1, 0)
+              OVER (PARTITION BY span_name ORDER BY trace_seq) AS prev_seq
+            FROM span_trace
+          )
+          SELECT span_name, span_type,
+            count() AS appearances,
+            sum(if(prev_seq > 0 AND trace_seq - prev_seq > 1, 1, 0)) AS loopbacks,
+            loopbacks / appearances AS rate,
+            (SELECT count() FROM filtered_traces) AS total_traces
+          FROM with_prev
+          GROUP BY span_name, span_type
+          HAVING loopbacks > 0
+          ORDER BY ${input.sortBy === "loopbacks" ? "loopbacks" : "rate"} DESC LIMIT 10
+        `,
+        query_params: baseParams,
+        format: "JSONEachRow",
+      });
+
+      const rateRows = (await rateResult.json()) as Array<Record<string, unknown>>;
+
+      if (!rateRows.length) {
+        return { totalTraces: 0, spans: [] as Array<{ name: string; type: string; appearances: number; loopbacks: number; rate: number; triggers: Array<{ name: string; pct: number }> }> };
+      }
+
+      const totalTraces = Number(rateRows[0]["total_traces"] ?? 0);
+      const spanNames = rateRows.map(r => String(r["span_name"]));
+
+      // Query 2: trigger breakdown for the top loopback span names
+      const triggerResult = await clickhouse.query({
+        query: `
+          WITH
+          filtered_traces AS (
+            SELECT id, start_time,
+              ROW_NUMBER() OVER (ORDER BY start_time, id) AS trace_seq
+            FROM (
+              SELECT id, argMax(name, version) AS name, argMax(start_time, version) AS start_time
+              FROM breadcrumb.traces WHERE project_id = {projectId: UUID} GROUP BY id
+            )
+            WHERE name = {traceName: String} ${dateFilter}
+          ),
+          span_trace AS (
+            SELECT s.name AS span_name, s.trace_id, ft.trace_seq,
+              min(s.start_time) AS span_first_start
+            FROM breadcrumb.spans s
+            INNER JOIN filtered_traces ft ON s.trace_id = ft.id
+            WHERE s.project_id = {projectId: UUID} AND s.type != 'step'
+            GROUP BY s.name, s.trace_id, ft.trace_seq
+          ),
+          with_prev AS (
+            SELECT *, lagInFrame(trace_seq, 1, 0)
+              OVER (PARTITION BY span_name ORDER BY trace_seq) AS prev_seq
+            FROM span_trace
+          ),
+          loopback_traces AS (
+            SELECT span_name, trace_id, span_first_start FROM with_prev
+            WHERE prev_seq > 0 AND trace_seq - prev_seq > 1
+              AND span_name IN {spanNames: Array(String)}
+          ),
+          trigger_per_loopback AS (
+            SELECT lb.span_name AS loopback_span, lb.trace_id,
+              argMax(s.name, s.start_time) AS trigger_name
+            FROM loopback_traces lb
+            INNER JOIN breadcrumb.spans s ON s.trace_id = lb.trace_id
+            WHERE s.project_id = {projectId: UUID} AND s.type != 'step'
+              AND s.name != lb.span_name AND s.start_time < lb.span_first_start
+            GROUP BY lb.span_name, lb.trace_id
+          )
+          SELECT loopback_span, trigger_name, count() AS trigger_count
+          FROM trigger_per_loopback
+          GROUP BY loopback_span, trigger_name
+          ORDER BY loopback_span, trigger_count DESC
+        `,
+        query_params: { ...baseParams, spanNames },
+        format: "JSONEachRow",
+      });
+
+      const triggerRows = (await triggerResult.json()) as Array<Record<string, unknown>>;
+
+      // Build trigger map: loopback_span -> Array<{name, count}>
+      const triggerMap = new Map<string, Array<{ name: string; count: number }>>();
+      for (const r of triggerRows) {
+        const span = String(r["loopback_span"]);
+        if (!triggerMap.has(span)) triggerMap.set(span, []);
+        triggerMap.get(span)!.push({
+          name: String(r["trigger_name"]),
+          count: Number(r["trigger_count"]),
+        });
+      }
+
+      const spans = rateRows.map(r => {
+        const name = String(r["span_name"]);
+        const loopbacks = Number(r["loopbacks"]);
+        const triggers = triggerMap.get(name) ?? [];
+        const triggerTotal = triggers.reduce((sum, t) => sum + t.count, 0);
+        return {
+          name,
+          type: String(r["span_type"]),
+          appearances: Number(r["appearances"]),
+          loopbacks,
+          rate: Number(r["rate"]),
+          triggers: triggers.map(t => ({
+            name: t.name,
+            pct: triggerTotal > 0 ? t.count / triggerTotal : 0,
+          })),
+        };
+      });
+
+      return { totalTraces, spans };
+    }),
+
   // All spans for a single trace, ordered by start_time.
   spans: procedure
     .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))

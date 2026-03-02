@@ -21,6 +21,13 @@ import {
   YAxis,
 } from "recharts";
 import { z } from "zod";
+import { ChartSkeleton } from "../../../../components/ChartSkeleton";
+import { InlineSelect } from "../../../../components/InlineSelect";
+import {
+  DataTable,
+  type Column,
+  type SortState,
+} from "../../../../components/DataTable";
 import {
   DateRangePopover,
   presetFrom,
@@ -28,8 +35,6 @@ import {
 } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
 import { useToastManager } from "../../../../components/Toasts";
-import { ChartSkeleton } from "../../../../components/ChartSkeleton";
-import { DataTable, type Column, type SortState } from "../../../../components/DataTable";
 import { trpc } from "../../../../lib/trpc";
 
 type Section = "overview" | "raw";
@@ -45,8 +50,18 @@ const searchSchema = z.object({
   env: z.array(z.string()).optional(),
   q: z.string().optional(),
   steps: z.array(z.string()).optional(),
-  sortBy: z.enum(["name","status","spanCount","tokens","cost","duration","startTime"]).optional(),
-  sortDir: z.enum(["asc","desc"]).optional(),
+  sortBy: z
+    .enum([
+      "name",
+      "status",
+      "spanCount",
+      "tokens",
+      "cost",
+      "duration",
+      "startTime",
+    ])
+    .optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
@@ -229,9 +244,13 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
     header: "Type",
     sortable: true,
     render: (s) => {
-      const tc = STAT_TYPE_CLASSES[s.type] ?? "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
+      const tc =
+        STAT_TYPE_CLASSES[s.type] ??
+        "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
       return (
-        <span className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}>
+        <span
+          className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}
+        >
           {s.type}
         </span>
       );
@@ -247,7 +266,9 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
       return (
         <span className="text-zinc-400 tabular-nums">
           {freqPct}%
-          <span className="text-zinc-600 ml-1 text-xs">({s.frequency}/{s.totalTraces})</span>
+          <span className="text-zinc-600 ml-1 text-xs">
+            ({s.frequency}/{s.totalTraces})
+          </span>
         </span>
       );
     },
@@ -257,21 +278,33 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
     header: "Avg #",
     align: "right",
     sortable: true,
-    render: (s) => <span className="text-zinc-400 tabular-nums">{s.avgCount.toFixed(1)}</span>,
+    render: (s) => (
+      <span className="text-zinc-400 tabular-nums">
+        {s.avgCount.toFixed(1)}
+      </span>
+    ),
   },
   {
     key: "avgDurationMs",
     header: "Avg Duration",
     align: "right",
     sortable: true,
-    render: (s) => <span className="text-zinc-400 tabular-nums">{flowFmt(s.avgDurationMs)}</span>,
+    render: (s) => (
+      <span className="text-zinc-400 tabular-nums">
+        {flowFmt(s.avgDurationMs)}
+      </span>
+    ),
   },
   {
     key: "p95DurationMs",
     header: "p95 Duration",
     align: "right",
     sortable: true,
-    render: (s) => <span className="text-zinc-400 tabular-nums">{flowFmt(s.p95DurationMs)}</span>,
+    render: (s) => (
+      <span className="text-zinc-400 tabular-nums">
+        {flowFmt(s.p95DurationMs)}
+      </span>
+    ),
   },
   {
     key: "errorRate",
@@ -281,7 +314,9 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
     render: (s) => {
       const errPct = Math.round(s.errorRate * 100);
       return (
-        <span className={`tabular-nums ${errPct > 0 ? "text-red-400" : "text-zinc-600"}`}>
+        <span
+          className={`tabular-nums ${errPct > 0 ? "text-red-400" : "text-zinc-600"}`}
+        >
           {errPct}%
         </span>
       );
@@ -342,7 +377,12 @@ const FREQ_COLORS = { p5: "#58508d", p50: "#b4558d", p95: "#e77371" } as const;
 
 function FrequencyTooltipContent(props: {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number; color?: string; payload?: FrequencyDatum }>;
+  payload?: Array<{
+    name?: string;
+    value?: number;
+    color?: string;
+    payload?: FrequencyDatum;
+  }>;
 }) {
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
@@ -416,7 +456,9 @@ function SpanFrequencyChart({
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-5 pb-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-500">Span frequency per trace</p>
+        <p className="text-xs font-medium text-zinc-500">
+          Span frequency per trace
+        </p>
         <div className="flex flex-wrap gap-1.5">
           <LegendChip
             color={FREQ_COLORS.p5}
@@ -486,6 +528,166 @@ function SpanFrequencyChart({
               dataKey="p95"
               name="p95"
               fill={FREQ_COLORS.p95}
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ── Loopback Chart ────────────────────────────────────────────────────────────
+
+type LoopbackSpan = {
+  name: string;
+  type: string;
+  appearances: number;
+  loopbacks: number;
+  rate: number;
+  triggers: Array<{ name: string; pct: number }>;
+};
+
+function LoopbackTooltipContent(props: {
+  active?: boolean;
+  payload?: Array<{ payload?: LoopbackSpan }>;
+}) {
+  const { active, payload } = props;
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  const topTriggers = d.triggers.slice(0, 5);
+  return (
+    <div className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 shadow-lg space-y-1.5 max-w-[260px]">
+      <div className="font-medium text-zinc-400">
+        {d.name} <span className="text-zinc-500">({d.type})</span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-zinc-500">Loopback rate</span>
+        <span className="tabular-nums text-viz-healthy">
+          {(d.rate * 100).toFixed(1)}%
+        </span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-zinc-500">Loopbacks / appearances</span>
+        <span className="tabular-nums text-zinc-300">
+          {d.loopbacks} / {d.appearances}
+        </span>
+      </div>
+      {topTriggers.length > 0 && (
+        <>
+          <div className="border-t border-zinc-800 pt-1.5 text-[10px] text-zinc-500 uppercase tracking-wide">
+            Top triggers
+          </div>
+          {topTriggers.map((t) => (
+            <div key={t.name} className="flex justify-between gap-3">
+              <span className="text-zinc-300 truncate">{t.name}</span>
+              <span className="tabular-nums text-zinc-500 shrink-0">
+                {(t.pct * 100).toFixed(0)}%
+              </span>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+function LoopbackChart({
+  projectId,
+  traceName,
+  from,
+  to,
+}: {
+  projectId: string;
+  traceName: string;
+  from?: string;
+  to?: string;
+}) {
+  const [sortBy, setSortBy] = useState<"rate" | "loopbacks">("rate");
+
+  const query = trpc.traces.loopbackRate.useQuery(
+    { projectId, traceName, from, to, sortBy },
+    { enabled: !!traceName },
+  );
+
+  if (query.isLoading && traceName) {
+    return (
+      <div
+        className="rounded-lg border border-zinc-800 bg-zinc-900"
+        style={{ height: 340 }}
+      >
+        <ChartSkeleton variant="bar" />
+      </div>
+    );
+  }
+
+  if (!query.data?.spans?.length) return null;
+
+  const data = query.data.spans;
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-5 pb-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <p className="text-xs font-medium text-zinc-500">Span loopback rate</p>
+          <InlineSelect
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+              { value: "rate", label: "by rate" },
+              { value: "loopbacks", label: "by count" },
+            ]}
+            size="xs"
+          />
+        </div>
+        <LegendChip
+          color="var(--color-viz-healthy)"
+          label="Loopback"
+          tooltip="A loopback is when a span disappears for one or more consecutive traces then reappears. Rate = loopbacks / total appearances."
+        />
+      </div>
+
+      <div style={{ height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            barCategoryGap="30%"
+          >
+            <CartesianGrid
+              vertical={false}
+              stroke="var(--color-zinc-800)"
+              strokeDasharray="3 3"
+            />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              width={40}
+              tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
+              domain={[
+                0,
+                (max: number) => Math.min(1, Math.ceil(max * 10) / 10 + 0.1),
+              ]}
+            />
+            <RechartsTooltip
+              animationDuration={150}
+              content={LoopbackTooltipContent}
+              cursor={{ fill: "var(--color-zinc-800)", opacity: 0.3 }}
+            />
+            <Bar
+              dataKey="rate"
+              name="Loopback rate"
+              fill="var(--color-viz-healthy)"
               radius={[3, 3, 0, 0]}
               isAnimationActive={false}
             />
@@ -580,7 +782,8 @@ function InsightsSection() {
 
     // Trace count = unique traces that still have spans after filtering
     const traceIds = new Set(filtered.map((s) => s.traceId));
-    const count = selectedSteps.length > 0 ? traceIds.size : spansQuery.data.traceCount;
+    const count =
+      selectedSteps.length > 0 ? traceIds.size : spansQuery.data.traceCount;
 
     const spanStats = computeSpanStats(filtered, count);
 
@@ -602,7 +805,8 @@ function InsightsSection() {
     const sorted = [...stats].sort((a, b) => {
       const av = a[key as keyof SpanStats];
       const bv = b[key as keyof SpanStats];
-      if (typeof av === "string" && typeof bv === "string") return av.localeCompare(bv);
+      if (typeof av === "string" && typeof bv === "string")
+        return av.localeCompare(bv);
       return (av as number) - (bv as number);
     });
     return dir === "desc" ? sorted.reverse() : sorted;
@@ -677,15 +881,20 @@ function InsightsSection() {
           }
           placeholder="All statuses"
         />
-
       </div>
 
       {isLoading ? (
         <div className="space-y-6">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900" style={{ height: 340 }}>
+          <div
+            className="rounded-lg border border-zinc-800 bg-zinc-900"
+            style={{ height: 340 }}
+          >
             <ChartSkeleton variant="bar" />
           </div>
-          <div className="rounded-md border border-zinc-800" style={{ height: 280 }}>
+          <div
+            className="rounded-md border border-zinc-800"
+            style={{ height: 280 }}
+          >
             <ChartSkeleton variant="table" rows={5} />
           </div>
         </div>
@@ -700,6 +909,12 @@ function InsightsSection() {
       ) : (
         <>
           <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
+          <LoopbackChart
+            projectId={projectId}
+            traceName={activeName}
+            from={from}
+            to={to}
+          />
           <div>
             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">
               Span Statistics
@@ -743,7 +958,9 @@ const TRACE_COLUMNS: Column<TraceRow>[] = [
     render: (t) => (
       <>
         <span className="font-medium text-zinc-100">{t.name}</span>
-        {t.userId && <span className="ml-2 text-xs text-zinc-500">{t.userId}</span>}
+        {t.userId && (
+          <span className="ml-2 text-xs text-zinc-500">{t.userId}</span>
+        )}
       </>
     ),
   },
@@ -786,7 +1003,9 @@ const TRACE_COLUMNS: Column<TraceRow>[] = [
     header: "Duration",
     sortable: true,
     render: (t) => (
-      <span className="text-zinc-400">{formatDuration(t.startTime, t.endTime)}</span>
+      <span className="text-zinc-400">
+        {formatDuration(t.startTime, t.endTime)}
+      </span>
     ),
   },
   {
