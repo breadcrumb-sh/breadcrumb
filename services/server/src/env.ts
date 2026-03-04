@@ -16,4 +16,5 @@ export const env = {
   encryptionKey: process.env.ENCRYPTION_KEY || "",
   nodeEnv: process.env.NODE_ENV || "development",
   allowPublicViewing: process.env.ALLOW_PUBLIC_VIEWING === "true",
+  isBreadcrumbDemo: process.env.IS_BREADCRUMB_DEMO === "true",
 };

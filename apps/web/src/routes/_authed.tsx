@@ -21,7 +21,7 @@ function AuthedLayout() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {import.meta.env.VITE_IS_BREADCRUMB_DEMO === "true" && (
+      {config?.isDemo && (
         <div className="border-b px-4 py-3.5 text-center text-sm text-pretty leading-relaxed" style={{ background: "rgba(98,75,180,0.2)", borderColor: "rgba(98,75,180,0.4)", color: "rgba(185,170,235,1)" }}>
           You're viewing the Breadcrumb demo.{" "}
           <a
