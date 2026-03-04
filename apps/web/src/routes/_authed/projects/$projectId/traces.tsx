@@ -1,6 +1,8 @@
 import { SquaresFourIcon, Table } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useMemo } from "react";
 import { z } from "zod";
+import { useRegisterSubMenu } from "../../../../components/SubMenuContext";
 import { InsightsSection } from "../../../../components/traces/InsightsSection";
 import { RawTracesSection } from "../../../../components/traces/RawTracesSection";
 
@@ -46,17 +48,27 @@ function TracesPage() {
   const { tab } = Route.useSearch();
   const section: Section = tab ?? "overview";
 
-  const setSection = (next: Section) => {
-    navigate({
-      search: { tab: next },
-      replace: true,
-    });
-  };
+  const setSection = useCallback(
+    (next: string) => {
+      navigate({
+        search: { tab: next as Section },
+        replace: true,
+      });
+    },
+    [navigate]
+  );
+
+  const subMenuItems = useMemo(
+    () => SIDEBAR_ITEMS.map(({ id, label, icon }) => ({ id, label, icon })),
+    []
+  );
+
+  useRegisterSubMenu(subMenuItems, section, setSection);
 
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex gap-8">
-        <nav className="w-44 shrink-0 space-y-0.5">
+        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5">
           {SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { z } from "zod";
 import {
   Plus,
@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { useRegisterSubMenu } from "../../../../components/SubMenuContext";
 import { trpc } from "../../../../lib/trpc";
 import { useAuth } from "../../../../hooks/useAuth";
 
@@ -71,17 +72,27 @@ function SettingsPage() {
   const section: Section =
     tab && visibleSections.some((s) => s.id === tab) ? tab : defaultSection;
 
-  const setSection = (next: Section) => {
-    navigate({
-      search: { tab: next },
-      replace: true,
-    });
-  };
+  const setSection = useCallback(
+    (next: string) => {
+      navigate({
+        search: { tab: next as Section },
+        replace: true,
+      });
+    },
+    [navigate]
+  );
+
+  const subMenuItems = useMemo(
+    () => visibleSections.map(({ id, label, icon }) => ({ id, label, icon })),
+    [visibleSections]
+  );
+
+  useRegisterSubMenu(subMenuItems, section, setSection);
 
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex gap-8">
-        <nav className="w-44 shrink-0 space-y-0.5">
+        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5">
           {visibleSections.map((item) => (
             <button
               key={item.id}

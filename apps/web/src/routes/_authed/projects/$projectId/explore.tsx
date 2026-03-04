@@ -5,6 +5,7 @@ import {
   Code,
   Copy,
   Database,
+  List,
   PaperPlaneTilt,
   Plus,
   Star,
@@ -15,13 +16,14 @@ import { createCodePlugin } from "@streamdown/code";
 import { codeToHtml } from "shiki";
 import { skipToken } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Streamdown } from "streamdown";
 import { z } from "zod";
 import { ExplorationChart, VIZ_COLORS } from "../../../../components/traces/ExplorationChart";
 import { useTheme } from "../../../../hooks/useTheme";
 import { trpc } from "../../../../lib/trpc";
+import { useRegisterSubMenuAction } from "../../../../components/SubMenuContext";
 import type {
   ChartSpec,
   DisplayPart,
@@ -339,6 +341,10 @@ function ExplorePage() {
   }, [generating.data?.active, exploreId, projectId, subInput]);
 
   const [input, setInput] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const drawerIcon = useMemo<ReactNode>(() => <List size={14} />, []);
+  useRegisterSubMenuAction("Chats", openDrawer, drawerIcon);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(
@@ -479,53 +485,91 @@ function ExplorePage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const sidebarContent = (
+    <>
+      <div className="p-3">
+        <button
+          onClick={() => {
+            navigate({ search: {} });
+            setDrawerOpen(false);
+          }}
+          className="flex items-center gap-1.5 w-full px-3 py-1.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          <Plus size={14} />
+          New chat
+        </button>
+      </div>
+      <nav className="px-2 pb-4">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="px-2 pt-3 pb-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wide">
+              {group.label}
+            </p>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  navigate({ search: { id: item.id } });
+                  setDrawerOpen(false);
+                }}
+                className={`group flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
+                  item.id === exploreId
+                    ? "bg-zinc-800/50 text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200"
+                }`}
+              >
+                <span className="truncate">{item.name}</span>
+                <X
+                  size={14}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-300 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteExplore.mutate({ id: item.id });
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
+    </>
+  );
+
   return (
-    <main className="flex min-h-[calc(100vh-101px)]">
-      {/* Sidebar */}
-      <aside className="w-56 shrink-0 sticky top-[101px] h-[calc(100vh-101px)] overflow-y-auto border-r border-zinc-800 bg-zinc-950">
-        <div className="p-3">
-          <button
-            onClick={() => navigate({ search: {} })}
-            className="flex items-center gap-1.5 w-full px-3 py-1.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
-          >
-            <Plus size={14} />
-            New chat
-          </button>
-        </div>
-        <nav className="px-2 pb-4">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <p className="px-2 pt-3 pb-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wide">
-                {group.label}
-              </p>
-              {group.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate({ search: { id: item.id } })}
-                  className={`group flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
-                    item.id === exploreId
-                      ? "bg-zinc-800/50 text-zinc-100"
-                      : "text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200"
-                  }`}
-                >
-                  <span className="truncate">{item.name}</span>
-                  <X
-                    size={14}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-300 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteExplore.mutate({ id: item.id });
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          ))}
-        </nav>
+    <main className="flex min-h-[calc(100vh-101px)] overflow-x-hidden">
+      {/* Desktop sidebar */}
+      <aside className="hidden sm:block w-56 shrink-0 sticky top-[101px] h-[calc(100vh-101px)] overflow-y-auto border-r border-zinc-800 bg-zinc-950">
+        {sidebarContent}
       </aside>
 
+      {/* Mobile drawer backdrop */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/50 sm:hidden transition-opacity duration-300 ${
+          drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setDrawerOpen(false)}
+      />
+
+      {/* Mobile drawer panel */}
+      <div
+        className={`fixed left-0 top-0 z-50 h-full w-72 overflow-y-auto border-r border-zinc-800 bg-zinc-950 sm:hidden transition-transform duration-300 ${
+          drawerOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-3 pt-3">
+          <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Chats</span>
+          <button
+            onClick={() => setDrawerOpen(false)}
+            className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {sidebarContent}
+      </div>
+
       {/* Chat area */}
-      <div className="flex-1 flex flex-col min-h-[calc(100vh-101px)]">
+      <div className="flex-1 min-w-0 flex flex-col min-h-[calc(100vh-101px)]">
         {/* Messages */}
         <div className="flex-1 flex flex-col px-5 sm:px-8">
           {parts.length === 0 && !streaming ? (
