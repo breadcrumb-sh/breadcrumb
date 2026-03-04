@@ -4,6 +4,7 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { member } from "../db/schema.js";
+import { env } from "../env.js";
 
 export type TRPCContext = {
   user: {
@@ -87,6 +88,29 @@ export const orgAdminProcedure = authedProcedure
   .use(async ({ ctx, input, next }) => {
     const organizationId = resolveOrgId(input);
     await checkOrgRole(ctx.user.id, ctx.user.role, organizationId, [
+      "admin",
+      "owner",
+    ]);
+    return next({ ctx: { ...ctx, organizationId } });
+  });
+
+/**
+ * Read-only org access. When ALLOW_PUBLIC_VIEWING is enabled, unauthenticated
+ * users are treated as implicit viewers. Otherwise requires org membership.
+ */
+export const orgViewerProcedure = procedure
+  .input(orgIdInput)
+  .use(async ({ ctx, input, next }) => {
+    const organizationId = resolveOrgId(input);
+    if (!ctx.user) {
+      if (env.allowPublicViewing) {
+        return next({ ctx: { ...ctx, organizationId } });
+      }
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    await checkOrgRole(ctx.user.id, ctx.user.role, organizationId, [
+      "viewer",
+      "member",
       "admin",
       "owner",
     ]);

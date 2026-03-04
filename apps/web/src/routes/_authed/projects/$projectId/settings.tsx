@@ -138,7 +138,7 @@ function SettingsPage() {
 // ── Shared dialog styles ────────────────────────────────────────────
 
 const backdropCls =
-  "fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-150 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
+  "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-150 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
 
 const popupCls =
   "w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl transition-all duration-150 data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95";
@@ -248,7 +248,7 @@ function ApiKeysSection({ projectId, canManage }: { projectId: string; canManage
 
           <Dialog.Portal>
             <Dialog.Backdrop className={backdropCls} />
-            <Dialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+            <Dialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
               <Dialog.Popup className={popupCls}>
                 <div className="flex items-start justify-between mb-5">
                   <div>
@@ -339,7 +339,7 @@ function ApiKeysSection({ projectId, canManage }: { projectId: string; canManage
               </AlertDialog.Trigger>
               <AlertDialog.Portal>
                 <AlertDialog.Backdrop className={backdropCls} />
-                <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+                <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
                   <AlertDialog.Popup className={popupCls}>
                     <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                       Delete API key?
@@ -387,7 +387,7 @@ function MembersSection({
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"member" | "admin" | "owner">("member");
+  const [inviteRole, setInviteRole] = useState<"viewer" | "member" | "admin" | "owner">("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -453,7 +453,7 @@ function MembersSection({
 
               <Dialog.Portal>
                 <Dialog.Backdrop className={backdropCls} />
-                <Dialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+                <Dialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
                   <Dialog.Popup className={popupCls}>
                     <div className="flex items-start justify-between mb-5">
                       <div>
@@ -493,9 +493,10 @@ function MembersSection({
                           </label>
                           <select
                             value={inviteRole}
-                            onChange={(e) => setInviteRole(e.target.value as "member" | "admin" | "owner")}
+                            onChange={(e) => setInviteRole(e.target.value as "viewer" | "member" | "admin" | "owner")}
                             className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-500"
                           >
+                            <option value="viewer">Viewer</option>
                             <option value="member">Member</option>
                             <option value="admin">Admin</option>
                             <option value="owner">Owner</option>
@@ -562,7 +563,7 @@ function MembersSection({
                   </AlertDialog.Trigger>
                   <AlertDialog.Portal>
                     <AlertDialog.Backdrop className={backdropCls} />
-                    <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+                    <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
                       <AlertDialog.Popup className={popupCls}>
                         <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                           Remove member?
@@ -671,7 +672,7 @@ function PendingInvitationRow({
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Backdrop className={backdropCls} />
-            <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+            <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
               <AlertDialog.Popup className={popupCls}>
                 <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                   Cancel invitation?
@@ -839,7 +840,7 @@ function AiProviderSection({ projectId }: { projectId: string }) {
                 </AlertDialog.Trigger>
                 <AlertDialog.Portal>
                   <AlertDialog.Backdrop className={backdropCls} />
-                  <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+                  <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
                     <AlertDialog.Popup className={popupCls}>
                       <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                         Remove AI provider?
@@ -900,7 +901,7 @@ function DangerSection({ projectId, canDelete }: { projectId: string; canDelete:
           </AlertDialog.Trigger>
           <AlertDialog.Portal>
             <AlertDialog.Backdrop className={backdropCls} />
-            <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+            <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
               <AlertDialog.Popup className={popupCls}>
                 <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                   Delete project?

@@ -15,4 +15,5 @@ export const env = {
   port: Number(process.env.PORT) || 3100,
   encryptionKey: process.env.ENCRYPTION_KEY || "",
   nodeEnv: process.env.NODE_ENV || "development",
+  allowPublicViewing: process.env.ALLOW_PUBLIC_VIEWING === "true",
 };

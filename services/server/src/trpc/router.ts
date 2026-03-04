@@ -7,9 +7,11 @@ import { membersRouter } from "./routes/members.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { aiProvidersRouter } from "./routes/aiProviders.js";
 import { exploresRouter } from "./routes/explores.js";
+import { configRouter } from "./routes/config.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
+  config: configRouter,
   projects: projectsRouter,
   apiKeys: apiKeysRouter,
   mcpKeys: mcpKeysRouter,

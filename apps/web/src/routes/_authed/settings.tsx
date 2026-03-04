@@ -31,7 +31,7 @@ function SettingsPage() {
 // ── Shared dialog styles ────────────────────────────────────────────
 
 const backdropCls =
-  "fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-150 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
+  "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-150 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0";
 
 const popupCls =
   "w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl transition-all duration-150 data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95";
@@ -117,7 +117,7 @@ function McpSection() {
 
           <Dialog.Portal>
             <Dialog.Backdrop className={backdropCls} />
-            <Dialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+            <Dialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
               <Dialog.Popup className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl transition-all duration-150 data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95">
                 <div className="flex items-start justify-between mb-5">
                   <div>
@@ -250,7 +250,7 @@ function McpSection() {
               </AlertDialog.Trigger>
               <AlertDialog.Portal>
                 <AlertDialog.Backdrop className={backdropCls} />
-                <AlertDialog.Viewport className="fixed inset-0 grid place-items-center px-4">
+                <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
                   <AlertDialog.Popup className={popupCls}>
                     <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
                       Delete MCP key?

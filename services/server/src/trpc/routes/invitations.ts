@@ -18,7 +18,7 @@ export const invitationsRouter = router({
       z.object({
         organizationId: z.string(),
         email: z.string().email(),
-        role: z.enum(["member", "admin", "owner"]).default("member"),
+        role: z.enum(["viewer", "member", "admin", "owner"]).default("member"),
       })
     )
     .mutation(async ({ input, ctx }) => {

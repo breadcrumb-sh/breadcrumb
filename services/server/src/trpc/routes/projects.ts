@@ -1,12 +1,21 @@
 import { z } from "zod";
 import { eq, inArray, and } from "drizzle-orm";
-import { router, authedProcedure, adminProcedure, checkOrgRole } from "../trpc.js";
+import { TRPCError } from "@trpc/server";
+import { router, procedure, authedProcedure, adminProcedure, checkOrgRole } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { organization, member } from "../../db/schema.js";
 import { clickhouse } from "../../db/clickhouse.js";
+import { env } from "../../env.js";
 
 export const projectsRouter = router({
-  list: authedProcedure.query(async ({ ctx }) => {
+  list: procedure.query(async ({ ctx }) => {
+    // Public viewing: return all orgs
+    if (!ctx.user) {
+      if (!env.allowPublicViewing) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      return db.select().from(organization).orderBy(organization.createdAt);
+    }
     if (ctx.user.role === "admin") {
       return db.select().from(organization).orderBy(organization.createdAt);
     }
@@ -23,7 +32,7 @@ export const projectsRouter = router({
       .orderBy(organization.createdAt);
   }),
 
-  get: authedProcedure
+  get: procedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const [org] = await db
@@ -31,6 +40,13 @@ export const projectsRouter = router({
         .from(organization)
         .where(eq(organization.id, input.id));
       if (!org) return null;
+      // Public viewing: return org without membership check
+      if (!ctx.user) {
+        if (!env.allowPublicViewing) {
+          throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        return org;
+      }
       if (ctx.user.role === "admin") return org;
       const [m] = await db
         .select()

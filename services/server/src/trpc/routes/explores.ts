@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import type { ModelMessage } from "ai";
-import { router, authedProcedure, orgMemberProcedure, checkOrgRole } from "../trpc.js";
+import { TRPCError } from "@trpc/server";
+import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProcedure, checkOrgRole } from "../trpc.js";
+import { env } from "../../env.js";
 import { db } from "../../db/index.js";
 import { clickhouse } from "../../db/clickhouse.js";
 import { explores, starredCharts } from "../../db/schema.js";
@@ -21,7 +23,7 @@ import {
 } from "../../lib/generation-manager.js";
 
 export const exploresRouter = router({
-  list: orgMemberProcedure
+  list: orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -35,7 +37,7 @@ export const exploresRouter = router({
         .orderBy(desc(explores.updatedAt));
     }),
 
-  get: authedProcedure
+  get: procedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const [explore] = await db
@@ -43,11 +45,15 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return null;
-      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
-        "member",
-        "admin",
-        "owner",
-      ]);
+      if (ctx.user) {
+        await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+          "member",
+          "admin",
+          "owner",
+        ]);
+      } else if (!env.allowPublicViewing) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
       return explore;
     }),
 
@@ -152,7 +158,7 @@ export const exploresRouter = router({
         .where(eq(starredCharts.id, input.id));
     }),
 
-  listStarred: orgMemberProcedure
+  listStarred: orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -214,7 +220,7 @@ export const exploresRouter = router({
 
   // ── Requery (for starred charts on homepage) ──────────────────────────────
 
-  requery: orgMemberProcedure
+  requery: orgViewerProcedure
     .input(z.object({ projectId: z.string(), sql: z.string() }))
     .mutation(async ({ input }) => {
       assertSelectOnly(input.sql);

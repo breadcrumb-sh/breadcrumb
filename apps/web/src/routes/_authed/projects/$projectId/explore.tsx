@@ -21,6 +21,7 @@ import { createPortal } from "react-dom";
 import { Streamdown } from "streamdown";
 import { z } from "zod";
 import { ExplorationChart, VIZ_COLORS } from "../../../../components/traces/ExplorationChart";
+import { useAuth } from "../../../../hooks/useAuth";
 import { useTheme } from "../../../../hooks/useTheme";
 import { trpc } from "../../../../lib/trpc";
 import { useRegisterSubMenuAction } from "../../../../components/SubMenuContext";
@@ -287,6 +288,7 @@ function ExplorePage() {
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const exploreId = Route.useSearch().id;
+  const { isViewer } = useAuth();
 
   const utils = trpc.useUtils();
   const explores = trpc.explores.list.useQuery({ projectId });
@@ -487,18 +489,20 @@ function ExplorePage() {
 
   const sidebarContent = (
     <>
-      <div className="p-3">
-        <button
-          onClick={() => {
-            navigate({ search: {} });
-            setDrawerOpen(false);
-          }}
-          className="flex items-center gap-1.5 w-full px-3 py-1.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
-        >
-          <Plus size={14} />
-          New chat
-        </button>
-      </div>
+      {!isViewer && (
+        <div className="p-3">
+          <button
+            onClick={() => {
+              navigate({ search: {} });
+              setDrawerOpen(false);
+            }}
+            className="flex items-center gap-1.5 w-full px-3 py-1.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <Plus size={14} />
+            New chat
+          </button>
+        </div>
+      )}
       <nav className="px-2 pb-4">
         {groups.map((group) => (
           <div key={group.label}>
@@ -519,14 +523,16 @@ function ExplorePage() {
                 }`}
               >
                 <span className="truncate">{item.name}</span>
-                <X
-                  size={14}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-300 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteExplore.mutate({ id: item.id });
-                  }}
-                />
+                {!isViewer && (
+                  <X
+                    size={14}
+                    className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-300 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteExplore.mutate({ id: item.id });
+                    }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -592,36 +598,38 @@ function ExplorePage() {
         </div>
 
         {/* Input */}
-        <div className="sticky bottom-0 z-10 bg-zinc-950 px-5 sm:px-8 py-3">
-          {reconnecting && (
-            <div className="max-w-3xl mx-auto mb-2 flex items-center gap-2 text-xs text-zinc-500">
-              <CircleNotch size={12} className="animate-spin" />
-              Reconnecting...
+        {!isViewer && (
+          <div className="sticky bottom-0 z-10 bg-zinc-950 px-5 sm:px-8 py-3">
+            {reconnecting && (
+              <div className="max-w-3xl mx-auto mb-2 flex items-center gap-2 text-xs text-zinc-500">
+                <CircleNotch size={12} className="animate-spin" />
+                Reconnecting...
+              </div>
+            )}
+            <div className="max-w-3xl mx-auto relative">
+              <textarea
+                value={input}
+                onChange={onInput}
+                onKeyDown={onKeyDown}
+                placeholder="Ask about your traces..."
+                disabled={streaming}
+                rows={1}
+                className="w-full resize-none overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 disabled:opacity-50 transition-colors"
+              />
+              <button
+                onClick={() => send()}
+                disabled={streaming || !input.trim()}
+                className="absolute right-2 bottom-2 p-2 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {streaming ? (
+                  <CircleNotch size={18} className="animate-spin" />
+                ) : (
+                  <PaperPlaneTilt size={18} />
+                )}
+              </button>
             </div>
-          )}
-          <div className="max-w-3xl mx-auto relative">
-            <textarea
-              value={input}
-              onChange={onInput}
-              onKeyDown={onKeyDown}
-              placeholder="Ask about your traces..."
-              disabled={streaming}
-              rows={1}
-              className="w-full resize-none overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 disabled:opacity-50 transition-colors"
-            />
-            <button
-              onClick={() => send()}
-              disabled={streaming || !input.trim()}
-              className="absolute right-2 bottom-2 p-2 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {streaming ? (
-                <CircleNotch size={18} className="animate-spin" />
-              ) : (
-                <PaperPlaneTilt size={18} />
-              )}
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );

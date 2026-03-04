@@ -9,6 +9,7 @@ import { UserMenu } from "../../../components/UserMenu";
 import { MobileNav } from "../../../components/MobileNav";
 import { SubMenuProvider } from "../../../components/SubMenuContext";
 import { trpc } from "../../../lib/trpc";
+import { useAuth } from "../../../hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/projects/$projectId")({
   component: ProjectLayout,
@@ -25,6 +26,11 @@ function ProjectLayout() {
   const { projectId } = Route.useParams();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const project = trpc.projects.get.useQuery({ id: projectId });
+  const { isViewer } = useAuth();
+
+  const visibleTabs = isViewer
+    ? TABS.filter((t) => t.label !== "Settings")
+    : TABS;
 
   return (
     <SubMenuProvider>
@@ -52,7 +58,7 @@ function ProjectLayout() {
 
           {/* Tab row — hidden on mobile */}
           <nav className="border-b border-zinc-800/70 pt-1 hidden sm:flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
-          {TABS.map(({ label, path, exact }) => {
+          {visibleTabs.map(({ label, path, exact }) => {
             const href = `/projects/${projectId}${path}`;
             const isActive = exact
               ? pathname === href

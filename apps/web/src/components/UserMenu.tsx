@@ -8,9 +8,11 @@ import { useTheme } from "../hooks/useTheme";
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user, isViewer } = useAuth();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
+
+  if (isViewer) return null;
 
   // Close on outside click
   useEffect(() => {
