@@ -1,14 +1,19 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, authedProcedure } from "../trpc.js";
+import {
+  router,
+  authedProcedure,
+  orgMemberProcedure,
+  orgAdminProcedure,
+  checkOrgRole,
+} from "../trpc.js";
 import { db } from "../../db/index.js";
 import { invitation, member, user } from "../../db/schema.js";
 import { env } from "../../env.js";
-import { requireOrgRole, requireOrgMember } from "../orgAccess.js";
 
 export const invitationsRouter = router({
-  create: authedProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         organizationId: z.string(),
@@ -17,11 +22,6 @@ export const invitationsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      await requireOrgRole(ctx.user.id, ctx.user.role, input.organizationId, [
-        "owner",
-        "admin",
-      ]);
-
       // Check if the email already belongs to a member of this org.
       const [existingUser] = await db
         .select({ id: user.id })
@@ -83,10 +83,9 @@ export const invitationsRouter = router({
       };
     }),
 
-  list: authedProcedure
+  list: orgMemberProcedure
     .input(z.object({ organizationId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.organizationId);
+    .query(async ({ input }) => {
       const invitations = await db
         .select()
         .from(invitation)
@@ -110,8 +109,7 @@ export const invitationsRouter = router({
         .from(invitation)
         .where(eq(invitation.id, input.invitationId));
       if (!inv) throw new TRPCError({ code: "NOT_FOUND" });
-
-      await requireOrgRole(ctx.user.id, ctx.user.role, inv.organizationId, [
+      await checkOrgRole(ctx.user.id, ctx.user.role, inv.organizationId, [
         "owner",
         "admin",
       ]);

@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import type { ModelMessage } from "ai";
-import { router, authedProcedure } from "../trpc.js";
+import { router, authedProcedure, orgMemberProcedure, checkOrgRole } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { clickhouse } from "../../db/clickhouse.js";
 import { explores, starredCharts } from "../../db/schema.js";
-import { requireOrgMember } from "../orgAccess.js";
 import { getAiModel } from "../../lib/ai-provider.js";
 import { streamChartGeneration } from "../../lib/chart-generator.js";
 import { assertSelectOnly } from "../../lib/sql-validation.js";
@@ -22,10 +21,9 @@ import {
 } from "../../lib/generation-manager.js";
 
 export const exploresRouter = router({
-  list: authedProcedure
+  list: orgMemberProcedure
     .input(z.object({ projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .query(async ({ input }) => {
       return db
         .select({
           id: explores.id,
@@ -45,19 +43,22 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return null;
-      await requireOrgMember(ctx.user.id, ctx.user.role, explore.projectId);
+      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+        "member",
+        "admin",
+        "owner",
+      ]);
       return explore;
     }),
 
-  create: authedProcedure
+  create: orgMemberProcedure
     .input(
       z.object({
         projectId: z.string(),
         name: z.string().min(1).max(255).optional(),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .mutation(async ({ input }) => {
       const [explore] = await db
         .insert(explores)
         .values({
@@ -76,7 +77,11 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return;
-      await requireOrgMember(ctx.user.id, ctx.user.role, explore.projectId);
+      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+        "member",
+        "admin",
+        "owner",
+      ]);
       await db.delete(explores).where(eq(explores.id, input.id));
     }),
 
@@ -88,14 +93,18 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return;
-      await requireOrgMember(ctx.user.id, ctx.user.role, explore.projectId);
+      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+        "member",
+        "admin",
+        "owner",
+      ]);
       await db
         .update(explores)
         .set({ name: input.name, updatedAt: new Date() })
         .where(eq(explores.id, input.id));
     }),
 
-  starChart: authedProcedure
+  starChart: orgMemberProcedure
     .input(
       z.object({
         exploreId: z.string(),
@@ -108,8 +117,7 @@ export const exploresRouter = router({
         legend: z.array(legendEntrySchema).optional(),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .mutation(async ({ input }) => {
       const [starred] = await db
         .insert(starredCharts)
         .values({
@@ -134,16 +142,19 @@ export const exploresRouter = router({
         .from(starredCharts)
         .where(eq(starredCharts.id, input.id));
       if (!chart) return;
-      await requireOrgMember(ctx.user.id, ctx.user.role, chart.projectId);
+      await checkOrgRole(ctx.user.id, ctx.user.role, chart.projectId, [
+        "member",
+        "admin",
+        "owner",
+      ]);
       await db
         .delete(starredCharts)
         .where(eq(starredCharts.id, input.id));
     }),
 
-  listStarred: authedProcedure
+  listStarred: orgMemberProcedure
     .input(z.object({ projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .query(async ({ input }) => {
       return db
         .select({
           id: starredCharts.id,
@@ -164,25 +175,16 @@ export const exploresRouter = router({
 
   // ── Check if a generation is running ────────────────────────────────────────
 
-  isGenerating: authedProcedure
+  isGenerating: orgMemberProcedure
     .input(z.object({ exploreId: z.string(), projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .query(async ({ input }) => {
       const gen = getGeneration(input.exploreId);
       return { active: !!gen && !gen.done };
     }),
 
   // ── Chat subscription ──────────────────────────────────────────────────────
-  //
-  // The AI generation runs as a background job decoupled from the SSE
-  // connection.  The subscription is a thin consumer that replays past
-  // events and then tails new ones.  If the client disconnects and
-  // reconnects (same exploreId), it picks up where it left off.
-  //
-  // `prompt` is optional — omit it to reconnect to an existing generation
-  // without starting a new one.
 
-  chat: authedProcedure
+  chat: orgMemberProcedure
     .input(
       z.object({
         exploreId: z.string(),
@@ -190,9 +192,7 @@ export const exploresRouter = router({
         prompt: z.string().min(1).optional(),
       }),
     )
-    .subscription(async function* ({ input, ctx, signal }) {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
-
+    .subscription(async function* ({ input, signal }) {
       const abortSignal = signal ?? new AbortController().signal;
 
       // If a generation is already running for this explore, just attach
@@ -214,10 +214,9 @@ export const exploresRouter = router({
 
   // ── Requery (for starred charts on homepage) ──────────────────────────────
 
-  requery: authedProcedure
+  requery: orgMemberProcedure
     .input(z.object({ projectId: z.string(), sql: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .mutation(async ({ input }) => {
       assertSelectOnly(input.sql);
       const result = await clickhouse.query({
         query: input.sql,

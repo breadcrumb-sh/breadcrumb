@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { router, authedProcedure } from "../trpc.js";
+import { TRPCError } from "@trpc/server";
+import {
+  router,
+  authedProcedure,
+  orgMemberProcedure,
+  orgAdminProcedure,
+  checkOrgRole,
+} from "../trpc.js";
 import { db } from "../../db/index.js";
 import { apiKeys } from "../../db/schema.js";
 import {
@@ -8,17 +15,11 @@ import {
   hashApiKey,
   getKeyPrefix,
 } from "../../lib/api-keys.js";
-import {
-  requireOrgMember,
-  requireOrgRole,
-  getApiKeyOrg,
-} from "../orgAccess.js";
 
 export const apiKeysRouter = router({
-  list: authedProcedure
+  list: orgMemberProcedure
     .input(z.object({ projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .query(async ({ input }) => {
       return db
         .select({
           id: apiKeys.id,
@@ -31,18 +32,14 @@ export const apiKeysRouter = router({
         .orderBy(apiKeys.createdAt);
     }),
 
-  create: authedProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         projectId: z.string(),
         name: z.string().min(1).max(255),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgRole(ctx.user.id, ctx.user.role, input.projectId, [
-        "admin",
-        "owner",
-      ]);
+    .mutation(async ({ input }) => {
       const rawKey = generateApiKey();
       const [key] = await db
         .insert(apiKeys)
@@ -65,8 +62,12 @@ export const apiKeysRouter = router({
   delete: authedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const orgId = await getApiKeyOrg(input.id);
-      await requireOrgRole(ctx.user.id, ctx.user.role, orgId, [
+      const [key] = await db
+        .select({ projectId: apiKeys.projectId })
+        .from(apiKeys)
+        .where(eq(apiKeys.id, input.id));
+      if (!key) throw new TRPCError({ code: "NOT_FOUND" });
+      await checkOrgRole(ctx.user.id, ctx.user.role, key.projectId, [
         "admin",
         "owner",
       ]);

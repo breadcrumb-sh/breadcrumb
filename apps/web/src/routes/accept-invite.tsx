@@ -9,62 +9,24 @@ export const Route = createFileRoute("/accept-invite")({
   component: AcceptInvitePage,
 });
 
-const authPageStyle = `
-  @keyframes auth-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .auth-card { animation: auth-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  .auth-input { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-  .auth-input:focus {
-    outline: none;
-    border-color: var(--color-zinc-500);
-    box-shadow: 0 0 0 3px rgba(122, 117, 112, 0.12);
-  }
-`;
-
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <style>{authPageStyle}</style>
-      <div className="relative flex min-h-screen items-center justify-center bg-zinc-950 overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.032) 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 65% 55% at 50% 25%, rgba(175,148,100,0.07) 0%, transparent 70%)",
-          }}
-        />
-        <div className="auth-card relative z-10 w-full max-w-sm px-4">
-          <div
-            className="rounded-lg border border-zinc-700 bg-zinc-900"
-            style={{
-              boxShadow:
-                "0 8px 32px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.06) inset",
-            }}
-          >
-            <div className="flex flex-col items-center gap-3 border-b border-zinc-800 px-8 py-8">
-              <Logo className="size-5" />
-              <span
-                className="text-xs font-medium text-zinc-400"
-                style={{ letterSpacing: "0.16em" }}
-              >
-                Breadcrumb
-              </span>
-            </div>
-            {children}
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+      <div className="w-full max-w-sm px-4">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900">
+          <div className="flex flex-col items-center gap-3 border-b border-zinc-800 px-8 py-8">
+            <Logo className="size-5" />
+            <span
+              className="text-xs font-medium text-zinc-400"
+              style={{ letterSpacing: "0.16em" }}
+            >
+              Breadcrumb
+            </span>
           </div>
+          {children}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -150,7 +112,7 @@ function AcceptInvitePage() {
               placeholder="Your name"
               required
               autoFocus
-              className="auth-input w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
+              className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-zinc-500"
             />
           </div>
 
@@ -164,7 +126,7 @@ function AcceptInvitePage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="auth-input w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
+              className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-zinc-500"
             />
           </div>
 
@@ -179,7 +141,7 @@ function AcceptInvitePage() {
               placeholder="••••••••"
               required
               minLength={8}
-              className="auth-input w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
+              className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-zinc-500"
             />
           </div>
 

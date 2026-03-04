@@ -1,18 +1,16 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { router, authedProcedure } from "../trpc.js";
+import { router, orgMemberProcedure, orgAdminProcedure } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { aiProviders } from "../../db/schema.js";
 import { encrypt, maskApiKey } from "../../lib/encryption.js";
-import { requireOrgMember, requireOrgRole } from "../orgAccess.js";
 
 const providerEnum = z.enum(["openai", "anthropic", "openrouter", "custom"]);
 
 export const aiProvidersRouter = router({
-  get: authedProcedure
+  get: orgMemberProcedure
     .input(z.object({ projectId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.projectId);
+    .query(async ({ input }) => {
       const [row] = await db
         .select({
           id: aiProviders.id,
@@ -27,7 +25,7 @@ export const aiProvidersRouter = router({
       return row ?? null;
     }),
 
-  upsert: authedProcedure
+  upsert: orgAdminProcedure
     .input(
       z
         .object({
@@ -42,11 +40,7 @@ export const aiProvidersRouter = router({
           { message: "Base URL is required for custom providers", path: ["baseUrl"] }
         )
     )
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgRole(ctx.user.id, ctx.user.role, input.projectId, [
-        "admin",
-        "owner",
-      ]);
+    .mutation(async ({ input }) => {
       const now = new Date();
 
       // Check if a config already exists
@@ -101,13 +95,9 @@ export const aiProvidersRouter = router({
       return row;
     }),
 
-  delete: authedProcedure
+  delete: orgAdminProcedure
     .input(z.object({ projectId: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      await requireOrgRole(ctx.user.id, ctx.user.role, input.projectId, [
-        "admin",
-        "owner",
-      ]);
+    .mutation(async ({ input }) => {
       await db
         .delete(aiProviders)
         .where(eq(aiProviders.projectId, input.projectId));

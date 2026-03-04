@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { eq, inArray, and } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
-import { router, authedProcedure, adminProcedure } from "../trpc.js";
+import { router, authedProcedure, adminProcedure, checkOrgRole } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { organization, member } from "../../db/schema.js";
 import { clickhouse } from "../../db/clickhouse.js";
@@ -77,20 +76,7 @@ export const projectsRouter = router({
       z.object({ id: z.string(), name: z.string().min(1).max(255) })
     )
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== "admin") {
-        const [m] = await db
-          .select()
-          .from(member)
-          .where(
-            and(
-              eq(member.organizationId, input.id),
-              eq(member.userId, ctx.user.id)
-            )
-          );
-        if (!m || m.role !== "owner") {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-      }
+      await checkOrgRole(ctx.user.id, ctx.user.role, input.id, ["owner"]);
       const [org] = await db
         .update(organization)
         .set({ name: input.name })

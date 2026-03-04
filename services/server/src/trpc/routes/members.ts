@@ -1,16 +1,14 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, authedProcedure } from "../trpc.js";
+import { router, authedProcedure, orgMemberProcedure, checkOrgRole } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { member, user } from "../../db/schema.js";
-import { requireOrgMember, requireOrgRole } from "../orgAccess.js";
 
 export const membersRouter = router({
-  list: authedProcedure
+  list: orgMemberProcedure
     .input(z.object({ organizationId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      await requireOrgMember(ctx.user.id, ctx.user.role, input.organizationId);
+    .query(async ({ input }) => {
       return db
         .select({
           id: member.id,
@@ -33,8 +31,7 @@ export const membersRouter = router({
         .from(member)
         .where(eq(member.id, input.memberId));
       if (!m) throw new TRPCError({ code: "NOT_FOUND" });
-
-      await requireOrgRole(ctx.user.id, ctx.user.role, m.organizationId, [
+      await checkOrgRole(ctx.user.id, ctx.user.role, m.organizationId, [
         "owner",
         "admin",
       ]);
