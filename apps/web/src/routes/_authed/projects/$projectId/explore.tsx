@@ -542,7 +542,7 @@ function ExplorePage() {
   );
 
   return (
-    <main className="flex min-h-[calc(100vh-101px)] overflow-x-hidden">
+    <main className="flex min-h-[calc(100vh-101px)] overflow-x-clip">
       {/* Desktop sidebar */}
       <aside className="hidden sm:block w-56 shrink-0 sticky top-[101px] h-[calc(100vh-101px)] overflow-y-auto border-r border-zinc-800 bg-zinc-950">
         {sidebarContent}
