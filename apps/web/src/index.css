@@ -111,6 +111,30 @@ body {
   color-scheme: light;
 }
 
+/* ── Demo banner ─────────────────────────────────────────────── */
+.demo-banner {
+  background: rgba(98, 75, 180, 0.2);
+  border-color: rgba(98, 75, 180, 0.4);
+  color: rgba(185, 170, 235, 1);
+}
+.demo-banner-link {
+  color: rgba(210, 198, 255, 1);
+}
+.demo-banner-link:hover {
+  color: white;
+}
+.light .demo-banner {
+  background: rgba(98, 75, 180, 0.1);
+  border-color: rgba(98, 75, 180, 0.25);
+  color: rgba(60, 40, 120, 1);
+}
+.light .demo-banner-link {
+  color: rgba(75, 50, 160, 1);
+}
+.light .demo-banner-link:hover {
+  color: rgba(40, 20, 100, 1);
+}
+
 /* ── Streamdown code blocks ───────────────────────────────────── */
 
 /* Outer wrapper: single flat container */

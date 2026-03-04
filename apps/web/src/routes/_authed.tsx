@@ -22,14 +22,13 @@ function AuthedLayout() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {config?.isDemo && (
-        <div className="border-b px-4 py-3.5 text-center text-sm text-pretty leading-relaxed" style={{ background: "rgba(98,75,180,0.2)", borderColor: "rgba(98,75,180,0.4)", color: "rgba(185,170,235,1)" }}>
+        <div className="demo-banner border-b px-4 py-3.5 text-center text-sm text-pretty leading-relaxed">
           You're viewing the Breadcrumb demo.{" "}
           <a
             href="https://breadcrumb.sh/early-access"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline underline-offset-2 font-medium hover:text-white transition-colors"
-            style={{ color: "rgba(210,198,255,1)" }}
+            className="demo-banner-link underline underline-offset-2 font-medium transition-colors"
           >
             Sign up for early access
           </a>
