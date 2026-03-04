@@ -1,8 +1,7 @@
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { ArrowDown, ArrowUp } from "@phosphor-icons/react";
-import { ChartSkeleton } from "../../../../components/ChartSkeleton";
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { ArrowDown, ArrowUp, DotsThree, Star } from "@phosphor-icons/react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Area,
   AreaChart,
@@ -15,12 +14,14 @@ import {
   YAxis,
 } from "recharts";
 import { z } from "zod";
+import { ChartSkeleton } from "../../../../components/ChartSkeleton";
 import {
   DateRangePopover,
   presetFrom,
   today,
 } from "../../../../components/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/MultiselectCombobox";
+import { ExplorationChart } from "../../../../components/traces/ExplorationChart";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
@@ -83,6 +84,7 @@ function OverviewPage() {
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
+  const starredCharts = trpc.explores.listStarred.useQuery({ projectId });
 
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6">
@@ -261,6 +263,22 @@ function OverviewPage() {
           loading={slowestSpans.isLoading}
         />
       </div>
+
+      {/* ── Starred Charts ──────────────────────────────────────── */}
+      {starredCharts.data && starredCharts.data.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-xs font-medium text-zinc-500">Explorations</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {starredCharts.data.map((chart) => (
+              <StarredChartCard
+                key={chart.id}
+                chart={chart}
+                projectId={projectId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -343,6 +361,158 @@ function buildAvgDurationData(rows: DailyMetric[], from: string, to: string) {
   return data;
 }
 
+// ── Starred chart card ────────────────────────────────────────────────────────
+
+type StarredChart = {
+  id: string;
+  title: string | null;
+  chartType: string | null;
+  sql: string | null;
+  xKey: string | null;
+  yKeys: unknown;
+  legend: unknown;
+  exploreId: string;
+  exploreName: string;
+};
+
+type LegendEntry = { key: string; label: string; color: string };
+
+function StarredChartCard({
+  chart,
+  projectId,
+}: {
+  chart: StarredChart;
+  projectId: string;
+}) {
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [chartData, setChartData] = useState<Record<string, unknown>[] | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const removeStar = trpc.explores.unstarChart.useMutation({
+    onSettled: () => {
+      utils.explores.listStarred.invalidate();
+    },
+  });
+
+  const requery = trpc.explores.requery.useMutation();
+
+  // Fetch chart data on mount
+  useEffect(() => {
+    if (!chart.sql) return;
+    let cancelled = false;
+    requery
+      .mutateAsync({ projectId, sql: chart.sql })
+      .then((rows) => {
+        if (!cancelled) setChartData(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setChartData([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chart.sql, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  const legend = (chart.legend ?? []) as LegendEntry[];
+  const yKeys = (chart.yKeys ?? []) as string[];
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-5 pt-4 pb-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <p className="min-w-0 flex-1 text-sm font-medium text-zinc-200 truncate">
+          {chart.title ?? "Untitled chart"}
+        </p>
+
+        <div className="relative shrink-0 ml-2" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors"
+          >
+            <DotsThree size={16} weight="bold" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 z-10 w-44 rounded-md border border-zinc-700 bg-zinc-800 py-1 shadow-lg">
+              <button
+                onClick={() => {
+                  removeStar.mutate({ id: chart.id });
+                  setMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                <Star size={12} />
+                Remove star
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate({
+                    to: "/projects/$projectId/explore",
+                    params: { projectId },
+                    search: { id: chart.exploreId },
+                  });
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                Go to exploration
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Legend */}
+      {legend.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          {legend.map((entry) => (
+            <span
+              key={entry.key}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400"
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              {entry.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Chart */}
+      {chartData === null ? (
+        <ChartSkeleton variant={chart.chartType === "bar" ? "bar" : "area"} />
+      ) : chartData.length > 0 && chart.chartType && chart.xKey && yKeys.length > 0 ? (
+        <ExplorationChart
+          chartType={chart.chartType as "bar" | "line"}
+          xKey={chart.xKey}
+          yKeys={yKeys}
+          legend={legend.length > 0 ? legend : undefined}
+          data={chartData}
+        />
+      ) : (
+        <div className="flex items-center justify-center rounded-md border border-dashed border-zinc-700 bg-zinc-900/50 py-12">
+          <p className="text-xs text-zinc-500">No data returned by query</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function ChartCard({
@@ -382,8 +552,8 @@ function ChartCard({
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor="#58508d" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#58508d" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--color-viz-1)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--color-viz-1)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
@@ -441,11 +611,11 @@ function ChartCard({
               <Area
                 type="linear"
                 dataKey="value"
-                stroke="#58508d"
+                stroke="var(--color-viz-1)"
                 strokeWidth={1.5}
                 fill={`url(#grad-${label.replace(/\s+/g, "-")})`}
                 dot={false}
-                activeDot={{ r: 3, fill: "#58508d" }}
+                activeDot={{ r: 3, fill: "var(--color-viz-1)" }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -508,7 +678,7 @@ function TopFailingSpansTable({
                 <span className="text-xs font-medium text-zinc-100 truncate flex-1">
                   {row.name}
                 </span>
-                <span className="text-xs text-viz-danger w-14 text-right shrink-0 tabular-nums">
+                <span className="text-xs text-viz-7 w-14 text-right shrink-0 tabular-nums">
                   {row.errors.toLocaleString()}
                 </span>
                 <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">
@@ -517,7 +687,7 @@ function TopFailingSpansTable({
                 <div className="w-16 shrink-0 flex items-center justify-end gap-2">
                   <div className="w-8 h-1 rounded-full bg-zinc-800 overflow-hidden">
                     <div
-                      className="h-full bg-viz-danger rounded-full"
+                      className="h-full bg-viz-7 rounded-full"
                       style={{ width: `${Math.min(row.errorRate, 100)}%` }}
                     />
                   </div>
@@ -590,7 +760,7 @@ function TopSlowestSpansTable({
                 <span className="text-xs text-zinc-500 w-14 text-right shrink-0 tabular-nums">
                   {row.total.toLocaleString()}
                 </span>
-                <span className="text-xs text-viz-warning w-16 text-right shrink-0 tabular-nums">
+                <span className="text-xs text-viz-5 w-16 text-right shrink-0 tabular-nums">
                   {formatDuration(row.avgDurationMs)}
                 </span>
                 <span className="text-xs text-zinc-500 w-16 text-right shrink-0 tabular-nums">
@@ -774,17 +944,17 @@ function TraceQualityChart({
         <p className="text-xs font-medium text-zinc-500">Trace quality</p>
         <div className="flex flex-wrap gap-1.5">
           <QualityLegendChip
-            color="var(--color-viz-healthy)"
+            color="var(--color-viz-1)"
             label="Healthy"
             tooltip="Succeeded with cost and duration within normal range (below p75)."
           />
           <QualityLegendChip
-            color="var(--color-viz-warning)"
+            color="var(--color-viz-5)"
             label="Expensive"
             tooltip={`Succeeded but cost or duration above p75 threshold.${thresholds ? ` Cost > $${thresholds.p75CostUsd.toFixed(4)}, Duration > ${thresholds.p75DurationMs < 1000 ? `${Math.round(thresholds.p75DurationMs)}ms` : `${(thresholds.p75DurationMs / 1000).toFixed(2)}s`}.` : ""}`}
           />
           <QualityLegendChip
-            color="var(--color-viz-danger)"
+            color="var(--color-viz-7)"
             label="Failed"
             tooltip="Traces that returned an error status."
           />
@@ -838,7 +1008,7 @@ function TraceQualityChart({
                 dataKey="healthy"
                 name="Healthy"
                 stackId="quality"
-                fill="var(--color-viz-healthy)"
+                fill="var(--color-viz-1)"
                 shape={QualityBarShape}
                 isAnimationActive={false}
               />
@@ -846,7 +1016,7 @@ function TraceQualityChart({
                 dataKey="expensive"
                 name="Expensive"
                 stackId="quality"
-                fill="var(--color-viz-warning)"
+                fill="var(--color-viz-5)"
                 shape={QualityBarShape}
                 isAnimationActive={false}
               />
@@ -854,7 +1024,7 @@ function TraceQualityChart({
                 dataKey="failed"
                 name="Failed"
                 stackId="quality"
-                fill="var(--color-viz-danger)"
+                fill="var(--color-viz-7)"
                 shape={QualityBarShape}
                 isAnimationActive={false}
               />
@@ -897,9 +1067,9 @@ function StatCell({
         {!loading && showDelta && (
           <span className="inline-flex items-center gap-0.5 text-[11px] tabular-nums font-medium text-zinc-100">
             {isUp ? (
-              <ArrowUp size={11} weight="bold" className="text-viz-healthy" />
+              <ArrowUp size={11} weight="bold" className="text-viz-1" />
             ) : isDown ? (
-              <ArrowDown size={11} weight="bold" className="text-viz-danger" />
+              <ArrowDown size={11} weight="bold" className="text-viz-7" />
             ) : null}
             {Math.abs(Math.round(delta))}%
           </span>

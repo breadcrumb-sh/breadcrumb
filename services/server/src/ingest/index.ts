@@ -1,9 +1,15 @@
 import { Hono } from "hono";
 import { clickhouse } from "../db/clickhouse.js";
+import { ClickHouseBatcher } from "../db/clickhouse-batcher.js";
 import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "./helpers.js";
 
 type Variables = { projectId: string };
+
+// ── Batchers ─────────────────────────────────────────────────────────────────
+
+export const traceBatcher = new ClickHouseBatcher(clickhouse, "breadcrumb.traces");
+export const spanBatcher = new ClickHouseBatcher(clickhouse, "breadcrumb.spans");
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -29,29 +35,22 @@ ingestRoutes.post("/traces", async (c) => {
 
   const t = parsed.data;
 
-  await clickhouse.insert({
-    table: "breadcrumb.traces",
-    format: "JSONEachRow",
-    values: [{
-      id:             t.id,
-      project_id:     projectId,
-      // Use the event's own timestamp as the version so ordering is always
-      // correct even if start and end arrive concurrently (Promise.all in SDK).
-      // end_time is always later than start_time, so the end row always wins.
-      version:        t.end_time ? new Date(t.end_time).getTime() : new Date(t.start_time).getTime(),
-      name:           t.name,
-      start_time:     toChDate(t.start_time),
-      end_time:       t.end_time ? toChDate(t.end_time) : null,
-      status:         t.status,
-      status_message: t.status_message ?? "",
-      input:          toJson(t.input),
-      output:         toJson(t.output),
-      user_id:        t.user_id ?? "",
-      session_id:     t.session_id ?? "",
-      environment:    t.environment ?? "",
-      tags:           t.tags ?? {},
-    }],
-  });
+  traceBatcher.add([{
+    id:             t.id,
+    project_id:     projectId,
+    version:        t.end_time ? new Date(t.end_time).getTime() : new Date(t.start_time).getTime(),
+    name:           t.name,
+    start_time:     toChDate(t.start_time),
+    end_time:       t.end_time ? toChDate(t.end_time) : null,
+    status:         t.status,
+    status_message: t.status_message ?? "",
+    input:          toJson(t.input),
+    output:         toJson(t.output),
+    user_id:        t.user_id ?? "",
+    session_id:     t.session_id ?? "",
+    environment:    t.environment ?? "",
+    tags:           t.tags ?? {},
+  }]);
 
   return c.json({ ok: true }, 202);
 });
@@ -100,11 +99,7 @@ ingestRoutes.post("/spans", async (c) => {
     });
   }
 
-  await clickhouse.insert({
-    table: "breadcrumb.spans",
-    format: "JSONEachRow",
-    values: spans,
-  });
+  spanBatcher.add(spans);
 
   return c.json({ ok: true }, 202);
 });

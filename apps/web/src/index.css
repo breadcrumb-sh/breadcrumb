@@ -9,13 +9,17 @@
   --color-chart-line: #909091;
   --color-chart-muted: #52525b;
 
-  /* ── Data-viz semantic (dark default) ──────────────────── */
-  --color-viz-healthy:   #58508d;
-  --color-viz-warning:   #b4558d;
-  --color-viz-danger:    #e77371;
-  --color-viz-primary:   var(--color-indigo-600);
-  --color-viz-secondary: var(--color-sky-600);
-  --color-viz-accent:    var(--color-fuchsia-600);
+  /* ── Data-viz palette (dark default) ────────────────────── */
+  --color-viz-1:  #58508d;
+  --color-viz-2:  #6f5fa5;
+  --color-viz-3:  #8b5d9d;
+  --color-viz-4:  #a55693;
+  --color-viz-5:  #b4558d;
+  --color-viz-6:  #cc5b7b;
+  --color-viz-7:  #e77371;
+  --color-viz-8:  #ef8d5f;
+  --color-viz-9:  #eda44d;
+  --color-viz-10: #e6bb3f;
 
   /* ── Border radius — sharp corners ────────── */
   --radius-sm:  0px;
@@ -38,17 +42,31 @@
   --color-zinc-800: #282829;
   --color-zinc-900: #1b1b1c;
   --color-zinc-950: #121213;
+
+  /* ── Semantic tokens (streamdown / shadcn compat) ───── */
+  --color-background:         var(--color-zinc-950);
+  --color-foreground:         var(--color-zinc-100);
+  --color-border:             var(--color-zinc-800);
+  --color-muted:              var(--color-zinc-800);
+  --color-muted-foreground:   var(--color-zinc-400);
+  --color-sidebar:            var(--color-zinc-900);
+  --color-primary:            var(--color-zinc-100);
+  --color-primary-foreground: var(--color-zinc-950);
 }
 
 /* ── Light mode: remap zinc to inverted light-appropriate values ── */
 /* Every bg-zinc-*, border-zinc-*, text-zinc-* class adapts for free. */
 :root.light {
-  --color-viz-healthy:   #58508d;
-  --color-viz-warning:   #b4558d;
-  --color-viz-danger:    #e77371;
-  --color-viz-primary:   var(--color-violet-500);
-  --color-viz-secondary: var(--color-sky-400);
-  --color-viz-accent:    var(--color-fuchsia-400);
+  --color-viz-1:  #58508d;
+  --color-viz-2:  #6f5fa5;
+  --color-viz-3:  #8b5d9d;
+  --color-viz-4:  #a55693;
+  --color-viz-5:  #b4558d;
+  --color-viz-6:  #cc5b7b;
+  --color-viz-7:  #e77371;
+  --color-viz-8:  #ef8d5f;
+  --color-viz-9:  #eda44d;
+  --color-viz-10: #e6bb3f;
 
   --color-zinc-950: #f7f7f7;
   --color-zinc-900: #f0f0f0;
@@ -91,4 +109,69 @@ body {
 
 .light {
   color-scheme: light;
+}
+
+/* ── Streamdown code blocks ───────────────────────────────────── */
+
+/* Outer wrapper: single flat container */
+[data-streamdown="code-block"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin-block: 1rem;
+  border: 1px solid var(--color-zinc-800);
+  border-radius: 0;
+  background: var(--color-zinc-900);
+}
+
+/* Header: language label on the left */
+[data-streamdown="code-block-header"] {
+  order: 0;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--color-zinc-800);
+}
+
+/* Actions: sit inside header via order + absolute overlap */
+[data-streamdown="code-block-actions"] {
+  position: absolute;
+  top: 0;
+  right: 0.25rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+/* Body: no extra border/bg/padding — just the code */
+[data-streamdown="code-block-body"] {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0.75rem !important;
+  margin: 0;
+}
+
+[data-streamdown="code-block-body"] pre {
+  background: transparent !important;
+}
+
+/* Force dark Shiki tokens (app is dark by default) */
+:root:not(.light) [data-streamdown="code-block-body"] code span span {
+  color: var(--shiki-dark, var(--sdm-c, inherit)) !important;
+}
+
+.light [data-streamdown="code-block-body"] code span span {
+  color: var(--sdm-c, inherit) !important;
+}
+
+/* Hide download button, keep copy */
+[data-streamdown="code-block-download-button"] {
+  display: none;
 }

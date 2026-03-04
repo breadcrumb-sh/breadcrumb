@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { auth } from "./auth/better-auth.js";
 import { requireApiKey, requireMcpKey } from "./auth/index.js";
 import { trpcHandler } from "./trpc/index.js";
-import { ingestRoutes } from "./ingest/index.js";
+import { ingestRoutes, traceBatcher, spanBatcher } from "./ingest/index.js";
 import { runMigrations } from "./db/index.js";
 import { runClickhouseMigrations } from "./db/clickhouse.js";
 import { env } from "./env.js";
@@ -27,6 +27,7 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // CORS for the rest of the API
 app.use("/trpc/*", corsConfig);
 app.use("/v1/*", corsConfig);
+app.use("/api/*", corsConfig);
 app.use("/mcp", corsConfig);
 app.use("/health", corsConfig);
 
@@ -79,3 +80,12 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+async function shutdown() {
+  console.log("shutting down — flushing batchers…");
+  await Promise.all([traceBatcher.shutdown(), spanBatcher.shutdown()]);
+  process.exit(0);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

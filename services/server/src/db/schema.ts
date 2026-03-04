@@ -153,3 +153,37 @@ export const mcpKeys = pgTable("mcp_keys", {
   keyPrefix: varchar("key_prefix", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ── Explores (conversation-based) ───────────────────────────────────
+
+export const explores = pgTable("explores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  messages: jsonb("messages").default([]).notNull(), // AI SDK CoreMessage[]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+},
+  (t) => [index("explores_project_id_idx").on(t.projectId)],
+);
+
+export const starredCharts = pgTable("starred_charts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  exploreId: uuid("explore_id")
+    .notNull()
+    .references(() => explores.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }),
+  chartType: varchar("chart_type", { length: 32 }),
+  sql: text("sql"),
+  xKey: varchar("x_key", { length: 64 }),
+  yKeys: jsonb("y_keys"),
+  legend: jsonb("legend"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+},
+  (t) => [index("starred_charts_project_id_idx").on(t.projectId)],
+);

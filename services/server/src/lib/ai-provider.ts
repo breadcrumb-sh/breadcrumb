@@ -52,14 +52,14 @@ function buildModel(row: AiProviderRow): LanguageModel {
         apiKey,
         baseURL: "https://openrouter.ai/api/v1",
       });
-      return openrouter(row.modelId);
+      return openrouter.chat(row.modelId);
     }
     case "custom": {
       const custom = createOpenAI({
         apiKey,
         baseURL: row.baseUrl!,
       });
-      return custom(row.modelId);
+      return custom.chat(row.modelId);
     }
     default:
       throw new Error(`Unknown AI provider: ${row.provider}`);

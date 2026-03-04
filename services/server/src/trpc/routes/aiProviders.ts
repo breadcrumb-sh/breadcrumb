@@ -33,7 +33,7 @@ export const aiProvidersRouter = router({
         .object({
           projectId: z.string(),
           provider: providerEnum,
-          apiKey: z.string().min(1),
+          apiKey: z.string().min(1).optional(),
           modelId: z.string().min(1).max(255),
           baseUrl: z.string().url().nullish(),
         })
@@ -47,17 +47,33 @@ export const aiProvidersRouter = router({
         "admin",
         "owner",
       ]);
-      const encryptedApiKey = encrypt(input.apiKey);
-      const apiKeyMask = maskApiKey(input.apiKey);
       const now = new Date();
+
+      // Check if a config already exists
+      const [existing] = await db
+        .select({ id: aiProviders.id })
+        .from(aiProviders)
+        .where(eq(aiProviders.projectId, input.projectId));
+
+      // API key is required for new configs
+      if (!existing && !input.apiKey) {
+        throw new Error("API key is required when creating a new provider config");
+      }
+
+      const keyFields = input.apiKey
+        ? {
+            encryptedApiKey: encrypt(input.apiKey),
+            apiKeyMask: maskApiKey(input.apiKey),
+          }
+        : {};
 
       const [row] = await db
         .insert(aiProviders)
         .values({
           projectId: input.projectId,
           provider: input.provider,
-          encryptedApiKey,
-          apiKeyMask,
+          encryptedApiKey: keyFields.encryptedApiKey ?? "",
+          apiKeyMask: keyFields.apiKeyMask ?? "",
           modelId: input.modelId,
           baseUrl: input.baseUrl ?? null,
           createdAt: now,
@@ -67,8 +83,7 @@ export const aiProvidersRouter = router({
           target: aiProviders.projectId,
           set: {
             provider: input.provider,
-            encryptedApiKey,
-            apiKeyMask,
+            ...keyFields,
             modelId: input.modelId,
             baseUrl: input.baseUrl ?? null,
             updatedAt: now,

@@ -1,9 +1,14 @@
 import "./index.css";
+import "streamdown/styles.css";
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import { httpBatchLink } from "@trpc/client";
+import {
+  httpBatchLink,
+  splitLink,
+  unstable_httpSubscriptionLink,
+} from "@trpc/client";
 import superjson from "superjson";
 import { trpc } from "./lib/trpc";
 import { router } from "./router";
@@ -14,9 +19,16 @@ function Root() {
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchLink({
-          url: "/trpc",
-          transformer: superjson,
+        splitLink({
+          condition: (op) => op.type === "subscription",
+          true: unstable_httpSubscriptionLink({
+            url: "/trpc",
+            transformer: superjson,
+          }),
+          false: httpBatchLink({
+            url: "/trpc",
+            transformer: superjson,
+          }),
         }),
       ],
     })

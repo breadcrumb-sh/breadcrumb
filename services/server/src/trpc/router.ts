@@ -6,6 +6,7 @@ import { tracesRouter } from "./routes/traces.js";
 import { membersRouter } from "./routes/members.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { aiProvidersRouter } from "./routes/aiProviders.js";
+import { exploresRouter } from "./routes/explores.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -16,6 +17,14 @@ export const appRouter = router({
   members: membersRouter,
   invitations: invitationsRouter,
   aiProviders: aiProvidersRouter,
+  explores: exploresRouter,
 });
 
 export type AppRouter = typeof appRouter;
+
+export type {
+  LegendEntry,
+  ChartSpec,
+  DisplayPart,
+  StreamEvent,
+} from "../lib/explore-types.js";

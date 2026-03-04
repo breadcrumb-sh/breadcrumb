@@ -727,7 +727,7 @@ function AiProviderSection({ projectId }: { projectId: string }) {
     await upsert.mutateAsync({
       projectId,
       provider: provider as "openai" | "anthropic" | "openrouter" | "custom",
-      apiKey,
+      ...(apiKey ? { apiKey } : {}),
       modelId,
       baseUrl: provider === "custom" ? baseUrl : undefined,
     });
@@ -777,7 +777,7 @@ function AiProviderSection({ projectId }: { projectId: string }) {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={existing.data?.apiKeyMask ?? "Enter API key"}
-              required
+              required={!existing.data}
               className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-zinc-500"
             />
           </div>

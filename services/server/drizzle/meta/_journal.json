@@ -22,6 +22,13 @@
       "when": 1772012142064,
       "tag": "0002_true_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772568950340,
+      "tag": "0003_brief_eternals",
+      "breakpoints": true
     }
   ]
 }
