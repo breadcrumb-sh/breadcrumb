@@ -55,7 +55,8 @@ app.all("/mcp", requireMcpKey, async (c) => {
   const mcpServer = buildMcpServer(userId);
   const transport = new StreamableHTTPTransport();
   await mcpServer.connect(transport);
-  return transport.handleRequest(c);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return transport.handleRequest(c as any);
 });
 
 if (env.nodeEnv === "production") {

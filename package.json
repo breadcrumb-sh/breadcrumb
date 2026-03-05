@@ -30,7 +30,6 @@
     "@xyflow/react": "^12.10.1"
   },
   "overrides": {
-    "rollup": ">=4.59.0",
-    "hono": "^4.12.4"
+    "rollup": ">=4.59.0"
   }
 }
