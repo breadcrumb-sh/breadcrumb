@@ -96,6 +96,7 @@ export const tracesRouter = router({
           count()                             AS trace_count,
           countIf(t.status = 'error')         AS error_count,
           sum(coalesce(r.total_cost_usd, 0))  AS total_cost_usd,
+          sum(coalesce(r.total_tokens, 0))    AS total_tokens,
           avgIf(
             toInt64(toUnixTimestamp64Milli(COALESCE(t.end_time, r.max_end_time))) - toInt64(toUnixTimestamp64Milli(t.start_time)),
             isNotNull(COALESCE(t.end_time, r.max_end_time)) AND COALESCE(t.end_time, r.max_end_time) > t.start_time
@@ -116,6 +117,7 @@ export const tracesRouter = router({
           SELECT
             trace_id,
             sum(input_cost_usd + output_cost_usd) AS total_cost_usd,
+            sum(input_tokens + output_tokens)      AS total_tokens,
             max(max_end_time)                      AS max_end_time
           FROM breadcrumb.trace_rollups
           WHERE project_id = {projectId: UUID}
@@ -135,11 +137,12 @@ export const tracesRouter = router({
       const traceCount = Number(row["trace_count"] ?? 0);
       const errorCount = Number(row["error_count"] ?? 0);
       const totalCostUsd = Number(row["total_cost_usd"] ?? 0) / 1_000_000;
+      const totalTokens = Number(row["total_tokens"] ?? 0);
       const avgDurationMs = Number(row["avg_duration_ms"] ?? 0);
       const errorRate = traceCount > 0 ? errorCount / traceCount : 0;
 
       // Compute previous period of equal length for comparison
-      let prev: { traceCount: number; totalCostUsd: number; avgDurationMs: number; errorRate: number } | null = null;
+      let prev: { traceCount: number; totalCostUsd: number; totalTokens: number; avgDurationMs: number; errorRate: number } | null = null;
       if (input.from && input.to) {
         const fromDate = new Date(input.from);
         const toDate = new Date(input.to);
@@ -161,6 +164,7 @@ export const tracesRouter = router({
               count()                             AS trace_count,
               countIf(t.status = 'error')         AS error_count,
               sum(coalesce(r.total_cost_usd, 0))  AS total_cost_usd,
+              sum(coalesce(r.total_tokens, 0))    AS total_tokens,
               avgIf(
                 toInt64(toUnixTimestamp64Milli(COALESCE(t.end_time, r.max_end_time))) - toInt64(toUnixTimestamp64Milli(t.start_time)),
                 isNotNull(COALESCE(t.end_time, r.max_end_time)) AND COALESCE(t.end_time, r.max_end_time) > t.start_time
@@ -181,6 +185,7 @@ export const tracesRouter = router({
               SELECT
                 trace_id,
                 sum(input_cost_usd + output_cost_usd) AS total_cost_usd,
+                sum(input_tokens + output_tokens)      AS total_tokens,
                 max(max_end_time)                      AS max_end_time
               FROM breadcrumb.trace_rollups
               WHERE project_id = {projectId: UUID}
@@ -198,6 +203,7 @@ export const tracesRouter = router({
         prev = {
           traceCount: pTraceCount,
           totalCostUsd: Number(pr["total_cost_usd"] ?? 0) / 1_000_000,
+          totalTokens: Number(pr["total_tokens"] ?? 0),
           avgDurationMs: Number(pr["avg_duration_ms"] ?? 0),
           errorRate: pTraceCount > 0 ? pErrorCount / pTraceCount : 0,
         };
@@ -206,6 +212,7 @@ export const tracesRouter = router({
       return {
         traceCount,
         totalCostUsd,
+        totalTokens,
         avgDurationMs,
         errorCount,
         errorRate,
@@ -1058,6 +1065,31 @@ export const tracesRouter = router({
     }),
 
   // All spans for a single trace, ordered by start_time.
+  get: procedure
+    .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))
+    .query(async ({ input }) => {
+      const result = await clickhouse.query({
+        query: `
+          SELECT
+            argMax(name, version)   AS name,
+            argMax(status, version) AS status
+          FROM breadcrumb.traces
+          WHERE project_id = {projectId: UUID}
+            AND id = {traceId: String}
+          GROUP BY id
+          LIMIT 1
+        `,
+        query_params: { projectId: input.projectId, traceId: input.traceId },
+        format: "JSONEachRow",
+      });
+      const rows = (await result.json()) as Array<Record<string, unknown>>;
+      if (!rows.length) return null;
+      return {
+        name:   String(rows[0]["name"]),
+        status: String(rows[0]["status"]) as "ok" | "error",
+      };
+    }),
+
   spans: procedure
     .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))
     .query(async ({ input }) => {

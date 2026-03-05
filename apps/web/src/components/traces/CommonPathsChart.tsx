@@ -152,7 +152,7 @@ export function CommonPathsChart({
               <>
                 Sub-paths within{" "}
                 <span
-                  className="inline-block rounded px-1.5 py-px text-[11px] font-medium"
+                  className="inline-block rounded px-1.5 py-[2px] text-[11px] font-medium"
                   style={{
                     color: colorForName(drillSpanName),
                     backgroundColor: `color-mix(in srgb, ${colorForName(drillSpanName)} 12%, transparent)`,

@@ -107,7 +107,7 @@ export function ObservationsSection() {
             <div className="px-5 pt-4 pb-4">
               <div className="flex items-start gap-3">
                 <span
-                  className={`mt-0.5 shrink-0 inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${styles.badge}`}
+                  className={`mt-0.5 shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${styles.badge}`}
                 >
                   {f.impact}
                 </span>

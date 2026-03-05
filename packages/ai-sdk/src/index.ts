@@ -199,9 +199,20 @@ class BcTracer {
       const provider = trimProvider(
         startAttrs["ai.model.provider"] as string | undefined,
       );
+      // ai.prompt.messages is set by the AI SDK at span start — it's the messages array.
+      // ai.prompt is the fallback for simple (non-chat) prompts.
+      const rawMessages = startAttrs["ai.prompt.messages"] as string | undefined;
+      const rawPrompt = startAttrs["ai.prompt"] as string | undefined;
+      const input =
+        rawMessages !== undefined
+          ? tryParse(rawMessages)
+          : rawPrompt !== undefined
+          ? tryParse(rawPrompt)
+          : undefined;
       const timer = parentTracker.track(functionId ?? modelId ?? "llm", "llm", {
         model: modelId,
         provider,
+        input,
       });
       this.#spanMap.set(span, timer);
     } else if (name === "ai.toolCall") {

@@ -1135,7 +1135,7 @@ function ObservationRow({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-zinc-100 truncate">{obs.name}</p>
           <span
-            className={`shrink-0 inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${
+            className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${
               obs.enabled
                 ? "border-emerald-600/30 bg-emerald-600/10 text-emerald-600"
                 : "border-zinc-700 bg-zinc-800/50 text-zinc-500"

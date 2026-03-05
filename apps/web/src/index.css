@@ -208,6 +208,48 @@ body {
   display: none;
 }
 
+/* ── Span minimap bar colours ─────────────────────────────────── */
+:root {
+  --minimap-llm:       #a78bfa; /* violet-400 */
+  --minimap-tool:      #60a5fa; /* blue-400   */
+  --minimap-retrieval: #34d399; /* emerald-400 */
+  --minimap-step:      #fbbf24; /* amber-400  */
+  --minimap-default:   #a1a1aa; /* zinc-400   */
+  --minimap-cursor:    rgba(255,255,255,0.15);
+  --minimap-cursor-border: rgba(255,255,255,0.25);
+}
+:root.light {
+  --minimap-llm:       #7c3aed; /* violet-700 */
+  --minimap-tool:      #1d4ed8; /* blue-700   */
+  --minimap-retrieval: #047857; /* emerald-700 */
+  --minimap-step:      #b45309; /* amber-700  */
+  --minimap-default:   #52525b; /* zinc-600   */
+  --minimap-cursor:    rgba(0,0,0,0.08);
+  --minimap-cursor-border: rgba(0,0,0,0.2);
+}
+
+/* ── JSON syntax highlight (Shiki dual-theme) ────────────────── */
+.json-highlight pre.shiki {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+.json-highlight code {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  line-height: 1.625;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+/* Dark mode (default): show --shiki-dark colours */
+:root:not(.light) .json-highlight span {
+  color: var(--shiki-dark) !important;
+}
+/* Light mode: show --shiki-light colours */
+.light .json-highlight span {
+  color: var(--shiki-light) !important;
+}
+
 /* ── Observation finding markdown ─────────────────────────────── */
 .prose-finding p { margin: 0; }
 .prose-finding p + p { margin-top: 0.25rem; }

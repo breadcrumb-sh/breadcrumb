@@ -170,24 +170,12 @@ function OverviewPage() {
         />
         <StatCell
           className="border-t sm:border-t-0 sm:border-l border-zinc-800"
-          label="Avg cost / trace"
-          value={
-            stats.data
-              ? formatCost(
-                  stats.data.traceCount > 0
-                    ? stats.data.totalCostUsd / stats.data.traceCount
-                    : 0,
-                )
-              : "—"
-          }
+          label="Tokens"
+          value={stats.data ? formatTokens(stats.data.totalTokens) : "—"}
           loading={stats.isLoading}
           delta={pctChange(
-            stats.data && stats.data.traceCount > 0
-              ? stats.data.totalCostUsd / stats.data.traceCount
-              : undefined,
-            stats.data?.prev && stats.data.prev.traceCount > 0
-              ? stats.data.prev.totalCostUsd / stats.data.prev.traceCount
-              : undefined,
+            stats.data?.totalTokens,
+            stats.data?.prev?.totalTokens,
           )}
         />
         <StatCell
@@ -235,7 +223,7 @@ function OverviewPage() {
                 <div className={`h-0.5 ${impactStyles.bar}`} />
                 <div className="px-5 pt-4 pb-4 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`shrink-0 inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${impactStyles.badge}`}>
+                    <span className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${impactStyles.badge}`}>
                       {f.impact}
                     </span>
                     {f.observationName && (
@@ -1161,6 +1149,14 @@ function formatDuration(ms: number): string {
   if (!ms || ms <= 0) return "—";
   if (ms < 1000) return `${Math.round(ms)}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatTokens(n: number): string {
+  if (n === 0) return "0";
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
 }
 
 function formatErrorRate(rate: number): string {

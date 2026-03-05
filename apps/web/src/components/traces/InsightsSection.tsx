@@ -155,7 +155,7 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
         "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
       return (
         <span
-          className={`inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium leading-none ${tc}`}
+          className={`inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${tc}`}
         >
           {s.type}
         </span>

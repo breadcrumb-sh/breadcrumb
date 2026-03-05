@@ -61,12 +61,15 @@ function ProjectLayout() {
           </header>
 
           {/* Tab row — hidden on mobile */}
-          <nav className="border-b border-zinc-800/70 pt-1 hidden sm:flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
+          <div className="border-b border-zinc-800/70 hidden sm:block">
+          <nav className="pt-1 flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
           {visibleTabs.map(({ label, path, exact }) => {
             const href = `/projects/${projectId}${path}`;
             const isActive = exact
               ? pathname === href
-              : pathname.startsWith(href);
+              : pathname.startsWith(href) ||
+                (label === "Traces" &&
+                  pathname.startsWith(`/projects/${projectId}/trace/`));
 
             return (
               <Link
@@ -84,6 +87,7 @@ function ProjectLayout() {
             );
           })}
           </nav>
+          </div>
         </div>
 
         <div className="page-container">
