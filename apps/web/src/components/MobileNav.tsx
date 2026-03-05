@@ -27,15 +27,15 @@ export function MobileNav({ projectId }: { projectId: string }) {
     ) ?? TABS[0];
 
   return (
-    <div className="flex items-center gap-1 px-4 py-2 text-sm sm:hidden border-b border-zinc-800/70">
-      {/* Main tab menu */}
+    <>
+      <span className="text-zinc-700 select-none shrink-0 mx-2">/</span>
       <Menu.Root>
-        <Menu.Trigger className="flex items-center gap-1 rounded-md px-2 py-1.5 font-medium text-zinc-200 hover:bg-zinc-800 transition-colors">
+        <Menu.Trigger className="flex items-center gap-1 rounded-md px-0.5 py-1 font-medium text-zinc-400 hover:bg-zinc-800 transition-colors">
           {activeTab.label}
           <CaretDown size={12} weight="bold" className="text-zinc-500" />
         </Menu.Trigger>
         <Menu.Portal>
-          <Menu.Positioner sideOffset={4} align="start">
+          <Menu.Positioner sideOffset={4} align="start" className="z-50">
             <Menu.Popup className={menuPopupCls}>
               {TABS.map((tab) => {
                 const isActive = tab === activeTab;
@@ -70,26 +70,26 @@ export function MobileNav({ projectId }: { projectId: string }) {
       {/* Submenu — dropdown or action button */}
       {subMenu && subMenu.type === "action" ? (
         <>
-          <span className="text-zinc-700 select-none">/</span>
+          <span className="text-zinc-700 select-none mx-1">/</span>
           <button
             onClick={subMenu.onClick}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-zinc-200 hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1 rounded-md px-0.5 py-1 font-medium text-zinc-400 hover:bg-zinc-800 transition-colors"
           >
-            {subMenu.icon}
             {subMenu.label}
+            <CaretDown size={12} weight="bold" className="text-zinc-500" />
           </button>
         </>
       ) : subMenu && (!subMenu.type || subMenu.type === "dropdown") && subMenu.items.length > 0 ? (
         <>
-          <span className="text-zinc-700 select-none">/</span>
+          <span className="text-zinc-700 select-none mx-1">/</span>
           <Menu.Root>
-            <Menu.Trigger className="flex items-center gap-1 rounded-md px-2 py-1.5 font-medium text-zinc-200 hover:bg-zinc-800 transition-colors">
+            <Menu.Trigger className="flex items-center gap-1 rounded-md px-0.5 py-1 font-medium text-zinc-400 hover:bg-zinc-800 transition-colors">
               {subMenu.items.find((i) => i.id === subMenu.activeId)?.label ??
                 subMenu.items[0].label}
               <CaretDown size={12} weight="bold" className="text-zinc-500" />
             </Menu.Trigger>
             <Menu.Portal>
-              <Menu.Positioner sideOffset={4} align="start">
+              <Menu.Positioner sideOffset={4} align="start" className="z-50">
                 <Menu.Popup className={menuPopupCls}>
                   {subMenu.items.map((item) => {
                     const isActive = item.id === subMenu.activeId;
@@ -122,6 +122,6 @@ export function MobileNav({ projectId }: { projectId: string }) {
           </Menu.Root>
         </>
       ) : null}
-    </div>
+    </>
   );
 }

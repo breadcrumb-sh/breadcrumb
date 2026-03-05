@@ -36,20 +36,24 @@ function ProjectLayout() {
     <SubMenuProvider>
       <div>
         <div className="sticky top-0 z-20 bg-zinc-950">
-          <header className="px-5 sm:px-8">
+          <header className="px-5 sm:px-8 border-b border-zinc-800/70 sm:border-b-0">
             {/* Nav row */}
             <div className="flex items-center justify-between h-14">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center text-sm min-w-0">
                 <Link
                   to="/"
-                  className="flex items-center hover:opacity-80 transition-opacity"
+                  className="flex items-center hover:opacity-80 transition-opacity shrink-0"
                 >
                   <Logo className="size-5" />
                 </Link>
-                <span className="text-zinc-700 select-none">/</span>
-                <span className="font-medium text-zinc-400">
+                <span className="text-zinc-700 select-none shrink-0 mx-1.5">/</span>
+                <span className="font-medium text-zinc-400 truncate max-w-[100px] sm:max-w-none">
                   {project.data?.name ?? "…"}
                 </span>
+                {/* Mobile tab nav — inline after project name */}
+                <div className="sm:hidden contents">
+                  <MobileNav projectId={projectId} />
+                </div>
               </div>
 
               <UserMenu />
@@ -80,9 +84,6 @@ function ProjectLayout() {
             );
           })}
           </nav>
-
-          {/* Mobile breadcrumb nav */}
-          <MobileNav projectId={projectId} />
         </div>
 
         <div className="page-container">
