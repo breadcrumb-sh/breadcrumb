@@ -9,6 +9,17 @@ export const clickhouse = createClient({
   username: env.clickhouseUser,
   password: env.clickhousePassword,
   database: env.clickhouseDb,
+  application: "breadcrumb-server",
+  max_open_connections: 20,
+  request_timeout: 60_000,
+  compression: {
+    response: true,
+    request: true,
+  },
+  keep_alive: {
+    enabled: true,
+    idle_socket_ttl: 2500,
+  },
 });
 
 // Separate client without a database selected, used only during migration
