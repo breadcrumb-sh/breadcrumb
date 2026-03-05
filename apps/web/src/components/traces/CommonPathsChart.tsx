@@ -145,7 +145,6 @@ export function CommonPathsChart({
               >
                 <ArrowLeft size={12} />
               </button>
-              <span className="text-zinc-700">|</span>
             </>
           )}
           <p className="text-xs font-medium text-zinc-500">
