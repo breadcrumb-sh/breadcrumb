@@ -21,7 +21,6 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (import.meta.env.DEV) {
-    console.log("[waitlist:dev] skipping db —", { email, deploy, scale, comments });
     return json({ ok: true }, 200);
   }
 
@@ -42,7 +41,8 @@ export const POST: APIRoute = async ({ request }) => {
         comments = COALESCE(EXCLUDED.comments, waitlist.comments)
     `;
 
-    await fetch("https://ntfy.sh/breadcrumb-waitlist-signup", {
+    const ntfyUrl = import.meta.env.NTFY_URL;
+    if (ntfyUrl) await fetch(ntfyUrl, {
       method: "POST",
       body: `New waitlist signup: ${email} for ${deploy || "unknown deploy"} at scale ${scale || "unknown scale"}. Comments: ${comments || "none"}`,
     });

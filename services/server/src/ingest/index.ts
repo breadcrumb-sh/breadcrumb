@@ -3,6 +3,8 @@ import { clickhouse } from "../db/clickhouse.js";
 import { ClickHouseBatcher } from "../db/clickhouse-batcher.js";
 import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "./helpers.js";
+import { boss } from "../lib/boss.js";
+import { getObservationsForProject } from "../lib/observations-cache.js";
 
 type Variables = { projectId: string };
 
@@ -51,6 +53,10 @@ ingestRoutes.post("/traces", async (c) => {
     environment:    t.environment ?? "",
     tags:           t.tags ?? {},
   }]);
+
+  if (t.end_time) {
+    void scheduleObservationJobs(projectId, t.id, t.name);
+  }
 
   return c.json({ ok: true }, 202);
 });
@@ -103,3 +109,39 @@ ingestRoutes.post("/spans", async (c) => {
 
   return c.json({ ok: true }, 202);
 });
+
+// ── Background job scheduling ─────────────────────────────────────────────────
+
+async function scheduleObservationJobs(
+  projectId: string,
+  traceId: string,
+  traceName: string,
+) {
+  try {
+    console.log(`[obs] trace.end received — project=${projectId} trace=${traceId} name="${traceName}"`);
+    const obs = await getObservationsForProject(projectId);
+    console.log(`[obs] ${obs.length} enabled observation(s) for project`);
+    const matching = obs.filter(
+      (o) => o.traceNames.length === 0 || o.traceNames.includes(traceName),
+    );
+    console.log(`[obs] ${matching.length} observation(s) match trace name`);
+    for (const o of matching) {
+      const roll = Math.random() * 100;
+      if (roll >= o.samplingRate) {
+        console.log(`[obs] observation "${o.name}" skipped by sampling (roll=${roll.toFixed(1)} >= ${o.samplingRate})`);
+        continue;
+      }
+      const jobId = await boss.send(
+        "evaluate-observation",
+        { projectId, traceId, observationId: o.id },
+        {
+          startAfter: 15,
+          singletonKey: `${o.id}:${traceId}`,
+        },
+      );
+      console.log(`[obs] enqueued job ${jobId} for observation "${o.name}"`);
+    }
+  } catch (err) {
+    console.error(`[obs] scheduleObservationJobs error:`, err);
+  }
+}

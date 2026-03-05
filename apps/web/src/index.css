@@ -207,3 +207,21 @@ body {
 [data-streamdown="code-block-download-button"] {
   display: none;
 }
+
+/* ── Observation finding markdown ─────────────────────────────── */
+.prose-finding p { margin: 0; }
+.prose-finding p + p { margin-top: 0.25rem; }
+.prose-finding strong { font-weight: 600; color: inherit; }
+.prose-finding em { font-style: italic; }
+.prose-finding code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  background: var(--color-zinc-800);
+  padding: 0.1em 0.3em;
+  border-radius: 2px;
+}
+.prose-finding ul, .prose-finding ol {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+.prose-finding li { margin: 0; }

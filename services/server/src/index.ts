@@ -7,6 +7,7 @@ import { auth } from "./auth/better-auth.js";
 import { requireApiKey, requireMcpKey } from "./auth/index.js";
 import { trpcHandler } from "./trpc/index.js";
 import { ingestRoutes, traceBatcher, spanBatcher } from "./ingest/index.js";
+import { boss } from "./lib/boss.js";
 import { runMigrations } from "./db/index.js";
 import { runClickhouseMigrations } from "./db/clickhouse.js";
 import { env } from "./env.js";
@@ -69,6 +70,10 @@ async function main() {
   await runMigrations();
   await runClickhouseMigrations();
 
+  await boss.start();
+  const { registerWorkers } = await import("./jobs/evaluate-observation.js");
+  await registerWorkers();
+
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
 
@@ -84,6 +89,7 @@ main().catch((err) => {
 async function shutdown() {
   console.log("shutting down — flushing batchers…");
   await Promise.all([traceBatcher.shutdown(), spanBatcher.shutdown()]);
+  await boss.stop();
   process.exit(0);
 }
 

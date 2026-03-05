@@ -722,6 +722,7 @@ export function InsightsSection() {
     return dir === "desc" ? sorted.reverse() : sorted;
   }, [stats, spanSort]);
 
+
   return (
     <div className="space-y-6">
       {/* ── Filter bar ────────────────────────────────────────── */}

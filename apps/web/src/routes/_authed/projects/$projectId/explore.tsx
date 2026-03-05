@@ -1,4 +1,5 @@
 import {
+  Brain,
   ChartBar,
   Check,
   CircleNotch,
@@ -15,7 +16,7 @@ import { renderMermaidSVG } from "beautiful-mermaid";
 import { createCodePlugin } from "@streamdown/code";
 import { codeToHtml } from "shiki";
 import { skipToken } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Streamdown } from "streamdown";
@@ -291,6 +292,7 @@ function ExplorePage() {
   const { isViewer } = useAuth();
 
   const utils = trpc.useUtils();
+  const aiProvider = trpc.aiProviders.get.useQuery({ projectId });
   const explores = trpc.explores.list.useQuery({ projectId });
   const currentExplore = trpc.explores.get.useQuery(
     { id: exploreId! },
@@ -578,7 +580,9 @@ function ExplorePage() {
       <div className="flex-1 min-w-0 flex flex-col min-h-[calc(100vh-101px)]">
         {/* Messages */}
         <div className="flex-1 flex flex-col px-5 sm:px-8">
-          {parts.length === 0 && !streaming ? (
+          {parts.length === 0 && !streaming && aiProvider.data === null ? (
+            <NoProviderState projectId={projectId} />
+          ) : parts.length === 0 && !streaming ? (
             <EmptyState onSend={send} />
           ) : (
             <div className="max-w-3xl w-full mx-auto py-6 space-y-5">
@@ -598,7 +602,7 @@ function ExplorePage() {
         </div>
 
         {/* Input */}
-        {!isViewer && (
+        {!isViewer && aiProvider.data !== null && (
           <div className="sticky bottom-0 z-10 bg-zinc-950 px-5 sm:px-8 py-3">
             {reconnecting && (
               <div className="max-w-3xl mx-auto mb-2 flex items-center gap-2 text-xs text-zinc-500">
@@ -632,6 +636,34 @@ function ExplorePage() {
         )}
       </div>
     </main>
+  );
+}
+
+// ── No provider state ────────────────────────────────────────────────────────
+
+function NoProviderState({ projectId }: { projectId: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto gap-5 py-12">
+      <div className="flex items-center justify-center w-12 h-12 rounded-full border border-zinc-800 bg-zinc-900">
+        <Brain size={22} className="text-zinc-500" />
+      </div>
+      <div className="text-center space-y-1.5">
+        <h2 className="text-base font-medium text-zinc-200">
+          AI provider not configured
+        </h2>
+        <p className="text-sm text-zinc-500 leading-relaxed">
+          Set up an AI provider in your project settings to start exploring traces with natural language.
+        </p>
+      </div>
+      <Link
+        to="/projects/$projectId/settings"
+        params={{ projectId }}
+        search={{ tab: "ai" }}
+        className="text-sm text-zinc-400 underline hover:text-zinc-200 transition-colors"
+      >
+        Configure AI provider
+      </Link>
+    </div>
   );
 }
 
