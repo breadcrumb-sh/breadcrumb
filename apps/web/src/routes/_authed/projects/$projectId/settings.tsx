@@ -1,24 +1,24 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { z } from "zod";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { Dialog } from "@base-ui/react/dialog";
 import {
+  Brain,
+  Check,
+  Copy,
+  Gear,
+  Key,
+  Link as LinkIcon,
   Plus,
   Trash,
-  Copy,
-  Check,
-  Key,
-  X,
-  Gear,
-  Warning,
   Users,
-  Link as LinkIcon,
-  Brain,
+  Warning,
+  X,
 } from "@phosphor-icons/react";
-import { Dialog } from "@base-ui/react/dialog";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { useRegisterSubMenu } from "../../../../components/SubMenuContext";
-import { trpc } from "../../../../lib/trpc";
 import { useAuth } from "../../../../hooks/useAuth";
+import { trpc } from "../../../../lib/trpc";
 
 type Section = "general" | "api-keys" | "members" | "ai" | "danger";
 
@@ -26,9 +26,7 @@ const searchSchema = z.object({
   tab: z.enum(["general", "api-keys", "members", "ai", "danger"]).optional(),
 });
 
-export const Route = createFileRoute(
-  "/_authed/projects/$projectId/settings"
-)({
+export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
   validateSearch: searchSchema,
   component: SettingsPage,
 });
@@ -52,18 +50,40 @@ function SettingsPage() {
   // Danger: global admin only
   const canDeleteProject = isGlobalAdmin;
 
-  const visibleSections: { id: Section; label: string; icon: React.ReactNode }[] = [
-    ...(canSeeGeneral ? [
-      { id: "general" as Section, label: "General", icon: <Gear size={16} /> },
-    ] : []),
+  const visibleSections: {
+    id: Section;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    ...(canSeeGeneral
+      ? [
+          {
+            id: "general" as Section,
+            label: "General",
+            icon: <Gear size={16} />,
+          },
+        ]
+      : []),
     { id: "api-keys" as Section, label: "API Keys", icon: <Key size={16} /> },
     { id: "members" as Section, label: "Members", icon: <Users size={16} /> },
-    ...((isGlobalAdmin || isOrgAdmin) ? [
-      { id: "ai" as Section, label: "AI Provider", icon: <Brain size={16} /> },
-    ] : []),
-    ...(canDeleteProject ? [
-      { id: "danger" as Section, label: "Danger", icon: <Warning size={16} /> },
-    ] : []),
+    ...(isGlobalAdmin || isOrgAdmin
+      ? [
+          {
+            id: "ai" as Section,
+            label: "AI Provider",
+            icon: <Brain size={16} />,
+          },
+        ]
+      : []),
+    ...(canDeleteProject
+      ? [
+          {
+            id: "danger" as Section,
+            label: "Danger",
+            icon: <Warning size={16} />,
+          },
+        ]
+      : []),
   ];
 
   const { tab } = Route.useSearch();
@@ -79,12 +99,12 @@ function SettingsPage() {
         replace: true,
       });
     },
-    [navigate]
+    [navigate],
   );
 
   const subMenuItems = useMemo(
     () => visibleSections.map(({ id, label, icon }) => ({ id, label, icon })),
-    [visibleSections]
+    [visibleSections],
   );
 
   useRegisterSubMenu(subMenuItems, section, setSection);
@@ -92,7 +112,7 @@ function SettingsPage() {
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex gap-8">
-        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5">
+        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5 sticky top-32 self-start">
           {visibleSections.map((item) => (
             <button
               key={item.id}
@@ -111,14 +131,18 @@ function SettingsPage() {
 
         <div className="flex-1 min-w-0">
           {section === "general" && (
-            <GeneralSection projectId={projectId} canRename={isGlobalAdmin || isOrgAdmin} />
+            <GeneralSection
+              projectId={projectId}
+              canRename={isGlobalAdmin || isOrgAdmin}
+            />
           )}
           {section === "api-keys" && (
-            <ApiKeysSection projectId={projectId} canManage={canManageApiKeys} />
+            <ApiKeysSection
+              projectId={projectId}
+              canManage={canManageApiKeys}
+            />
           )}
-          {section === "ai" && (
-            <AiProviderSection projectId={projectId} />
-          )}
+          {section === "ai" && <AiProviderSection projectId={projectId} />}
           {section === "members" && (
             <MembersSection
               projectId={projectId}
@@ -145,7 +169,13 @@ const popupCls =
 
 // ── General ─────────────────────────────────────────────────────────
 
-function GeneralSection({ projectId, canRename }: { projectId: string; canRename: boolean }) {
+function GeneralSection({
+  projectId,
+  canRename,
+}: {
+  projectId: string;
+  canRename: boolean;
+}) {
   const utils = trpc.useUtils();
   const project = trpc.projects.list.useQuery();
   const rename = trpc.projects.rename.useMutation({
@@ -196,7 +226,13 @@ function GeneralSection({ projectId, canRename }: { projectId: string; canRename
 
 // ── API Keys ─────────────────────────────────────────────────────────
 
-function ApiKeysSection({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+function ApiKeysSection({
+  projectId,
+  canManage,
+}: {
+  projectId: string;
+  canManage: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
@@ -306,7 +342,11 @@ function ApiKeysSection({ projectId, canManage }: { projectId: string; canManage
                         className="shrink-0 rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
                       >
                         {copied ? (
-                          <Check size={14} weight="bold" className="text-emerald-400" />
+                          <Check
+                            size={14}
+                            weight="bold"
+                            className="text-emerald-400"
+                          />
                         ) : (
                           <Copy size={14} />
                         )}
@@ -327,41 +367,50 @@ function ApiKeysSection({ projectId, canManage }: { projectId: string; canManage
 
       <div className="rounded-md border border-zinc-800 divide-y divide-zinc-800">
         {apiKeys.data?.map((key) => (
-          <div key={key.id} className="flex items-center justify-between px-4 py-3">
+          <div
+            key={key.id}
+            className="flex items-center justify-between px-4 py-3"
+          >
             <div>
               <p className="text-sm font-medium text-zinc-100">{key.name}</p>
               <p className="text-xs text-zinc-500 font-mono">{key.keyPrefix}</p>
             </div>
 
-            {canManage && <AlertDialog.Root>
-              <AlertDialog.Trigger className="rounded p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-red-400 transition-colors">
-                <Trash size={16} />
-              </AlertDialog.Trigger>
-              <AlertDialog.Portal>
-                <AlertDialog.Backdrop className={backdropCls} />
-                <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
-                  <AlertDialog.Popup className={popupCls}>
-                    <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
-                      Delete API key?
-                    </AlertDialog.Title>
-                    <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                      Any application using <span className="font-mono text-zinc-300">{key.keyPrefix}</span> will stop working immediately.
-                    </AlertDialog.Description>
-                    <div className="flex justify-end gap-2">
-                      <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
-                        Cancel
-                      </AlertDialog.Close>
-                      <AlertDialog.Close
-                        onClick={() => deleteKey.mutate({ id: key.id })}
-                        className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </AlertDialog.Close>
-                    </div>
-                  </AlertDialog.Popup>
-                </AlertDialog.Viewport>
-              </AlertDialog.Portal>
-            </AlertDialog.Root>}
+            {canManage && (
+              <AlertDialog.Root>
+                <AlertDialog.Trigger className="rounded p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-red-400 transition-colors">
+                  <Trash size={16} />
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Backdrop className={backdropCls} />
+                  <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
+                    <AlertDialog.Popup className={popupCls}>
+                      <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
+                        Delete API key?
+                      </AlertDialog.Title>
+                      <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
+                        Any application using{" "}
+                        <span className="font-mono text-zinc-300">
+                          {key.keyPrefix}
+                        </span>{" "}
+                        will stop working immediately.
+                      </AlertDialog.Description>
+                      <div className="flex justify-end gap-2">
+                        <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
+                          Cancel
+                        </AlertDialog.Close>
+                        <AlertDialog.Close
+                          onClick={() => deleteKey.mutate({ id: key.id })}
+                          className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                        >
+                          Delete
+                        </AlertDialog.Close>
+                      </div>
+                    </AlertDialog.Popup>
+                  </AlertDialog.Viewport>
+                </AlertDialog.Portal>
+              </AlertDialog.Root>
+            )}
           </div>
         ))}
         {!apiKeys.data?.length && (
@@ -387,22 +436,29 @@ function MembersSection({
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"viewer" | "member" | "admin" | "owner">("member");
+  const [inviteRole, setInviteRole] = useState<
+    "viewer" | "member" | "admin" | "owner"
+  >("member");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
   const members = trpc.members.list.useQuery({ organizationId: projectId });
-  const invitations = trpc.invitations.list.useQuery({ organizationId: projectId });
+  const invitations = trpc.invitations.list.useQuery({
+    organizationId: projectId,
+  });
   const createInvitation = trpc.invitations.create.useMutation({
-    onSuccess: () => utils.invitations.list.invalidate({ organizationId: projectId }),
+    onSuccess: () =>
+      utils.invitations.list.invalidate({ organizationId: projectId }),
   });
   const deleteInvitation = trpc.invitations.delete.useMutation({
-    onSuccess: () => utils.invitations.list.invalidate({ organizationId: projectId }),
+    onSuccess: () =>
+      utils.invitations.list.invalidate({ organizationId: projectId }),
   });
   const removeMember = trpc.members.remove.useMutation({
-    onSuccess: () => utils.members.list.invalidate({ organizationId: projectId }),
+    onSuccess: () =>
+      utils.members.list.invalidate({ organizationId: projectId }),
   });
 
   const handleInviteOpenChange = (next: boolean) => {
@@ -427,7 +483,9 @@ function MembersSection({
       });
       setInviteUrl(result.inviteUrl);
     } catch (err) {
-      setInviteError(err instanceof Error ? err.message : "Failed to create invitation");
+      setInviteError(
+        err instanceof Error ? err.message : "Failed to create invitation",
+      );
     }
   };
 
@@ -445,7 +503,10 @@ function MembersSection({
           <h3 className="text-sm font-semibold">Members</h3>
 
           {canManage && (
-            <Dialog.Root open={inviteOpen} onOpenChange={handleInviteOpenChange}>
+            <Dialog.Root
+              open={inviteOpen}
+              onOpenChange={handleInviteOpenChange}
+            >
               <Dialog.Trigger className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors">
                 <Plus size={14} />
                 Invite member
@@ -493,7 +554,15 @@ function MembersSection({
                           </label>
                           <select
                             value={inviteRole}
-                            onChange={(e) => setInviteRole(e.target.value as "viewer" | "member" | "admin" | "owner")}
+                            onChange={(e) =>
+                              setInviteRole(
+                                e.target.value as
+                                  | "viewer"
+                                  | "member"
+                                  | "admin"
+                                  | "owner",
+                              )
+                            }
                             className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-500"
                           >
                             <option value="viewer">Viewer</option>
@@ -529,7 +598,11 @@ function MembersSection({
                             className="shrink-0 rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
                           >
                             {copiedInvite ? (
-                              <Check size={14} weight="bold" className="text-emerald-400" />
+                              <Check
+                                size={14}
+                                weight="bold"
+                                className="text-emerald-400"
+                              />
                             ) : (
                               <Copy size={14} />
                             )}
@@ -551,10 +624,17 @@ function MembersSection({
 
         <div className="rounded-md border border-zinc-800 divide-y divide-zinc-800">
           {members.data?.map((m) => (
-            <div key={m.id} className="flex items-center justify-between px-4 py-3">
+            <div
+              key={m.id}
+              className="flex items-center justify-between px-4 py-3"
+            >
               <div>
-                <p className="text-sm font-medium text-zinc-100">{m.name ?? m.email}</p>
-                <p className="text-xs text-zinc-500">{m.email} · {m.role}</p>
+                <p className="text-sm font-medium text-zinc-100">
+                  {m.name ?? m.email}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {m.email} · {m.role}
+                </p>
               </div>
               {canManage && (
                 <AlertDialog.Root>
@@ -576,7 +656,9 @@ function MembersSection({
                             Cancel
                           </AlertDialog.Close>
                           <AlertDialog.Close
-                            onClick={() => removeMember.mutate({ memberId: m.id })}
+                            onClick={() =>
+                              removeMember.mutate({ memberId: m.id })
+                            }
                             className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
                           >
                             Remove
@@ -645,9 +727,12 @@ function PendingInvitationRow({
   return (
     <div className="flex items-center justify-between px-4 py-3 gap-3">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-zinc-100 truncate">{inv.email}</p>
+        <p className="text-sm font-medium text-zinc-100 truncate">
+          {inv.email}
+        </p>
         <p className="text-xs text-zinc-500 capitalize">
-          {inv.role ?? "member"} · expires {new Date(inv.expiresAt).toLocaleDateString()}
+          {inv.role ?? "member"} · expires{" "}
+          {new Date(inv.expiresAt).toLocaleDateString()}
         </p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
@@ -678,7 +763,9 @@ function PendingInvitationRow({
                   Cancel invitation?
                 </AlertDialog.Title>
                 <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                  The invitation sent to <span className="text-zinc-300">{inv.email}</span> will be revoked and the link will no longer work.
+                  The invitation sent to{" "}
+                  <span className="text-zinc-300">{inv.email}</span> will be
+                  revoked and the link will no longer work.
                 </AlertDialog.Description>
                 <div className="flex justify-end gap-2">
                   <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
@@ -759,7 +846,8 @@ function AiProviderSection({ projectId }: { projectId: string }) {
       <div>
         <h3 className="text-sm font-semibold mb-1">AI Provider</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Configure an AI provider to enable intelligent features like NLP trace search.
+          Configure an AI provider to enable intelligent features like NLP trace
+          search.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -846,7 +934,8 @@ function AiProviderSection({ projectId }: { projectId: string }) {
                         Remove AI provider?
                       </AlertDialog.Title>
                       <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                        AI-powered features will be disabled until a new provider is configured.
+                        AI-powered features will be disabled until a new
+                        provider is configured.
                       </AlertDialog.Description>
                       <div className="flex justify-end gap-2">
                         <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
@@ -873,7 +962,13 @@ function AiProviderSection({ projectId }: { projectId: string }) {
 
 // ── Danger ───────────────────────────────────────────────────────────
 
-function DangerSection({ projectId, canDelete }: { projectId: string; canDelete: boolean }) {
+function DangerSection({
+  projectId,
+  canDelete,
+}: {
+  projectId: string;
+  canDelete: boolean;
+}) {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const deleteProject = trpc.projects.delete.useMutation({
@@ -889,7 +984,9 @@ function DangerSection({ projectId, canDelete }: { projectId: string; canDelete:
 
       <div className="rounded-md border border-red-900/50 p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-zinc-100">Delete this project</p>
+          <p className="text-sm font-medium text-zinc-100">
+            Delete this project
+          </p>
           <p className="text-xs text-zinc-400 mt-0.5">
             Permanently deletes all traces and API keys. This cannot be undone.
           </p>
@@ -907,7 +1004,8 @@ function DangerSection({ projectId, canDelete }: { projectId: string; canDelete:
                   Delete project?
                 </AlertDialog.Title>
                 <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                  All traces and API keys will be permanently deleted. This action cannot be undone.
+                  All traces and API keys will be permanently deleted. This
+                  action cannot be undone.
                 </AlertDialog.Description>
                 <div className="flex justify-end gap-2">
                   <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">

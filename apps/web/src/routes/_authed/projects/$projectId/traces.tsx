@@ -55,12 +55,12 @@ function TracesPage() {
         replace: true,
       });
     },
-    [navigate]
+    [navigate],
   );
 
   const subMenuItems = useMemo(
     () => SIDEBAR_ITEMS.map(({ id, label, icon }) => ({ id, label, icon })),
-    []
+    [],
   );
 
   useRegisterSubMenu(subMenuItems, section, setSection);
@@ -68,7 +68,7 @@ function TracesPage() {
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8">
       <div className="flex gap-8">
-        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5">
+        <nav className="hidden sm:block w-44 shrink-0 space-y-0.5 sticky top-32 self-start">
           {SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}

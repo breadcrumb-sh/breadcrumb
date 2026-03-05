@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { CommonPathsChart } from "./CommonPathsChart";
 import { ChartSkeleton } from "../ChartSkeleton";
 import { InlineSelect } from "../InlineSelect";
 import { DataTable, type Column, type SortState } from "../DataTable";
@@ -817,6 +818,7 @@ export function InsightsSection() {
         </div>
       ) : (
         <>
+          <CommonPathsChart spans={rawSpans} traceCount={traceCount} />
           <SpanFrequencyChart spans={rawSpans} totalTraces={traceCount} />
           <LoopbackChart
             projectId={projectId}
