@@ -2,6 +2,10 @@
   "name": "@breadcrumb/sdk",
   "version": "0.0.1",
   "type": "module",
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",

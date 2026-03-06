@@ -159,44 +159,56 @@ describe("Breadcrumb SDK (integration)", () => {
   // ── BreadcrumbSpan.set() ────────────────────────────────────────────────────
 
   describe("BreadcrumbSpan.set()", () => {
-    it("sets string/number/boolean attributes — they appear in metadata for unknown keys", async () => {
+    it("metadata sub-object appears in span metadata", async () => {
       await bc.trace("test", async (span) => {
-        span.set({ "custom.str": "hello", "custom.num": 42, "custom.bool": true });
+        span.set({ metadata: { str: "hello", num: 42, bool: true } });
       });
       await flush();
       const span = getSpanByName(fetchMock, "test");
       expect(span?.metadata).toMatchObject({
-        "custom.str": "hello",
-        "custom.num": "42",
-        "custom.bool": "true",
+        str: "hello",
+        num: "42",
+        bool: "true",
       });
     });
 
-    it("serializes objects/arrays to JSON strings", async () => {
+    it("input and output appear as top-level fields", async () => {
       await bc.trace("test", async (span) => {
-        span.set({ nested: { a: 1, b: [2, 3] } });
+        span.set({ input: "my question", output: "my answer" });
       });
       await flush();
       const span = getSpanByName(fetchMock, "test");
-      expect((span?.metadata as Record<string, string>)?.["nested"]).toBe('{"a":1,"b":[2,3]}');
+      expect(span?.input).toBe("my question");
+      expect(span?.output).toBe("my answer");
+    });
+
+    it("object input is parsed back from JSON", async () => {
+      await bc.trace("test", async (span) => {
+        span.set({ input: { a: 1, b: [2, 3] } });
+      });
+      await flush();
+      const span = getSpanByName(fetchMock, "test");
+      expect(span?.input).toEqual({ a: 1, b: [2, 3] });
     });
 
     it("silently ignores null and undefined values", async () => {
       await expect(
         bc.trace("test", async (span) => {
-          span.set({ gone: null as unknown as string, also: undefined });
+          span.set({ input: null as unknown as string, output: undefined });
         }),
       ).resolves.toBeUndefined();
     });
 
-    it("known LLM attributes set via set() appear directly on the span payload", async () => {
+    it("model/provider/tokens appear as top-level fields", async () => {
       await bc.trace("test", async (span) => {
-        span.set({ "ai.model.id": "gpt-4o", "ai.usage.inputTokens": 100 });
+        span.set({ model: "gpt-4o", provider: "openai", input_tokens: 100, output_tokens: 50 });
       });
       await flush();
       const span = getSpanByName(fetchMock, "test");
       expect(span?.model).toBe("gpt-4o");
+      expect(span?.provider).toBe("openai");
       expect(span?.input_tokens).toBe(100);
+      expect(span?.output_tokens).toBe(50);
     });
   });
 });
