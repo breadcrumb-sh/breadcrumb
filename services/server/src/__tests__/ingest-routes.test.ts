@@ -8,7 +8,7 @@ vi.mock("../db/clickhouse.js", () => ({
 }));
 
 // Import routes after mocking their dependency.
-const { ingestRoutes } = await import("../ingest/index.js");
+const { ingestRoutes, traceBatcher, spanBatcher } = await import("../ingest/index.js");
 
 const TEST_PROJECT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -51,7 +51,9 @@ const VALID_SPAN = {
   output_cost_usd: 0.00015,
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await traceBatcher.flush();
+  await spanBatcher.flush();
   mockInsert.mockClear();
 });
 
@@ -76,6 +78,7 @@ describe("POST /traces", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_TRACE_START),
     });
+    await traceBatcher.flush();
     const inserted = mockInsert.mock.calls[0][0].values[0];
     expect(inserted.end_time).toBeNull();
   });
@@ -87,6 +90,7 @@ describe("POST /traces", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_TRACE_END),
     });
+    await traceBatcher.flush();
     const inserted = mockInsert.mock.calls[0][0].values[0];
     // toChDate strips T and Z
     expect(inserted.end_time).toBe("2026-02-20 09:00:01.500");
@@ -100,6 +104,7 @@ describe("POST /traces", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_TRACE_START),
     });
+    await traceBatcher.flush();
     const startVersion: number = mockInsert.mock.calls[0][0].values[0].version;
 
     mockInsert.mockClear();
@@ -109,6 +114,7 @@ describe("POST /traces", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_TRACE_END),
     });
+    await traceBatcher.flush();
     const endVersion: number = mockInsert.mock.calls[0][0].values[0].version;
 
     expect(endVersion).toBeGreaterThan(startVersion);
@@ -121,6 +127,7 @@ describe("POST /traces", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_TRACE_START),
     });
+    await traceBatcher.flush();
     expect(mockInsert.mock.calls[0][0].values[0].project_id).toBe(TEST_PROJECT_ID);
   });
 
@@ -165,6 +172,7 @@ describe("POST /spans", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify([VALID_SPAN, { ...VALID_SPAN, id: "c".repeat(16) }]),
     });
+    await spanBatcher.flush();
     expect(res.status).toBe(202);
     expect(mockInsert.mock.calls[0][0].values).toHaveLength(2);
   });
@@ -176,6 +184,7 @@ describe("POST /spans", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_SPAN),
     });
+    await spanBatcher.flush();
     const inserted = mockInsert.mock.calls[0][0].values[0];
     expect(inserted.input_cost_usd).toBe(66);   // 0.000066 * 1_000_000
     expect(inserted.output_cost_usd).toBe(150); // 0.00015  * 1_000_000
@@ -188,6 +197,7 @@ describe("POST /spans", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(VALID_SPAN),
     });
+    await spanBatcher.flush();
     const inserted = mockInsert.mock.calls[0][0].values[0];
     expect(inserted.project_id).toBe(TEST_PROJECT_ID);
     expect(inserted.trace_id).toBe("a".repeat(32));
