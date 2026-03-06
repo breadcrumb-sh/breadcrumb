@@ -3,8 +3,8 @@ WORKDIR /app
 
 # Copy all package.jsons for workspace resolution
 COPY package.json package-lock.json ./
-COPY packages/core/package.json ./packages/core/
 COPY packages/sdk-typescript/package.json ./packages/sdk-typescript/
+COPY packages/ai-sdk/package.json ./packages/ai-sdk/
 COPY services/server/package.json ./services/server/
 COPY apps/web/package.json ./apps/web/
 
