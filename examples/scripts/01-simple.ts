@@ -5,40 +5,19 @@
  * Run: npm run simple --workspace=examples
  */
 
-import { Breadcrumb } from "@breadcrumb/sdk";
-import { config, sleep } from "../config.js";
+import { initAiSdk } from "@breadcrumb/ai-sdk";
+import { init } from "@breadcrumb/sdk";
+import { generateText } from "ai";
 
-const bc = new Breadcrumb(config);
+const bc = init({ apiKey: "", baseUrl: "" });
+const { telemetry } = initAiSdk(bc);
 
-const question = "What is the capital of France?";
+bc.trace("test", async (span) => {});
 
-const answer = await bc.agent(
-  { name: "simple-chat", input: { messages: [{ role: "user", content: question }] } },
-  async (agent) => {
-    const t = agent.track("claude-completion", "llm", {
-      provider: "anthropic",
-      model:    "claude-opus-4-6",
-      input:    { messages: [{ role: "user", content: question }] },
-    });
+bc.span("", async () => {}, { type: "step" });
 
-    // Simulate the LLM call
-    await sleep(450);
-
-    const text = "The capital of France is Paris.";
-
-    t.end({
-      output:        { role: "assistant", content: text },
-      inputTokens:   22,
-      outputTokens:  10,
-      inputCostUsd:  0.000066,
-      outputCostUsd: 0.000150,
-    });
-
-    return text;
-  },
-);
-
-console.log("answer:", answer);
-
-await bc.shutdown();
-console.log("done");
+generateText({
+  model: "",
+  messages: [],
+  experimental_telemetry: telemetry("some-text-generation"),
+});

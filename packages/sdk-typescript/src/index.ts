@@ -1,23 +1,113 @@
-export { Breadcrumb } from "./breadcrumb.js";
-export { Agent } from "./agent.js";
-export { Timer } from "./timer.js";
-export type {
-  BreadcrumbOptions,
-  AgentOptions,
-  AgentEndOptions,
-  TrackOptions,
-  TimerEndOptions,
-  Usage,
-} from "./types.js";
+import {
+  context,
+  trace,
+  ROOT_CONTEXT,
+  SpanStatusCode,
+  type Span as OtelSpan,
+} from "@opentelemetry/api";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import {
+  SimpleSpanProcessor,
+  BatchSpanProcessor,
+} from "@opentelemetry/sdk-trace-base";
+import { BreadcrumbSpanExporter } from "./exporter.js";
+import type { Breadcrumb, BreadcrumbSpan, SpanOptions } from "./types.js";
 
-// Re-export core primitives so users only need one import
-export type {
-  TraceId,
-  SpanId,
-  SpanType,
-  Status,
-  TracePayload,
-  SpanPayload,
-  IngestClientOptions,
-} from "@breadcrumb/core";
-export { generateTraceId, generateSpanId, IngestClient } from "@breadcrumb/core";
+export type { Breadcrumb, BreadcrumbSpan, SpanOptions };
+
+export interface InitOptions {
+  apiKey: string;
+  baseUrl: string;
+  batching?:
+    | false
+    | {
+        flushInterval?: number;
+        maxBatchSize?: number;
+      };
+}
+
+export function init(options: InitOptions): Breadcrumb {
+  const exporter = new BreadcrumbSpanExporter(options.apiKey, options.baseUrl);
+
+  const batchOpts =
+    typeof options.batching === "object" ? options.batching : undefined;
+
+  const processor =
+    options.batching === false
+      ? new SimpleSpanProcessor(exporter)
+      : new BatchSpanProcessor(exporter, {
+          scheduledDelayMillis: batchOpts?.flushInterval ?? 5000,
+          maxExportBatchSize: batchOpts?.maxBatchSize ?? 100,
+        });
+
+  const provider = new NodeTracerProvider({ spanProcessors: [processor] });
+  provider.register();
+
+  process.once("beforeExit", async () => {
+    await provider.shutdown().catch(() => {});
+  });
+
+  const tracer = provider.getTracer("@breadcrumb/sdk");
+
+  function runSpan<T>(
+    otelSpan: OtelSpan,
+    activeCtx: typeof ROOT_CONTEXT,
+    fn: (span: BreadcrumbSpan) => Promise<T>,
+  ): Promise<T> {
+    const bcSpan: BreadcrumbSpan = {
+      set(attributes) {
+        for (const [key, value] of Object.entries(attributes)) {
+          if (value == null) continue;
+          if (
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean"
+          ) {
+            otelSpan.setAttribute(key, value);
+          } else {
+            otelSpan.setAttribute(key, JSON.stringify(value));
+          }
+        }
+      },
+    };
+
+    return context.with(trace.setSpan(activeCtx, otelSpan), async () => {
+      try {
+        const result = await fn(bcSpan);
+        otelSpan.setStatus({ code: SpanStatusCode.OK });
+        otelSpan.end();
+        return result;
+      } catch (err) {
+        otelSpan.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        otelSpan.end();
+        throw err;
+      }
+    });
+  }
+
+  return {
+    trace<T>(
+      name: string,
+      fn: (span: BreadcrumbSpan) => Promise<T>,
+    ): Promise<T> {
+      const otelSpan = tracer.startSpan(name, {}, ROOT_CONTEXT);
+      return runSpan(otelSpan, ROOT_CONTEXT, fn);
+    },
+
+    span<T>(
+      name: string,
+      fn: (span: BreadcrumbSpan) => Promise<T>,
+      options?: SpanOptions,
+    ): Promise<T> {
+      const activeCtx = context.active();
+      const otelSpan = tracer.startSpan(name, {}, activeCtx);
+      if (options?.type) {
+        otelSpan.setAttribute("breadcrumb.span.type", options.type);
+      }
+      return runSpan(otelSpan, activeCtx, fn);
+    },
+  };
+}

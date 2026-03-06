@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq, and, desc, sql, isNull, or, gt } from "drizzle-orm";
-import { router, orgMemberProcedure } from "../trpc.js";
+import { router, orgMemberProcedure, orgViewerProcedure } from "../trpc.js";
 import { db } from "../../db/index.js";
 import { observations, observationFindings, observationViews } from "../../db/schema.js";
 import { invalidateObservationsCache } from "../../lib/observations-cache.js";
@@ -8,7 +8,7 @@ import { invalidateObservationsCache } from "../../lib/observations-cache.js";
 const IMPACT_ORDER = sql`CASE ${observationFindings.impact} WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END`;
 
 export const observationsRouter = router({
-  list: orgMemberProcedure
+  list: orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -79,7 +79,7 @@ export const observationsRouter = router({
 
   // ── Findings ──────────────────────────────────────────────────────────────
 
-  "findings.listAll": orgMemberProcedure
+  "findings.listAll": orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -106,7 +106,7 @@ export const observationsRouter = router({
         .orderBy(IMPACT_ORDER, desc(observationFindings.createdAt));
     }),
 
-  "findings.listByTrace": orgMemberProcedure
+  "findings.listByTrace": orgViewerProcedure
     .input(z.object({ projectId: z.string(), traceId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -134,7 +134,7 @@ export const observationsRouter = router({
         .orderBy(IMPACT_ORDER, desc(observationFindings.createdAt));
     }),
 
-  "findings.list": orgMemberProcedure
+  "findings.list": orgViewerProcedure
     .input(z.object({ projectId: z.string(), observationId: z.string().uuid() }))
     .query(async ({ input }) => {
       return db
@@ -179,9 +179,11 @@ export const observationsRouter = router({
         });
     }),
 
-  unreadCount: orgMemberProcedure
+  unreadCount: orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input, ctx }) => {
+      if (!ctx.user) return 0;
+
       const [view] = await db
         .select()
         .from(observationViews)
@@ -208,9 +210,11 @@ export const observationsRouter = router({
       return result?.count ?? 0;
     }),
 
-  "findings.listNew": orgMemberProcedure
+  "findings.listNew": orgViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input, ctx }) => {
+      if (!ctx.user) return [];
+
       const [view] = await db
         .select()
         .from(observationViews)
@@ -247,7 +251,7 @@ export const observationsRouter = router({
 
   // ── Queue stats ───────────────────────────────────────────────────────────
 
-  queueStats: orgMemberProcedure
+  queueStats: orgViewerProcedure
     .input(z.object({ projectId: z.string(), observationId: z.string().uuid().optional() }))
     .query(async ({ input }) => {
       const rows = input.observationId
