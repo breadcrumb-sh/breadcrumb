@@ -51,7 +51,9 @@ const VALID_SPAN = {
   output_cost_usd: 0.00015,
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await traceBatcher.flush();
+  await spanBatcher.flush();
   mockInsert.mockClear();
 });
 
