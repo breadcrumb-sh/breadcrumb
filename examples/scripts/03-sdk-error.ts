@@ -1,5 +1,5 @@
 /**
- * 03-sdk-error — batch processing with random failures with @breadcrumb/sdk
+ * 03-sdk-error — batch processing with random failures with @breadcrumb-sdk/core
  *
  * Processes a batch of support tickets. Each item goes through classification
  * and summarization. Classification randomly fails ~40% of the time to
@@ -9,7 +9,7 @@
  * Run: npm run sdk-error --workspace=examples
  */
 
-import { init } from "@breadcrumb/sdk";
+import { init } from "@breadcrumb-sdk/core";
 import { config, sleep } from "../config.js";
 
 // ── Mock LLM ─────────────────────────────────────────────────────────────────

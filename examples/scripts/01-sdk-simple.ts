@@ -1,5 +1,5 @@
 /**
- * 01-sdk-simple — basic nested trace with @breadcrumb/sdk
+ * 01-sdk-simple — basic nested trace with @breadcrumb-sdk/core
  *
  * A single question-answering request: retrieve context, then generate an answer.
  * Shows: init(), bc.trace(), bc.span(), span.set()
@@ -7,7 +7,7 @@
  * Run: npm run sdk-simple --workspace=examples
  */
 
-import { init } from "@breadcrumb/sdk";
+import { init } from "@breadcrumb-sdk/core";
 import { config, sleep } from "../config.js";
 
 // ── Mock LLM ─────────────────────────────────────────────────────────────────

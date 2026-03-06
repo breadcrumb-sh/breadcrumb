@@ -1,6 +1,6 @@
 ---
-"@breadcrumb/sdk": patch
-"@breadcrumb/ai-sdk": patch
+"@breadcrumb-sdk/core": patch
+"@breadcrumb-sdk/ai-sdk": patch
 ---
 
 initial release

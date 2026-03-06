@@ -47,7 +47,7 @@ export function init(options: InitOptions): Breadcrumb {
     await provider.shutdown().catch(() => {});
   });
 
-  const tracer = provider.getTracer("@breadcrumb/sdk");
+  const tracer = provider.getTracer("@breadcrumb-sdk/core");
 
   function runSpan<T>(
     otelSpan: OtelSpan,

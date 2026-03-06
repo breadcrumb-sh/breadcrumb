@@ -1,5 +1,5 @@
 {
-  "name": "@breadcrumb/ai-sdk",
+  "name": "@breadcrumb-sdk/ai-sdk",
   "version": "0.0.1",
   "type": "module",
   "files": ["dist"],
@@ -20,10 +20,10 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@breadcrumb/sdk": "*"
+    "@breadcrumb-sdk/core": "*"
   },
   "devDependencies": {
-    "@breadcrumb/sdk": "*",
+    "@breadcrumb-sdk/core": "*",
     "tsdown": "^0.9",
     "typescript": "^5.7",
     "vitest": "^3"

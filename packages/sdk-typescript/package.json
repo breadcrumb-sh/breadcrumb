@@ -1,5 +1,5 @@
 {
-  "name": "@breadcrumb/sdk",
+  "name": "@breadcrumb-sdk/core",
   "version": "0.0.1",
   "type": "module",
   "files": ["dist"],

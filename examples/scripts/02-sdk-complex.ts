@@ -1,5 +1,5 @@
 /**
- * 02-sdk-complex — multi-step research pipeline with @breadcrumb/sdk
+ * 02-sdk-complex — multi-step research pipeline with @breadcrumb-sdk/core
  *
  * Breaks a research query into sub-questions, fetches sources in parallel,
  * analyzes them, and writes a structured report.
@@ -8,7 +8,7 @@
  * Run: npm run sdk-complex --workspace=examples
  */
 
-import { init } from "@breadcrumb/sdk";
+import { init } from "@breadcrumb-sdk/core";
 import { config, sleep } from "../config.js";
 
 // ── Mock LLM ─────────────────────────────────────────────────────────────────

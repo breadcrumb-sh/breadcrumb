@@ -1,4 +1,4 @@
-import type { Breadcrumb } from "@breadcrumb/sdk";
+import type { Breadcrumb } from "@breadcrumb-sdk/core";
 
 export type { Breadcrumb };
 

@@ -1,5 +1,5 @@
 /**
- * 04-ai-sdk-simple — single AI SDK call tracked with @breadcrumb/ai-sdk
+ * 04-ai-sdk-simple — single AI SDK call tracked with @breadcrumb-sdk/ai-sdk
  *
  * A single generateText call with telemetry() becomes its own root trace
  * automatically — no bc.trace() wrapping needed.
@@ -9,8 +9,8 @@
  * Run: npm run ai-sdk-simple --workspace=examples
  */
 
-import { init } from "@breadcrumb/sdk";
-import { initAiSdk } from "@breadcrumb/ai-sdk";
+import { init } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
 import { generateText, streamText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { config, openrouterApiKey } from "../config.js";

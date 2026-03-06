@@ -1,18 +1,18 @@
-# @breadcrumb/ai-sdk
+# @breadcrumb-sdk/ai-sdk
 
 Trace Vercel AI SDK calls with Breadcrumb. Pass `experimental_telemetry` to any `generateText`, `streamText`, or `generateObject` call and it shows up in your dashboard automatically.
 
 ## Install
 
 ```bash
-npm install @breadcrumb/sdk @breadcrumb/ai-sdk
+npm install @breadcrumb-sdk/core @breadcrumb-sdk/ai-sdk
 ```
 
 ## Quick start
 
 ```ts
-import { init } from "@breadcrumb/sdk";
-import { initAiSdk } from "@breadcrumb/ai-sdk";
+import { init } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 

@@ -1,5 +1,5 @@
 /**
- * 05-ai-sdk-complex — multi-step agent trace with @breadcrumb/ai-sdk
+ * 05-ai-sdk-complex — multi-step agent trace with @breadcrumb-sdk/ai-sdk
  *
  * Multiple AI SDK calls grouped under one bc.trace(). OTel context propagation
  * automatically nests each AI SDK span under the active breadcrumb trace.
@@ -10,8 +10,8 @@
  * Run: npm run ai-sdk-complex --workspace=examples
  */
 
-import { init } from "@breadcrumb/sdk";
-import { initAiSdk } from "@breadcrumb/ai-sdk";
+import { init } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { config, openrouterApiKey, sleep } from "../config.js";

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { initAiSdk } from "../index.js";
-import type { Breadcrumb } from "@breadcrumb/sdk";
+import type { Breadcrumb } from "@breadcrumb-sdk/core";
 
 // A structural mock — we only care that initAiSdk accepts a Breadcrumb
 const mockBc = {

@@ -1,17 +1,17 @@
-# @breadcrumb/sdk
+# @breadcrumb-sdk/core
 
 Trace your AI agents and pipelines with Breadcrumb.
 
 ## Install
 
 ```bash
-npm install @breadcrumb/sdk
+npm install @breadcrumb-sdk/core
 ```
 
 ## Quick start
 
 ```ts
-import { init } from "@breadcrumb/sdk";
+import { init } from "@breadcrumb-sdk/core";
 
 const bc = init({
   apiKey: "bc_...",
