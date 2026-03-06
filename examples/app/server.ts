@@ -2,12 +2,10 @@
  * Chat example server — Hono + AI SDK v6 + Breadcrumb tracing.
  *
  * Demonstrates:
- *   - useAiSdkTracing(bc) to bind the client once
- *   - traceAgent() per request for a multi-step trace
- *   - agent.step("chat") passed to streamText — LLM + tool spans auto-nested
- *   - agent.track() for manual retrieval spans (weather geocoding)
- *   - Nested generateText inside tool execute() using the same step config,
- *     so OTEL context propagation places the inner call under the outer span
+ *   - initAiSdk(bc) to get the telemetry helper
+ *   - telemetry("step-name") passed to streamText / generateText
+ *   - bc.span() for manual retrieval spans — nested under the AI SDK spans
+ *     via active OTel context propagation
  *
  * Tools use real public APIs (no API key required):
  *   - get_weather       → Open-Meteo (geocoding + forecast)
@@ -20,8 +18,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { streamText, generateText, tool, convertToModelMessages, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { useAiSdkTracing } from "@breadcrumb/ai-sdk";
-import { Breadcrumb } from "@breadcrumb/sdk";
+import { init } from "@breadcrumb/sdk";
+import { initAiSdk } from "@breadcrumb/ai-sdk";
 import { z } from "zod";
 import { config as loadEnv } from "dotenv";
 import { fileURLToPath } from "url";
@@ -41,13 +39,12 @@ if (!process.env["OPENROUTER_API_KEY"]) {
   process.exit(1);
 }
 
-const bc = new Breadcrumb({
+const bc = init({
   apiKey,
   baseUrl: process.env["BREADCRUMB_BASE_URL"] ?? "http://localhost:3100",
 });
 
-// Bind helpers to the client once — shared across all requests.
-const { traceAgent } = useAiSdkTracing(bc);
+const { telemetry } = initAiSdk(bc);
 
 const openrouter = createOpenRouter({
   apiKey: process.env["OPENROUTER_API_KEY"] ?? "",
@@ -107,17 +104,6 @@ app.post("/api/chat", async (c) => {
       .at(-1)
       ?.parts?.find((p) => p.type === "text")?.text ?? "";
 
-  // One agent trace per request.
-  const agent = traceAgent({
-    name: "chat",
-    input: { message: lastUserText },
-    sessionId: body.sessionId,
-  });
-
-  // Save the step so we can reuse the same BcTracer for nested LLM calls
-  // inside tool execute() — OTEL context then nests them under the outer span.
-  const chatStep = agent.step("chat");
-
   const result = streamText({
     model: openrouter.chat(MODEL, { usage: { include: true } }),
     system:
@@ -125,7 +111,10 @@ app.post("/api/chat", async (c) => {
       "Always call a tool when the user asks about weather or wants information you should look up.",
     messages,
     stopWhen: stepCountIs(6),
-    experimental_telemetry: chatStep,
+    experimental_telemetry: telemetry("chat", {
+      ...(body.sessionId ? { sessionId: body.sessionId } : {}),
+      userMessage: lastUserText,
+    }),
     tools: {
       // ── Tool 1: real weather data from Open-Meteo ───────────────────────
       get_weather: tool({
@@ -135,24 +124,24 @@ app.post("/api/chat", async (c) => {
           city: z.string().describe("City name, e.g. 'Tokyo' or 'New York'"),
         }),
         execute: async ({ city }) => {
-          // Manual retrieval span on the agent — appears alongside the LLM span.
-          const tLookup = agent.track("weather-lookup", "retrieval", { input: { city } });
+          // bc.span() nests under the active AI SDK OTel context automatically
+          return bc.span("weather-lookup", async (span) => {
+            const geo = await geocode(city);
+            if (!geo) {
+              span.set({ input: city, output: "city not found" });
+              return { error: `Could not find city: ${city}` };
+            }
 
-          const geo = await geocode(city);
-          if (!geo) {
-            tLookup.end({ output: { error: "city not found" } });
-            return { error: `Could not find city: ${city}` };
-          }
-
-          const w = await fetchWeather(geo.lat, geo.lon);
-          const weatherResult = {
-            city: geo.name,
-            temperature_c: w.temperature_2m,
-            wind_speed_kmh: w.wind_speed_10m,
-            condition: weatherDescription(w.weather_code),
-          };
-          tLookup.end({ output: weatherResult });
-          return weatherResult;
+            const w = await fetchWeather(geo.lat, geo.lon);
+            const weatherResult = {
+              city: geo.name,
+              temperature_c: w.temperature_2m,
+              wind_speed_kmh: w.wind_speed_10m,
+              condition: weatherDescription(w.weather_code),
+            };
+            span.set({ input: city, output: weatherResult });
+            return weatherResult;
+          }, { type: "retrieval" });
         },
       }),
 
@@ -175,26 +164,16 @@ app.post("/api/chat", async (c) => {
           const extract = data.extract ?? "";
           if (!extract) return { error: `No content found for: ${topic}` };
 
-          // Nested LLM call using the same chatStep — OTEL context propagation
-          // detects it's inside the outer doStream span and nests it accordingly.
+          // Nested LLM call — nests under the outer chat span via active OTel context
           const { text: summary } = await generateText({
             model: openrouter.chat(MODEL, { usage: { include: true } }),
             prompt: `Summarize the following Wikipedia extract in 2-3 clear sentences:\n\n${extract}`,
-            experimental_telemetry: chatStep,
+            experimental_telemetry: telemetry("summarize"),
           });
 
           return { title: data.title ?? topic, summary };
         },
       }),
-    },
-    onFinish: ({ text }) => {
-      agent.end({ output: text });
-    },
-    onError: ({ error }) => {
-      agent.end({
-        status: "error",
-        statusMessage: error instanceof Error ? error.message : String(error),
-      });
     },
   });
 

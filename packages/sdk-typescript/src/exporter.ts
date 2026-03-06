@@ -5,7 +5,6 @@ import { SpanStatusCode } from "@opentelemetry/api";
 
 type SpanType = "llm" | "tool" | "retrieval" | "step" | "custom";
 
-// AI SDK span names that map to specific breadcrumb types
 const LLM_SPAN_NAMES = new Set([
   "ai.generateText",
   "ai.generateText.doGenerate",
@@ -20,6 +19,53 @@ const TOOL_SPAN_NAMES = new Set([
   "ai.toolCall",
   "ai.toolExecution",
   "ai.executeToolCall",
+]);
+
+// Attributes handled explicitly — excluded from metadata pass-through
+const HANDLED_ATTRS = new Set([
+  // Breadcrumb native
+  "breadcrumb.span.type",
+  "breadcrumb.input",
+  "breadcrumb.output",
+  "breadcrumb.model",
+  "breadcrumb.provider",
+  "breadcrumb.input_tokens",
+  "breadcrumb.output_tokens",
+  "breadcrumb.input_cost_usd",
+  "breadcrumb.output_cost_usd",
+  // AI SDK - input/output
+  "ai.prompt.messages",
+  "ai.response.text",
+  // AI SDK - model/provider
+  "ai.model.id",
+  "ai.model.provider",
+  "ai.response.model",
+  "gen_ai.request.model",
+  "gen_ai.system",
+  // AI SDK - tokens
+  "ai.usage.inputTokens",
+  "ai.usage.promptTokens",
+  "ai.usage.outputTokens",
+  "ai.usage.completionTokens",
+  "gen_ai.usage.input_tokens",
+  "gen_ai.usage.output_tokens",
+  // AI SDK - cost source
+  "ai.response.providerMetadata",
+  // AI SDK - finish reason (renamed in metadata)
+  "ai.response.finishReason",
+]);
+
+// Attributes to drop entirely
+const DROP_ATTRS = new Set([
+  "operation.name",
+  "resource.name",
+  "ai.operationId",
+  "ai.telemetry.functionId",
+  "gen_ai.response.finish_reasons",
+  "gen_ai.response.id",
+  "gen_ai.response.model",
+  "ai.response.id",
+  "ai.response.timestamp",
 ]);
 
 function hrTimeToISO(hrTime: [number, number]): string {
@@ -38,7 +84,7 @@ function strAttr(span: ReadableSpan, ...keys: string[]): string | undefined {
   return undefined;
 }
 
-function numAttr(span: ReadableSpan, ...keys: string[]): number | undefined {
+function intAttr(span: ReadableSpan, ...keys: string[]): number | undefined {
   for (const key of keys) {
     const v = span.attributes[key];
     if (typeof v === "number") return Math.round(v);
@@ -46,30 +92,62 @@ function numAttr(span: ReadableSpan, ...keys: string[]): number | undefined {
   return undefined;
 }
 
+function floatAttr(span: ReadableSpan, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const v = span.attributes[key];
+    if (typeof v === "number") return v;
+  }
+  return undefined;
+}
+
+function tryJson(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return undefined;
+  }
+}
+
 function inferSpanType(span: ReadableSpan): SpanType {
   const explicit = span.attributes["breadcrumb.span.type"];
-  if (typeof explicit === "string" && explicit !== "") {
-    return explicit as SpanType;
-  }
+  if (typeof explicit === "string" && explicit !== "") return explicit as SpanType;
   if (LLM_SPAN_NAMES.has(span.name)) return "llm";
   if (TOOL_SPAN_NAMES.has(span.name)) return "tool";
   return "custom";
 }
 
-// Attributes we handle explicitly — everything else goes into metadata
-const KNOWN_ATTRS = new Set([
-  "breadcrumb.span.type",
-  "ai.model.id",
-  "ai.model.provider",
-  "ai.usage.inputTokens",
-  "ai.usage.promptTokens",
-  "ai.usage.outputTokens",
-  "ai.usage.completionTokens",
-  "gen_ai.request.model",
-  "gen_ai.system",
-  "gen_ai.usage.input_tokens",
-  "gen_ai.usage.output_tokens",
-]);
+function extractCost(
+  span: ReadableSpan,
+): { input_cost_usd?: number; output_cost_usd?: number } {
+  const raw = span.attributes["ai.response.providerMetadata"];
+  if (typeof raw !== "string") return {};
+  try {
+    const parsed = tryJson(raw) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== "object") return {};
+    for (const providerData of Object.values(parsed)) {
+      const usage = (providerData as Record<string, unknown>)?.usage as
+        | Record<string, unknown>
+        | undefined;
+      if (!usage) continue;
+      const totalCost = usage["cost"];
+      if (typeof totalCost !== "number") continue;
+      const prompt = typeof usage["promptTokens"] === "number" ? usage["promptTokens"] : 0;
+      const completion =
+        typeof usage["completionTokens"] === "number" ? usage["completionTokens"] : 0;
+      const total = prompt + completion;
+      if (total > 0) {
+        return {
+          input_cost_usd: totalCost * (prompt / total),
+          output_cost_usd: totalCost * (completion / total),
+        };
+      }
+      return { input_cost_usd: totalCost };
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
 
 export class BreadcrumbSpanExporter implements SpanExporter {
   constructor(
@@ -105,12 +183,80 @@ export class BreadcrumbSpanExporter implements SpanExporter {
 
   private _mapSpan(span: ReadableSpan) {
     const ctx = span.spanContext();
+    const attrs = span.attributes;
 
+    // ── Input ────────────────────────────────────────────────────────────────
+    let input: unknown;
+    const bcInput = attrs["breadcrumb.input"];
+    const aiMessages = attrs["ai.prompt.messages"];
+    if (bcInput != null) {
+      input = typeof bcInput === "string" ? (tryJson(bcInput) ?? bcInput) : bcInput;
+    } else if (typeof aiMessages === "string") {
+      input = tryJson(aiMessages) ?? aiMessages;
+    }
+
+    // ── Output ───────────────────────────────────────────────────────────────
+    let output: unknown;
+    const bcOutput = attrs["breadcrumb.output"];
+    const aiText = attrs["ai.response.text"];
+    if (bcOutput != null) {
+      output = typeof bcOutput === "string" ? (tryJson(bcOutput) ?? bcOutput) : bcOutput;
+    } else if (typeof aiText === "string") {
+      output = aiText;
+    }
+
+    // ── Model / provider ─────────────────────────────────────────────────────
+    const model = strAttr(span, "breadcrumb.model", "ai.model.id", "ai.response.model", "gen_ai.request.model");
+    const provider = strAttr(span, "breadcrumb.provider", "ai.model.provider", "gen_ai.system");
+
+    // ── Tokens ───────────────────────────────────────────────────────────────
+    const input_tokens = intAttr(
+      span,
+      "breadcrumb.input_tokens",
+      "ai.usage.inputTokens",
+      "ai.usage.promptTokens",
+      "gen_ai.usage.input_tokens",
+    );
+    const output_tokens = intAttr(
+      span,
+      "breadcrumb.output_tokens",
+      "ai.usage.outputTokens",
+      "ai.usage.completionTokens",
+      "gen_ai.usage.output_tokens",
+    );
+
+    // ── Cost ─────────────────────────────────────────────────────────────────
+    let input_cost_usd = floatAttr(span, "breadcrumb.input_cost_usd");
+    let output_cost_usd = floatAttr(span, "breadcrumb.output_cost_usd");
+    if (input_cost_usd == null && output_cost_usd == null) {
+      const cost = extractCost(span);
+      input_cost_usd = cost.input_cost_usd;
+      output_cost_usd = cost.output_cost_usd;
+    }
+
+    // ── Metadata ─────────────────────────────────────────────────────────────
     const metadata: Record<string, string> = {};
-    for (const [k, v] of Object.entries(span.attributes)) {
-      if (!KNOWN_ATTRS.has(k) && v != null) {
-        metadata[k] = String(v);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null) continue;
+      if (HANDLED_ATTRS.has(k) || DROP_ATTRS.has(k)) continue;
+      if (k.startsWith("ai.settings.")) continue;
+      if (k.startsWith("ai.request.headers.")) continue;
+      if (k.startsWith("breadcrumb.")) {
+        // breadcrumb.meta.* keys from span.set({ metadata: {...} })
+        if (k.startsWith("breadcrumb.meta.")) {
+          metadata[k.slice("breadcrumb.meta.".length)] = String(v);
+        }
+        continue;
       }
+      if (k.startsWith("ai.telemetry.metadata.")) {
+        metadata[k.slice("ai.telemetry.metadata.".length)] = String(v);
+        continue;
+      }
+      if (k === "ai.response.finishReason") {
+        metadata["finish_reason"] = String(v);
+        continue;
+      }
+      metadata[k] = String(v);
     }
 
     return {
@@ -123,20 +269,14 @@ export class BreadcrumbSpanExporter implements SpanExporter {
       end_time: hrTimeToISO(span.endTime),
       status: spanStatus(span),
       status_message: span.status.message || undefined,
-      provider: strAttr(span, "ai.model.provider", "gen_ai.system"),
-      model: strAttr(span, "ai.model.id", "gen_ai.request.model"),
-      input_tokens: numAttr(
-        span,
-        "ai.usage.inputTokens",
-        "ai.usage.promptTokens",
-        "gen_ai.usage.input_tokens",
-      ),
-      output_tokens: numAttr(
-        span,
-        "ai.usage.outputTokens",
-        "ai.usage.completionTokens",
-        "gen_ai.usage.output_tokens",
-      ),
+      input: input !== undefined ? input : undefined,
+      output: output !== undefined ? output : undefined,
+      provider,
+      model,
+      input_tokens,
+      output_tokens,
+      input_cost_usd,
+      output_cost_usd,
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     };
   }

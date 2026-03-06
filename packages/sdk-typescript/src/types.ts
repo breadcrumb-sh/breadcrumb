@@ -1,5 +1,17 @@
+export interface SpanData {
+  input?: unknown;
+  output?: unknown;
+  model?: string;
+  provider?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  input_cost_usd?: number;
+  output_cost_usd?: number;
+  metadata?: Record<string, string | number | boolean>;
+}
+
 export interface BreadcrumbSpan {
-  set(attributes: Record<string, unknown>): void;
+  set(data: SpanData): void;
 }
 
 export interface SpanOptions {

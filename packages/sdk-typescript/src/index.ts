@@ -55,17 +55,21 @@ export function init(options: InitOptions): Breadcrumb {
     fn: (span: BreadcrumbSpan) => Promise<T>,
   ): Promise<T> {
     const bcSpan: BreadcrumbSpan = {
-      set(attributes) {
-        for (const [key, value] of Object.entries(attributes)) {
+      set(data) {
+        const { metadata, ...semantic } = data;
+        for (const [key, value] of Object.entries(semantic)) {
           if (value == null) continue;
-          if (
-            typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean"
-          ) {
-            otelSpan.setAttribute(key, value);
+          const attrKey = `breadcrumb.${key}`;
+          if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+            otelSpan.setAttribute(attrKey, value);
           } else {
-            otelSpan.setAttribute(key, JSON.stringify(value));
+            otelSpan.setAttribute(attrKey, JSON.stringify(value));
+          }
+        }
+        if (metadata) {
+          for (const [key, value] of Object.entries(metadata)) {
+            if (value == null) continue;
+            otelSpan.setAttribute(`breadcrumb.meta.${key}`, value);
           }
         }
       },

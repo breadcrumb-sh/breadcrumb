@@ -3,13 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "simple": "tsx scripts/01-simple.ts",
-    "pipeline": "tsx scripts/02-pipeline.ts",
-    "agent": "tsx scripts/03-agent.ts",
-    "error": "tsx scripts/04-error.ts",
-    "ai-sdk": "tsx scripts/05-ai-sdk.ts",
-    "seed-many": "tsx scripts/seed-many.ts",
-    "seed-conversations": "tsx scripts/seed-conversations.ts",
+    "sdk-simple": "tsx scripts/01-sdk-simple.ts",
+    "sdk-complex": "tsx scripts/02-sdk-complex.ts",
+    "sdk-error": "tsx scripts/03-sdk-error.ts",
+    "ai-sdk-simple": "tsx scripts/04-ai-sdk-simple.ts",
+    "ai-sdk-complex": "tsx scripts/05-ai-sdk-complex.ts",
+    "run-many": "tsx scripts/run-many.ts",
     "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\""
   },
   "dependencies": {

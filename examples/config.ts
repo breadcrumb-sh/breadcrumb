@@ -21,4 +21,6 @@ export const config = {
   baseUrl: process.env["BREADCRUMB_BASE_URL"] ?? "http://localhost:3100",
 };
 
+export const openrouterApiKey = process.env["OPENROUTER_API_KEY"];
+
 export const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
