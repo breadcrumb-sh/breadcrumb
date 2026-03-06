@@ -600,10 +600,10 @@ function SpanMinimap({
   const selectedPct = selectedId != null ? (barPositions.get(selectedId) ?? null) : null;
   const cursorPct = dragPct ?? selectedPct;
 
-  function pctFromMouse(e: MouseEvent | React.MouseEvent): number {
+  function pctFromClientX(clientX: number): number {
     const rect = containerRef.current!.getBoundingClientRect();
     const insetW = rect.width - 32;
-    return Math.max(0, Math.min(1, (e.clientX - rect.left - 16) / insetW));
+    return Math.max(0, Math.min(1, (clientX - rect.left - 16) / insetW));
   }
 
   // Snap cursor to the nearest bar by display position, not raw time.
@@ -620,7 +620,15 @@ function SpanMinimap({
 
   function handleMouseDown(e: React.MouseEvent) {
     isDragging.current = true;
-    const pct = pctFromMouse(e);
+    const pct = pctFromClientX(e.clientX);
+    setDragPct(pct * 100);
+    selectAt(pct);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    e.preventDefault();
+    isDragging.current = true;
+    const pct = pctFromClientX(e.touches[0].clientX);
     setDragPct(pct * 100);
     selectAt(pct);
   }
@@ -628,7 +636,7 @@ function SpanMinimap({
   useEffect(() => {
     function onMove(e: MouseEvent) {
       if (!isDragging.current || !containerRef.current) return;
-      const pct = pctFromMouse(e);
+      const pct = pctFromClientX(e.clientX);
       setDragPct(pct * 100);
       selectAt(pct);
     }
@@ -637,11 +645,27 @@ function SpanMinimap({
       isDragging.current = false;
       setDragPct(null);
     }
+    function onTouchMove(e: TouchEvent) {
+      if (!isDragging.current || !containerRef.current) return;
+      e.preventDefault();
+      const pct = pctFromClientX(e.touches[0].clientX);
+      setDragPct(pct * 100);
+      selectAt(pct);
+    }
+    function onTouchEnd() {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      setDragPct(null);
+    }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spans, minT, totalMs, onSelect]);
@@ -651,7 +675,8 @@ function SpanMinimap({
       <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
-        className="relative h-11 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden cursor-col-resize select-none"
+        onTouchStart={handleTouchStart}
+        className="relative h-11 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden cursor-col-resize select-none touch-none"
       >
         {/* Bars */}
         <div className="absolute inset-y-0 left-4 right-4 pointer-events-none">
@@ -772,7 +797,7 @@ function TraceDetailPage() {
       )}
 
       {/* ── Body ── */}
-      <div className="px-4 sm:px-8 pb-4 pt-2 flex-1 min-h-0">
+      <div className="px-4 sm:px-8 pb-4 pt-2 flex-1 min-h-0 overflow-y-auto sm:overflow-visible">
         {spans.isLoading ? (
           <div className="flex items-center justify-center h-full text-sm text-zinc-600">
             Loading…
@@ -782,10 +807,10 @@ function TraceDetailPage() {
             No spans recorded
           </div>
         ) : (
-          <div className="flex h-full overflow-hidden rounded-lg border border-zinc-800">
-            {/* Left: span list */}
-            <div className="flex flex-col w-[420px] shrink-0 border-r border-zinc-800 overflow-y-auto">
-                <div className="flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:h-full sm:overflow-hidden">
+            {/* Span list */}
+            <div className="flex flex-col rounded-lg border border-zinc-800 sm:w-[420px] sm:shrink-0 sm:overflow-y-auto">
+              <div className="flex-1">
                 {tree.map((node) => (
                   <SpanRow
                     key={node.id}
@@ -798,12 +823,12 @@ function TraceDetailPage() {
               </div>
             </div>
 
-            {/* Right: span detail */}
-            <div className="flex-1 overflow-hidden bg-zinc-950">
+            {/* Span detail */}
+            <div className="rounded-lg border border-zinc-800 sm:flex-1 sm:overflow-hidden bg-zinc-950">
               {selectedSpan ? (
                 <SpanDetail span={selectedSpan} />
               ) : (
-                <div className="flex items-center justify-center h-full text-xs text-zinc-600">
+                <div className="flex items-center justify-center py-10 sm:py-0 sm:h-full text-xs text-zinc-600">
                   Select a span to view details
                 </div>
               )}
