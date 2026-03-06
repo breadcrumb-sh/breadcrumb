@@ -16,9 +16,11 @@
     "db:reset": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up -d",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "release": "turbo run build --filter=./packages/* && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2",
     "turbo": "^2",
     "typescript": "^5.7"
   },
