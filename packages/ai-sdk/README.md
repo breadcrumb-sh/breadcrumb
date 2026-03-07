@@ -85,3 +85,7 @@ experimental_telemetry: telemetry("my-step", { userId: "u_123", temperature: 0.7
 ## Compatibility
 
 Works with AI SDK 5 and AI SDK 6.
+
+## License
+
+AGPL-3.0 — see [LICENSE](./LICENSE) for details.

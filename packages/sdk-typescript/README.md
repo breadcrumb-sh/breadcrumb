@@ -141,3 +141,7 @@ All fields are optional. `null` and `undefined` are ignored.
 | `input_cost_usd` | `number` | Input cost in USD |
 | `output_cost_usd` | `number` | Output cost in USD |
 | `metadata` | `Record<string, string \| number \| boolean>` | Any extra data |
+
+## License
+
+AGPL-3.0 — see [LICENSE](./LICENSE) for details.
