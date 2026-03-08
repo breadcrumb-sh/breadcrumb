@@ -78,6 +78,35 @@ function flattenTree(nodes: SpanNode[], depth = 0): FlatSpan[] {
   return result;
 }
 
+// Clean view: collapse redundant inner spans emitted by frameworks (e.g. AI
+// SDK's doGenerate child that has the same name and type as the outer span).
+// The collapsed span's children are promoted to its parent level so the useful
+// structure (tool calls, nested agents) is preserved.
+function collapseTree(
+  nodes: SpanNode[],
+  parentType?: string,
+  parentName?: string,
+): SpanNode[] {
+  const result: SpanNode[] = [];
+  for (const node of nodes) {
+    const redundant =
+      node.type === "llm" &&
+      parentType === "llm" &&
+      node.name === parentName;
+
+    if (redundant) {
+      // Skip this span but keep its children at the current level
+      result.push(...collapseTree(node.children, parentType, parentName));
+    } else {
+      result.push({
+        ...node,
+        children: collapseTree(node.children, node.type, node.name),
+      });
+    }
+  }
+  return result;
+}
+
 function parseMs(chDate: string): number {
   return new Date(chDate.replace(" ", "T") + "Z").getTime();
 }
@@ -801,10 +830,27 @@ function TraceDetailPage() {
   const router = useRouter();
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);
   const [copied, setCopied] = useState(false);
+  const [cleanView, setCleanView] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("bc:clean-view");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  function toggleCleanView() {
+    setCleanView((v) => {
+      const next = !v;
+      try { localStorage.setItem("bc:clean-view", String(next)); } catch {}
+      return next;
+    });
+  }
 
   const trace = trpc.traces.get.useQuery({ projectId, traceId });
   const spans = trpc.traces.spans.useQuery({ projectId, traceId });
-  const tree = spans.data ? buildTree(spans.data) : [];
+  const rawTree = spans.data ? buildTree(spans.data) : [];
+  const tree = cleanView ? collapseTree(rawTree) : rawTree;
 
   // Compute trace-level summary from spans
   const totalCost = (spans.data ?? []).reduce(
@@ -890,6 +936,19 @@ function TraceDetailPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:h-full sm:overflow-hidden">
             {/* Span list */}
             <div className="flex flex-col rounded-lg border border-zinc-800 sm:w-[420px] sm:shrink-0 sm:overflow-y-auto">
+              {/* Tree header with clean view toggle */}
+              <div className="flex items-center justify-end px-3 py-2 border-b border-zinc-800/60 shrink-0">
+                <button
+                  onClick={toggleCleanView}
+                  className={`text-[11px] font-medium px-2 py-1 rounded transition-colors ${
+                    cleanView
+                      ? "text-zinc-100 bg-zinc-700/60"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  Clean view
+                </button>
+              </div>
               <div className="flex-1">
                 {tree.map((node) => (
                   <SpanRow
