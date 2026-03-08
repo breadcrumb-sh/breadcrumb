@@ -1,6 +1,25 @@
+/**
+ * A single message in a conversation. Pass an array of these as `input` to
+ * display the conversation in the Breadcrumb UI the same way LLM spans appear.
+ */
+export interface Message {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+}
+
 export interface SpanData {
-  input?: unknown;
-  output?: unknown;
+  /**
+   * The input to this step. Use a plain string for simple inputs, or a
+   * `Message[]` array for conversation-style inputs — the UI renders both
+   * with role labels (system / user / assistant).
+   * Any other JSON-serializable value is also accepted and shown as raw data.
+   */
+  input?: string | Message[] | Record<string, unknown>;
+  /**
+   * The output from this step. Use a plain string for text outputs.
+   * Any JSON-serializable value is accepted.
+   */
+  output?: string | Record<string, unknown>;
   model?: string;
   provider?: string;
   input_tokens?: number;

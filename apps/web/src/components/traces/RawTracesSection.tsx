@@ -255,7 +255,7 @@ export function RawTracesSection() {
       sortBy,
       sortDir,
     },
-    { placeholderData: keepPreviousData },
+    { placeholderData: keepPreviousData, refetchInterval: 10_000 },
   );
 
   const toastManager = useToastManager();

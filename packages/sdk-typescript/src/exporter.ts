@@ -33,7 +33,10 @@ const HANDLED_ATTRS = new Set([
   "breadcrumb.output_tokens",
   "breadcrumb.input_cost_usd",
   "breadcrumb.output_cost_usd",
+  // AI SDK - function id / display name
+  "resource.name",
   // AI SDK - input/output
+  "ai.prompt",
   "ai.prompt.messages",
   "ai.response.text",
   // AI SDK - model/provider
@@ -58,7 +61,6 @@ const HANDLED_ATTRS = new Set([
 // Attributes to drop entirely
 const DROP_ATTRS = new Set([
   "operation.name",
-  "resource.name",
   "ai.operationId",
   "ai.telemetry.functionId",
   "gen_ai.response.finish_reasons",
@@ -185,14 +187,35 @@ export class BreadcrumbSpanExporter implements SpanExporter {
     const ctx = span.spanContext();
     const attrs = span.attributes;
 
+    // Use resource.name (= AI SDK functionId) as display name when set
+    const name = strAttr(span, "resource.name") ?? span.name;
+
     // ── Input ────────────────────────────────────────────────────────────────
     let input: unknown;
     const bcInput = attrs["breadcrumb.input"];
     const aiMessages = attrs["ai.prompt.messages"];
+    const aiPrompt = attrs["ai.prompt"];
     if (bcInput != null) {
       input = typeof bcInput === "string" ? (tryJson(bcInput) ?? bcInput) : bcInput;
     } else if (typeof aiMessages === "string") {
+      // doGenerate span: fully formatted messages array sent to the model
       input = tryJson(aiMessages) ?? aiMessages;
+    } else if (typeof aiPrompt === "string") {
+      // generateText outer span: raw prompt object { prompt?, system?, messages? }
+      // Normalize to a messages array so the UI renders it the same as doGenerate.
+      const parsed = tryJson(aiPrompt) as Record<string, unknown> | null;
+      if (parsed && typeof parsed === "object") {
+        const messages: { role: string; content: unknown }[] = [];
+        if (parsed["system"]) messages.push({ role: "system", content: parsed["system"] });
+        if (Array.isArray(parsed["messages"])) {
+          messages.push(...(parsed["messages"] as { role: string; content: unknown }[]));
+        } else if (parsed["prompt"] !== undefined) {
+          messages.push({ role: "user", content: parsed["prompt"] });
+        }
+        input = messages.length > 0 ? messages : parsed;
+      } else {
+        input = aiPrompt;
+      }
     }
 
     // ── Output ───────────────────────────────────────────────────────────────
@@ -263,7 +286,7 @@ export class BreadcrumbSpanExporter implements SpanExporter {
       id: ctx.spanId,
       trace_id: ctx.traceId,
       parent_span_id: span.parentSpanId || undefined,
-      name: span.name,
+      name,
       type: inferSpanType(span),
       start_time: hrTimeToISO(span.startTime),
       end_time: hrTimeToISO(span.endTime),
@@ -283,9 +306,10 @@ export class BreadcrumbSpanExporter implements SpanExporter {
 
   private async _sendTrace(span: ReadableSpan): Promise<void> {
     const ctx = span.spanContext();
+    const name = strAttr(span, "resource.name") ?? span.name;
     await this._post("/v1/traces", {
       id: ctx.traceId,
-      name: span.name,
+      name,
       start_time: hrTimeToISO(span.startTime),
       end_time: hrTimeToISO(span.endTime),
       status: spanStatus(span),

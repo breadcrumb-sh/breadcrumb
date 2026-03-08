@@ -11,9 +11,9 @@ import {
   BatchSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { BreadcrumbSpanExporter } from "./exporter.js";
-import type { Breadcrumb, BreadcrumbSpan, SpanOptions } from "./types.js";
+import type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message } from "./types.js";
 
-export type { Breadcrumb, BreadcrumbSpan, SpanOptions };
+export type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message };
 
 export interface InitOptions {
   apiKey: string;

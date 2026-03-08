@@ -130,10 +130,24 @@ span.set({
 
 All fields are optional. `null` and `undefined` are ignored.
 
+For `input`, passing a `Message[]` array renders the conversation with role labels in the UI — the same way AI SDK spans appear:
+
+```ts
+import type { Message } from "@breadcrumb-sdk/core";
+
+span.set({
+  input: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What is TypeScript?" },
+  ] satisfies Message[],
+  output: "TypeScript is a typed superset of JavaScript.",
+});
+```
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `input` | `unknown` | Input passed to this step |
-| `output` | `unknown` | Output produced by this step |
+| `input` | `string \| Message[] \| object` | Input passed to this step |
+| `output` | `string \| object` | Output produced by this step |
 | `model` | `string` | Model name, e.g. `"gpt-4o"` |
 | `provider` | `string` | Provider, e.g. `"openai"` |
 | `input_tokens` | `number` | Input token count |
