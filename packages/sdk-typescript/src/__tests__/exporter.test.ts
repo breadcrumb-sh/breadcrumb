@@ -375,6 +375,110 @@ describe("BreadcrumbSpanExporter", () => {
     });
   });
 
+  // ── Mapper merge behaviour ──────────────────────────────────────────────────
+  //
+  // breadcrumb.* attributes (set by the user via span.set()) should always win
+  // over values inferred from AI SDK attributes.
+
+  describe("mapper merge — breadcrumb overrides AI SDK", () => {
+    it("breadcrumb.model overrides ai.model.id", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: { "ai.model.id": "gpt-4o", "breadcrumb.model": "my-custom-model" },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].model).toBe("my-custom-model");
+    });
+
+    it("breadcrumb.provider overrides ai.model.provider", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: { "ai.model.provider": "openai", "breadcrumb.provider": "my-provider" },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].provider).toBe("my-provider");
+    });
+
+    it("breadcrumb.input overrides ai.prompt.messages", async () => {
+      const messages = [{ role: "user", content: "ai sdk message" }];
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: {
+            "ai.prompt.messages": JSON.stringify(messages),
+            "breadcrumb.input": "my override",
+          },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].input).toBe("my override");
+    });
+
+    it("breadcrumb.output overrides ai.response.text", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: {
+            "ai.response.text": "ai sdk output",
+            "breadcrumb.output": "my override",
+          },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].output).toBe("my override");
+    });
+
+    it("breadcrumb.input_tokens overrides ai.usage.inputTokens", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: { "ai.usage.inputTokens": 999, "breadcrumb.input_tokens": 42 },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].input_tokens).toBe(42);
+    });
+
+    it("breadcrumb.span.type overrides AI SDK inferred type", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          name: "ai.toolCall",
+          attributes: { "breadcrumb.span.type": "retrieval" },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].type).toBe("retrieval");
+    });
+
+    it("breadcrumb metadata keys override matching AI SDK telemetry metadata keys", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: {
+            "ai.telemetry.metadata.env": "staging",
+            "breadcrumb.meta.env": "production",
+          },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].metadata?.env).toBe("production");
+    });
+
+    it("breadcrumb and AI SDK metadata keys are merged when non-overlapping", async () => {
+      await exportSpans(exporter, [
+        makeSpan({
+          attributes: {
+            "ai.telemetry.metadata.source": "vector-db",
+            "breadcrumb.meta.score": "0.95",
+          },
+        }),
+      ]);
+      expect(getSpansBody(fetchMock)[0].metadata).toEqual({
+        source: "vector-db",
+        score: "0.95",
+      });
+    });
+
+    it("resource.name is used as trace name when set", async () => {
+      await exportSpans(exporter, [
+        makeSpan({ name: "ai.generateText", attributes: { "resource.name": "my-agent" } }),
+      ]);
+      expect(getTracesBody(fetchMock).name).toBe("my-agent");
+      expect(getSpansBody(fetchMock)[0].name).toBe("my-agent");
+    });
+  });
+
   // ── Error handling / silent failures ───────────────────────────────────────
 
   describe("error handling", () => {

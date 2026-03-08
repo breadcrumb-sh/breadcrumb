@@ -223,11 +223,13 @@ function SpanRow({
         <span className="text-xs text-zinc-100 font-medium truncate flex-1 min-w-0">
           {node.name}
         </span>
-        <span
-          className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(node.type)}`}
-        >
-          {node.type}
-        </span>
+        {node.type !== "custom" && (
+          <span
+            className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(node.type)}`}
+          >
+            {node.type}
+          </span>
+        )}
 
         {/* Duration */}
         <span className="shrink-0 text-[11px] text-zinc-500 tabular-nums w-12 text-right">
@@ -277,11 +279,13 @@ function SpanDetail({ span }: { span: SpanData }) {
           <span className="text-sm font-semibold text-zinc-100">
             {span.name}
           </span>
-          <span
-            className={`inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(span.type)}`}
-          >
-            {span.type}
-          </span>
+          {span.type !== "custom" && (
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(span.type)}`}
+            >
+              {span.type}
+            </span>
+          )}
           {span.status === "error" ? (
             <span className="inline-flex items-center gap-1 text-xs text-red-400">
               <XCircle size={12} weight="fill" /> error
@@ -313,8 +317,8 @@ function SpanDetail({ span }: { span: SpanData }) {
 
       {/* Input / Output / Metadata */}
       <div className="flex-1 overflow-y-auto">
-        {span.input && <Section label="Input" content={span.input} collapsible />}
-        {span.output && <Section label="Output" content={span.output} collapsible />}
+        {span.input && <Section label={span.type === "tool" ? "Arguments" : "Input"} content={span.input} collapsible />}
+        {span.output && <Section label={span.type === "tool" ? "Result" : "Output"} content={span.output} collapsible />}
         {span.metadata &&
           span.metadata !== "{}" &&
           span.metadata !== "null" && (
@@ -333,6 +337,8 @@ function SpanDetail({ span }: { span: SpanData }) {
 // ── Chat message renderer ──────────────────────────────────────────────────────
 
 type ChatMessage = { role: string; content: unknown };
+type ToolCallPart = Record<string, unknown> & { type: "tool-call"; toolCallId: string; toolName: string };
+type ToolResultPart = Record<string, unknown> & { type: "tool-result"; toolCallId: string };
 
 function isChatMessages(data: unknown): data is ChatMessage[] {
   return (
@@ -405,15 +411,16 @@ function MessageContent({ content }: { content: unknown }) {
             );
           }
           if (part.type === "tool-result") {
+            const resultValue = (part.output as Record<string, unknown>)?.value ?? part.output ?? part.result;
             return (
               <div
                 key={i}
                 className="text-xs font-mono text-emerald-300 bg-emerald-500/10 rounded px-2 py-1"
               >
                 <span className="text-emerald-400 font-semibold">
-                  tool_result:{" "}
+                  {String(part.toolName ?? "tool_result")}:{" "}
                 </span>
-                {JSON.stringify(part.result, null, 2)}
+                {JSON.stringify(resultValue, null, 2)}
               </div>
             );
           }
@@ -436,27 +443,84 @@ function MessageContent({ content }: { content: unknown }) {
   );
 }
 
-function ChatMessagesView({ messages }: { messages: ChatMessage[] }) {
+function isPureToolCalls(msg: ChatMessage): boolean {
   return (
-    <div className="space-y-2">
-      {messages.map((msg, i) => {
-        const styles = ROLE_STYLES[msg.role] ?? ROLE_STYLES.user;
+    msg.role === "assistant" &&
+    Array.isArray(msg.content) &&
+    (msg.content as Array<Record<string, unknown>>).every((p) => p.type === "tool-call")
+  );
+}
+
+function isPureToolResults(msg: ChatMessage): boolean {
+  return (
+    msg.role === "tool" &&
+    Array.isArray(msg.content) &&
+    (msg.content as Array<Record<string, unknown>>).every((p) => p.type === "tool-result")
+  );
+}
+
+function ToolInteractionView({ calls, results }: { calls: ToolCallPart[]; results: ToolResultPart[] }) {
+  const resultMap = new Map(results.map((r) => [r.toolCallId, r]));
+  return (
+    <div className="space-y-1.5">
+      {calls.map((call, i) => {
+        const result = resultMap.get(call.toolCallId);
+        const resultValue = result
+          ? ((result.output as Record<string, unknown>)?.value ?? result.output ?? result.result)
+          : undefined;
         return (
-          <div
-            key={i}
-            className={`rounded border ${styles.borderCls} ${styles.bgCls} px-3 py-2.5`}
-          >
-            <div
-              className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 ${styles.labelCls}`}
-            >
-              {msg.role}
+          <div key={i} className="rounded border border-blue-500/20 bg-blue-500/5 px-3 py-2.5 space-y-1.5">
+            <div className="text-xs font-mono text-blue-300">
+              <span className="text-blue-400 font-semibold">tool_call: </span>
+              {String(call.toolName)}({JSON.stringify(call.input ?? call.args, null, 2)})
             </div>
-            <MessageContent content={msg.content} />
+            {resultValue !== undefined && (
+              <div className="text-xs font-mono text-emerald-300">
+                <span className="text-emerald-400 font-semibold">result: </span>
+                {JSON.stringify(resultValue, null, 2)}
+              </div>
+            )}
           </div>
         );
       })}
     </div>
   );
+}
+
+function ChatMessagesView({ messages }: { messages: ChatMessage[] }) {
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    const msg = messages[i];
+    const next = messages[i + 1];
+    if (isPureToolCalls(msg) && next && isPureToolResults(next)) {
+      nodes.push(
+        <ToolInteractionView
+          key={i}
+          calls={msg.content as ToolCallPart[]}
+          results={next.content as ToolResultPart[]}
+        />
+      );
+      i += 2;
+    } else {
+      const styles = ROLE_STYLES[msg.role] ?? ROLE_STYLES.user;
+      nodes.push(
+        <div
+          key={i}
+          className={`rounded border ${styles.borderCls} ${styles.bgCls} px-3 py-2.5`}
+        >
+          <div
+            className={`text-[10px] font-semibold uppercase tracking-widest mb-1.5 ${styles.labelCls}`}
+          >
+            {msg.role}
+          </div>
+          <MessageContent content={msg.content} />
+        </div>
+      );
+      i++;
+    }
+  }
+  return <div className="space-y-2">{nodes}</div>;
 }
 
 const SECTION_STORAGE_KEY = "bc:span-section-collapsed";
@@ -501,6 +565,13 @@ function Section({ label, content, collapsible = false }: { label: string; conte
   }
 
   const messages = isChatMessages(parsed) ? parsed : null;
+  const toolCallsOutput =
+    !messages &&
+    Array.isArray(parsed) &&
+    parsed.length > 0 &&
+    typeof (parsed[0] as Record<string, unknown>)?.toolName === "string"
+      ? (parsed as Array<Record<string, unknown>>)
+      : null;
   const isOpen = !collapsible || !collapsed;
 
   return (
@@ -523,6 +594,15 @@ function Section({ label, content, collapsible = false }: { label: string; conte
         <div className="px-5 pb-4">
           {messages ? (
             <ChatMessagesView messages={messages} />
+          ) : toolCallsOutput ? (
+            <div className="space-y-1">
+              {toolCallsOutput.map((call, i) => (
+                <div key={i} className="text-xs font-mono text-blue-300 bg-blue-500/10 rounded px-2 py-1">
+                  <span className="text-blue-400 font-semibold">tool_call: </span>
+                  {String(call.toolName)}({JSON.stringify(call.input ?? call.args, null, 2)})
+                </div>
+              ))}
+            </div>
           ) : typeof parsed === "string" ? (
             <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-all font-mono leading-relaxed">
               {parsed}

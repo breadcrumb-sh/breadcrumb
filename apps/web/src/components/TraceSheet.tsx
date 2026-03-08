@@ -140,11 +140,13 @@ function SpanItem({ node, depth }: { node: SpanNode; depth: number }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-zinc-100 font-medium">{node.name}</span>
-            <span
-              className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(node.type)}`}
-            >
-              {node.type}
-            </span>
+            {node.type !== "custom" && (
+              <span
+                className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${typeClass(node.type)}`}
+              >
+                {node.type}
+              </span>
+            )}
             {node.model && (
               <span className="shrink-0 text-[11px] text-zinc-500">{node.model}</span>
             )}

@@ -150,6 +150,7 @@ const SPAN_STATS_COLUMNS: Column<SpanStats>[] = [
     header: "Type",
     sortable: true,
     render: (s) => {
+      if (s.type === "custom") return <span className="text-zinc-500 text-[10px]">—</span>;
       const tc =
         STAT_TYPE_CLASSES[s.type] ??
         "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
