@@ -22,6 +22,30 @@ export const clickhouse = createClient({
   },
 });
 
+// Read-only client for all SELECT queries. ClickHouse enforces readonly=1 at
+// the server level — no DDL, no DML, no INSERT can slip through regardless of
+// what SQL is passed. Use this everywhere user-supplied or AI-generated queries run.
+export const readonlyClickhouse = createClient({
+  url: env.clickhouseUrl,
+  username: env.clickhouseUser,
+  password: env.clickhousePassword,
+  database: env.clickhouseDb,
+  application: "breadcrumb-server-ro",
+  max_open_connections: 20,
+  request_timeout: 60_000,
+  compression: {
+    response: true,
+    request: true,
+  },
+  keep_alive: {
+    enabled: true,
+    idle_socket_ttl: 2500,
+  },
+  clickhouse_settings: {
+    readonly: "1",
+  },
+});
+
 // Separate client without a database selected, used only during migration
 // setup when the database may not exist yet.
 const adminClient = createClient({

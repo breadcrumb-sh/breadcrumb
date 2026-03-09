@@ -10,6 +10,7 @@ import type { MappedSpanData } from "./mappers/types.js";
 // pass-through that collects remaining unknown attrs into metadata.
 const MAPPER_NAMESPACES = ["ai.", "gen_ai.", "breadcrumb.", "resource.name"];
 
+
 // Non-namespaced keys that should be dropped entirely (not in metadata).
 // These come from AI SDK / OTel conventions and are not user-meaningful.
 const GLOBAL_DROP = new Set(["operation.name"]);

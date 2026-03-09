@@ -2,8 +2,7 @@ import { streamText, tool, stepCountIs } from "ai";
 import type { LanguageModel, ModelMessage } from "ai";
 import { z } from "zod";
 import { CLICKHOUSE_SCHEMA } from "./clickhouse-schema.js";
-import { clickhouse } from "../db/clickhouse.js";
-import { assertSelectOnly } from "./sql-validation.js";
+import { readonlyClickhouse } from "../db/clickhouse.js";
 import { chartSpecSchema, type ChartSpec } from "./explore-types.js";
 
 export { chartSpecSchema, type ChartSpec };
@@ -97,8 +96,7 @@ export function streamChartGeneration({
         }),
         execute: async ({ sql }) => {
           try {
-            assertSelectOnly(sql);
-            const result = await clickhouse.query({
+            const result = await readonlyClickhouse.query({
               query: sql,
               query_params: { projectId },
               format: "JSONEachRow",
@@ -140,8 +138,7 @@ export function streamChartGeneration({
         }),
         execute: async ({ title, chartType, sql, xKey, yKeys, legend }) => {
           try {
-            assertSelectOnly(sql);
-            const result = await clickhouse.query({
+            const result = await readonlyClickhouse.query({
               query: sql,
               query_params: { projectId },
               format: "JSONEachRow",

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, procedure } from "../trpc.js";
-import { clickhouse } from "../../db/clickhouse.js";
+import { readonlyClickhouse } from "../../db/clickhouse.js";
 import { getAiModel } from "../../lib/ai-provider.js";
 import { writeSearchQuery } from "../../lib/query-writer.js";
 import { cache } from "../../lib/cache.js";
@@ -127,7 +127,7 @@ export const tracesRouter = router({
       `;
 
       // Run current period query
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: statsQuery,
         query_params: params,
         format: "JSONEachRow",
@@ -158,7 +158,7 @@ export const tracesRouter = router({
           to: prevTo.toISOString().slice(0, 10),
         };
         const { whereStr: prevWhereStr, params: prevParams } = buildTraceFilters(prevInput);
-        const prevResult = await clickhouse.query({
+        const prevResult = await readonlyClickhouse.query({
           query: `
             SELECT
               count()                             AS trace_count,
@@ -347,11 +347,10 @@ export const tracesRouter = router({
       // When the WHERE clause includes AI-generated SQL, enforce read-only
       // mode at the ClickHouse session level. This is server-enforced —
       // even if the AI produces destructive SQL, ClickHouse will reject it.
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: sql,
         query_params: params,
         format: "JSONEachRow",
-        ...(hasAiClause && { clickhouse_settings: { readonly: "1" } }),
       });
 
       const rows = (await result.json()) as Array<Record<string, unknown>>;
@@ -382,7 +381,7 @@ export const tracesRouter = router({
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
 
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             toDate(t.start_time)                AS day,
@@ -438,7 +437,7 @@ export const tracesRouter = router({
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
 
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             toDate(t.start_time)                           AS day,
@@ -490,7 +489,7 @@ export const tracesRouter = router({
       const { whereStr, params } = buildTraceFilters(input);
 
       // Step 1: compute p75 cost & duration from successful traces in the range
-      const threshResult = await clickhouse.query({
+      const threshResult = await readonlyClickhouse.query({
         query: `
           SELECT
             quantile(0.75)(total_cost_usd) AS p75_cost,
@@ -537,7 +536,7 @@ export const tracesRouter = router({
       const p75Duration = Number(threshRows[0]?.["p75_duration"] ?? 0);
 
       // Step 2: classify each trace per day using those thresholds
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             toDate(t.start_time) AS day,
@@ -624,7 +623,7 @@ export const tracesRouter = router({
       if (input.to)   { clauses.push(`start_time < {to: Date} + INTERVAL 1 DAY`); params.to = input.to; }
       if (input.models && input.models.length > 0) { clauses.push(`model IN {models: Array(String)}`); params.models = input.models; }
 
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             provider,
@@ -670,7 +669,7 @@ export const tracesRouter = router({
         params.to = input.to;
       }
 
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             s.name                                           AS span_name,
@@ -713,7 +712,7 @@ export const tracesRouter = router({
         params.to = input.to;
       }
 
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             s.name                                           AS span_name,
@@ -748,7 +747,7 @@ export const tracesRouter = router({
   environments: procedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT DISTINCT env
           FROM (
@@ -772,7 +771,7 @@ export const tracesRouter = router({
   models: procedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT DISTINCT model
           FROM breadcrumb.spans
@@ -793,7 +792,7 @@ export const tracesRouter = router({
   names: procedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT DISTINCT name
           FROM (
@@ -823,7 +822,7 @@ export const tracesRouter = router({
       })
     )
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             toDate(start_time) AS day,
@@ -859,7 +858,7 @@ export const tracesRouter = router({
         ? `AND start_time >= {from: String} AND start_time < {to: String} + INTERVAL 1 DAY`
         : "";
 
-      const traceResult = await clickhouse.query({
+      const traceResult = await readonlyClickhouse.query({
         query: `
           SELECT id
           FROM (
@@ -880,7 +879,7 @@ export const tracesRouter = router({
 
       if (traceIds.length === 0) return { traceCount: 0, spans: [] as Array<{ id: string; traceId: string; parentSpanId: string; name: string; type: string; status: "ok" | "error"; startTime: string; endTime: string }> };
 
-      const spanResult = await clickhouse.query({
+      const spanResult = await readonlyClickhouse.query({
         query: `
           SELECT
             id, trace_id, parent_span_id, name, type, status,
@@ -933,7 +932,7 @@ export const tracesRouter = router({
       };
 
       // Query 1: loopback rates (top 10)
-      const rateResult = await clickhouse.query({
+      const rateResult = await readonlyClickhouse.query({
         query: `
           WITH
           filtered_traces AS (
@@ -982,7 +981,7 @@ export const tracesRouter = router({
       const spanNames = rateRows.map(r => String(r["span_name"]));
 
       // Query 2: trigger breakdown for the top loopback span names
-      const triggerResult = await clickhouse.query({
+      const triggerResult = await readonlyClickhouse.query({
         query: `
           WITH
           filtered_traces AS (
@@ -1068,7 +1067,7 @@ export const tracesRouter = router({
   get: procedure
     .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             argMax(name, version)   AS name,
@@ -1093,7 +1092,7 @@ export const tracesRouter = router({
   spans: procedure
     .input(z.object({ projectId: z.string().uuid(), traceId: z.string() }))
     .query(async ({ input }) => {
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: `
           SELECT
             id, parent_span_id, name, type, status, status_message,

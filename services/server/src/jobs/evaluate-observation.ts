@@ -4,8 +4,7 @@ import { eq, and, or, ilike, sql } from "drizzle-orm";
 import { boss } from "../lib/boss.js";
 import { db } from "../db/index.js";
 import { observations, observationFindings } from "../db/schema.js";
-import { clickhouse } from "../db/clickhouse.js";
-import { assertSelectOnly } from "../lib/sql-validation.js";
+import { readonlyClickhouse } from "../db/clickhouse.js";
 import { getAiModel } from "../lib/ai-provider.js";
 import { CLICKHOUSE_SCHEMA } from "../lib/clickhouse-schema.js";
 import { invalidateObservationsCache } from "../lib/observations-cache.js";
@@ -142,8 +141,7 @@ WORKFLOW:
         }),
         execute: async ({ sql }) => {
           try {
-            assertSelectOnly(sql);
-            const result = await clickhouse.query({
+            const result = await readonlyClickhouse.query({
               query: sql,
               query_params: { projectId },
               format: "JSONEachRow",

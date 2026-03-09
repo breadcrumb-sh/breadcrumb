@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { z } from "zod";
 import { useRegisterSubMenu } from "../../../../components/SubMenuContext";
 import { InsightsSection } from "../../../../components/traces/InsightsSection";
+import { McpCallout } from "../../../../components/traces/McpCallout";
 import { ObservationsSection } from "../../../../components/traces/ObservationsSection";
 import { RawTracesSection } from "../../../../components/traces/RawTracesSection";
 import { trpc } from "../../../../lib/trpc";
@@ -104,6 +105,7 @@ function TracesPage() {
         </nav>
 
         <div className="flex-1 min-w-0">
+          <McpCallout />
           {section === "overview" && <InsightsSection />}
           {section === "observations" && <ObservationsSection />}
           {section === "raw" && <RawTracesSection />}

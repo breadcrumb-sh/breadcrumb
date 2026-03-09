@@ -5,11 +5,10 @@ import { TRPCError } from "@trpc/server";
 import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProcedure, checkOrgRole } from "../trpc.js";
 import { env } from "../../env.js";
 import { db } from "../../db/index.js";
-import { clickhouse } from "../../db/clickhouse.js";
+import { readonlyClickhouse } from "../../db/clickhouse.js";
 import { explores, starredCharts } from "../../db/schema.js";
 import { getAiModel } from "../../lib/ai-provider.js";
 import { streamChartGeneration } from "../../lib/chart-generator.js";
-import { assertSelectOnly } from "../../lib/sql-validation.js";
 import {
   legendEntrySchema,
   type ChartSpec,
@@ -223,8 +222,7 @@ export const exploresRouter = router({
   requery: orgViewerProcedure
     .input(z.object({ projectId: z.string(), sql: z.string() }))
     .mutation(async ({ input }) => {
-      assertSelectOnly(input.sql);
-      const result = await clickhouse.query({
+      const result = await readonlyClickhouse.query({
         query: input.sql,
         query_params: { projectId: input.projectId },
         format: "JSONEachRow",
