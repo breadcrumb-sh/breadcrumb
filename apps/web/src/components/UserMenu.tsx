@@ -18,7 +18,7 @@ export function UserMenu() {
       <button
         onClick={toggle}
         aria-label="Toggle theme"
-        className="flex items-center justify-center size-8 rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+        className="flex items-center justify-center size-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
       >
         {theme === "dark" ? <Sun size={16} weight="bold" /> : <Moon size={16} weight="bold" />}
       </button>
