@@ -5,12 +5,12 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { Logo } from "../../../components/common/logo/Logo";
-import { UserMenu } from "../../../components/UserMenu";
 import { FeedbackButton } from "../../../components/FeedbackButton";
 import { MobileNav } from "../../../components/MobileNav";
 import { SubMenuProvider } from "../../../components/SubMenuContext";
-import { trpc } from "../../../lib/trpc";
+import { UserMenu } from "../../../components/UserMenu";
 import { useAuth } from "../../../hooks/useAuth";
+import { trpc } from "../../../lib/trpc";
 
 export const Route = createFileRoute("/_authed/projects/$projectId")({
   component: ProjectLayout,
@@ -47,7 +47,9 @@ function ProjectLayout() {
                 >
                   <Logo className="size-5" />
                 </Link>
-                <span className="text-zinc-700 select-none shrink-0 mx-1.5">/</span>
+                <span className="text-zinc-700 select-none shrink-0 mx-1.5">
+                  /
+                </span>
                 <span className="font-medium text-zinc-400 truncate max-w-[100px] sm:max-w-none">
                   {project.data?.name ?? "…"}
                 </span>
@@ -57,7 +59,7 @@ function ProjectLayout() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <FeedbackButton />
                 <UserMenu />
               </div>
@@ -66,31 +68,31 @@ function ProjectLayout() {
 
           {/* Tab row — hidden on mobile */}
           <div className="border-b border-zinc-800/70 hidden sm:block">
-          <nav className="pt-1 flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
-          {visibleTabs.map(({ label, path, exact }) => {
-            const href = `/projects/${projectId}${path}`;
-            const isActive = exact
-              ? pathname === href
-              : pathname.startsWith(href) ||
-                (label === "Traces" &&
-                  pathname.startsWith(`/projects/${projectId}/trace/`));
+            <nav className="pt-1 flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
+              {visibleTabs.map(({ label, path, exact }) => {
+                const href = `/projects/${projectId}${path}`;
+                const isActive = exact
+                  ? pathname === href
+                  : pathname.startsWith(href) ||
+                    (label === "Traces" &&
+                      pathname.startsWith(`/projects/${projectId}/trace/`));
 
-            return (
-              <Link
-                key={label}
-                to={`/projects/$projectId${path}`}
-                params={{ projectId }}
-                className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                  isActive
-                    ? "border-zinc-100 text-zinc-100"
-                    : "border-transparent text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
-          </nav>
+                return (
+                  <Link
+                    key={label}
+                    to={`/projects/$projectId${path}`}
+                    params={{ projectId }}
+                    className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                      isActive
+                        ? "border-zinc-100 text-zinc-100"
+                        : "border-transparent text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
         </div>
 

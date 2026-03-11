@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from "react";
-import { Sun, Moon, SignOut, Gear } from "@phosphor-icons/react";
+import { Sun, Moon, SignOut, Gear, ChatCircleDots } from "@phosphor-icons/react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
+import { openUserJotFeedback } from "../lib/userjot";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
@@ -45,15 +46,28 @@ export function UserMenu() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="User menu"
-        className="flex items-center justify-center size-8 rounded-full overflow-hidden hover:opacity-80 transition-opacity"
+        className="flex items-center justify-center size-8 overflow-hidden hover:opacity-80 transition-opacity"
       >
-        <div className="size-8 rounded-full bg-zinc-900 flex items-center justify-center text-xs font-medium text-zinc-300">
+        <div className="size-8 bg-zinc-900 flex items-center justify-center text-xs font-medium text-zinc-300">
           {(user?.name ?? user?.email ?? "U").charAt(0).toUpperCase()}
         </div>
       </button>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] w-44 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl z-50 overflow-hidden py-1.5">
+          <button
+            type="button"
+            title="Give feedback"
+            onClick={() => {
+              void openUserJotFeedback();
+              setOpen(false);
+            }}
+            className="flex sm:hidden items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
+          >
+            <ChatCircleDots size={14} weight="bold" />
+            Feedback
+          </button>
+
           <button
             onClick={() => { toggle(); setOpen(false); }}
             className="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"

@@ -17,7 +17,7 @@ export function AppHeader() {
         >
           <Logo className="size-5" />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <FeedbackButton />
           <UserMenu />
         </div>

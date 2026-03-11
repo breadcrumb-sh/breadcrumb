@@ -13,6 +13,7 @@ import superjson from "superjson";
 import { trpc } from "./lib/trpc";
 import { router } from "./router";
 import { ToastProvider } from "./components/Toasts";
+import { UserJotBridge } from "./components/UserJotBridge";
 
 function Root() {
   const [queryClient] = useState(() => new QueryClient());
@@ -38,6 +39,7 @@ function Root() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
+          <UserJotBridge />
           <RouterProvider router={router} />
         </ToastProvider>
       </QueryClientProvider>
