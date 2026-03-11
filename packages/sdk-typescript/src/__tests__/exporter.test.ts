@@ -136,6 +136,16 @@ describe("BreadcrumbSpanExporter", () => {
       expect(body.end_time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(body.status).toBe("ok");
     });
+
+    it("includes environment in the trace payload when configured", async () => {
+      const envExporter = new BreadcrumbSpanExporter(
+        "test-api-key",
+        "http://localhost:3100",
+        "production",
+      );
+      await exportSpans(envExporter, [makeSpan({ name: "my-trace" })]);
+      expect(getTracesBody(fetchMock).environment).toBe("production");
+    });
   });
 
   // ── Child span routing ──────────────────────────────────────────────────────

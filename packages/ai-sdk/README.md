@@ -16,7 +16,11 @@ import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 
-const bc = init({ apiKey: "bc_...", baseUrl: "https://your-breadcrumb-instance.com" });
+const bc = init({
+  apiKey: "bc_...",
+  baseUrl: "https://your-breadcrumb-instance.com",
+  environment: "production",
+});
 const { telemetry } = initAiSdk(bc);
 
 const { text } = await generateText({
@@ -27,6 +31,8 @@ const { text } = await generateText({
 ```
 
 Each call with `telemetry()` shows up as its own trace in the dashboard. No other setup needed.
+
+Set `environment` on `init()` if you want AI SDK traces tagged as `"production"`, `"staging"`, `"development"`, and so on for environment filtering.
 
 ## Grouping calls into one trace
 

@@ -30,6 +30,7 @@ function getTraceCalls(fetchMock: ReturnType<typeof vi.fn>) {
 
 describe("Breadcrumb SDK (integration)", () => {
   let bc: Breadcrumb;
+  let bcWithEnvironment: Breadcrumb;
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeAll(() => {
@@ -37,6 +38,12 @@ describe("Breadcrumb SDK (integration)", () => {
     vi.stubGlobal("fetch", fetchMock);
     // batching: false → SimpleSpanProcessor — each span exported immediately on end
     bc = init({ apiKey: "sk-test", baseUrl: "http://localhost:3100", batching: false });
+    bcWithEnvironment = init({
+      apiKey: "sk-test",
+      baseUrl: "http://localhost:3100",
+      environment: "production",
+      batching: false,
+    });
   });
 
   beforeEach(() => {
@@ -52,6 +59,14 @@ describe("Breadcrumb SDK (integration)", () => {
       const traces = getTraceCalls(fetchMock);
       expect(traces).toHaveLength(1);
       expect(traces[0].name).toBe("my-trace");
+    });
+
+    it("includes environment in root trace payloads when configured", async () => {
+      await bcWithEnvironment.trace("my-trace", async () => {});
+      await flush();
+      const traces = getTraceCalls(fetchMock);
+      expect(traces).toHaveLength(1);
+      expect(traces[0].environment).toBe("production");
     });
 
     it("creates a root span with no parent_span_id", async () => {

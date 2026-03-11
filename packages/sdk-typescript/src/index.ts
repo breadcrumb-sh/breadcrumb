@@ -18,6 +18,7 @@ export type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message };
 export interface InitOptions {
   apiKey: string;
   baseUrl: string;
+  environment?: string;
   batching?:
     | false
     | {
@@ -27,7 +28,11 @@ export interface InitOptions {
 }
 
 export function init(options: InitOptions): Breadcrumb {
-  const exporter = new BreadcrumbSpanExporter(options.apiKey, options.baseUrl);
+  const exporter = new BreadcrumbSpanExporter(
+    options.apiKey,
+    options.baseUrl,
+    options.environment,
+  );
 
   const batchOpts =
     typeof options.batching === "object" ? options.batching : undefined;

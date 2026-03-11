@@ -16,6 +16,7 @@ import { init } from "@breadcrumb-sdk/core";
 const bc = init({
   apiKey: "bc_...",
   baseUrl: "https://your-breadcrumb-instance.com",
+  environment: "production",
 });
 
 const answer = await bc.trace("answer-question", async (root) => {
@@ -54,12 +55,15 @@ Call once at startup. Returns a `bc` instance you use to create traces and spans
 const bc = init({
   apiKey: string,
   baseUrl: string,
+  environment?: string,    // e.g. "production", "staging", "development"
   batching?: false | {
     flushInterval?: number,  // ms between sends (default: 5000)
     maxBatchSize?: number,   // spans per send (default: 100)
   }
 })
 ```
+
+Set `environment` once at init time to attach it to every root trace created by this SDK instance. This powers environment filtering in the Breadcrumb UI.
 
 Set `batching: false` to send each span as it finishes. The default batches them. Either way, everything is flushed before the process exits.
 
@@ -123,7 +127,7 @@ span.set({
   output_cost_usd: 0.00087,
   metadata: {
     score: 0.95,
-    environment: "production",
+    region: "eu-central-1",
   },
 });
 ```

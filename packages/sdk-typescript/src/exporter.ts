@@ -62,6 +62,7 @@ export class BreadcrumbSpanExporter implements SpanExporter {
   constructor(
     private readonly apiKey: string,
     private readonly baseUrl: string,
+    private readonly environment?: string,
   ) {}
 
   export(
@@ -127,6 +128,7 @@ export class BreadcrumbSpanExporter implements SpanExporter {
       end_time: hrTimeToISO(span.endTime),
       status: spanStatus(span),
       status_message: span.status.message || undefined,
+      environment: this.environment,
     });
   }
 

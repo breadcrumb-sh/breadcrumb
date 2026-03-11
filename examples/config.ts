@@ -1,6 +1,6 @@
 import { config as loadEnv } from "dotenv";
-import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 // Load examples/.env relative to this file, so the path is correct
 // regardless of which directory you run the script from.
@@ -10,8 +10,8 @@ const apiKey = process.env["BREADCRUMB_API_KEY"];
 if (!apiKey) {
   console.error(
     "Missing BREADCRUMB_API_KEY in examples/.env\n" +
-    "Run `npm run seed` in services/server to create a project and key,\n" +
-    "then add BREADCRUMB_API_KEY=<key> to examples/.env"
+      "Run `npm run seed` in services/server to create a project and key,\n" +
+      "then add BREADCRUMB_API_KEY=<key> to examples/.env",
   );
   process.exit(1);
 }
@@ -23,4 +23,5 @@ export const config = {
 
 export const openrouterApiKey = process.env["OPENROUTER_API_KEY"];
 
-export const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+export const sleep = (ms: number) =>
+  new Promise<void>((r) => setTimeout(r, ms));
