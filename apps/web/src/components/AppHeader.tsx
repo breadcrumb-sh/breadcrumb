@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { UserMenu } from "./UserMenu";
+import { FeedbackButton } from "./FeedbackButton";
 import { Logo } from "./common/logo/Logo";
 
 /**
@@ -16,7 +17,10 @@ export function AppHeader() {
         >
           <Logo className="size-5" />
         </Link>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+          <FeedbackButton />
+          <UserMenu />
+        </div>
       </div>
     </header>
   );

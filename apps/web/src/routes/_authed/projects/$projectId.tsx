@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { Logo } from "../../../components/common/logo/Logo";
 import { UserMenu } from "../../../components/UserMenu";
+import { FeedbackButton } from "../../../components/FeedbackButton";
 import { MobileNav } from "../../../components/MobileNav";
 import { SubMenuProvider } from "../../../components/SubMenuContext";
 import { trpc } from "../../../lib/trpc";
@@ -56,7 +57,10 @@ function ProjectLayout() {
                 </div>
               </div>
 
-              <UserMenu />
+              <div className="flex items-center gap-2">
+                <FeedbackButton />
+                <UserMenu />
+              </div>
             </div>
           </header>
 
