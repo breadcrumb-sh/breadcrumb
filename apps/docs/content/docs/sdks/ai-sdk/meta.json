@@ -1,0 +1,10 @@
+{
+  "title": "Vercel AI SDK",
+  "collapsible": true,
+  "pages": [
+    "installation",
+    "telemetry",
+    "grouping-calls",
+    "tools-and-agents"
+  ]
+}

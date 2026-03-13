@@ -1,0 +1,8 @@
+{
+  "title": "SDKs",
+  "collapsible": false,
+  "pages": [
+    "core-sdk",
+    "ai-sdk"
+  ]
+}

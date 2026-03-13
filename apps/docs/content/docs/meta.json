@@ -1,0 +1,10 @@
+{
+  "title": "Docs",
+  "root": true,
+  "pages": [
+    "introduction",
+    "sdks",
+    "setup",
+    "product"
+  ]
+}

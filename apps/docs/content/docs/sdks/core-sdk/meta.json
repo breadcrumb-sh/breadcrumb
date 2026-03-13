@@ -1,0 +1,10 @@
+{
+  "title": "Typescript",
+  "collapsible": true,
+  "pages": [
+    "installation",
+    "manual-tracing",
+    "span-data",
+    "batching"
+  ]
+}

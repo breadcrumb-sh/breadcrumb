@@ -1,0 +1,8 @@
+{
+  "title": "Setup",
+  "collapsible": false,
+  "pages": [
+    "hosted",
+    "self-hosting"
+  ]
+}

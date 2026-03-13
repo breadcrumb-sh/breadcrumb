@@ -1,0 +1,180 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+:root {
+  --color-brand-fg: #f5f5f6;
+  --color-brand-fg-2: #b4b4b5;
+  --color-brand-fg-3: #6c6c6d;
+  --color-brand-border: #282829;
+  --color-brand-border-strong: #363637;
+  --color-brand-surface: #1b1b1c;
+  --color-brand-surface-2: #282829;
+  --color-brand-accent: #58508d;
+  --color-brand-bg: #121213;
+  --font-sans: var(--font-geist);
+  --font-display: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root,
+.dark {
+  color-scheme: dark;
+  --color-fd-background: var(--color-brand-bg);
+  --color-fd-foreground: var(--color-brand-fg);
+  --color-fd-muted: var(--color-brand-surface);
+  --color-fd-muted-foreground: var(--color-brand-fg-2);
+  --color-fd-popover: var(--color-brand-surface);
+  --color-fd-popover-foreground: var(--color-brand-fg);
+  --color-fd-card: var(--color-brand-surface);
+  --color-fd-card-foreground: var(--color-brand-fg);
+  --color-fd-border: color-mix(in srgb, var(--color-brand-border) 88%, transparent);
+  --color-fd-primary: var(--color-brand-accent);
+  --color-fd-primary-foreground: var(--color-brand-bg);
+  --color-fd-secondary: var(--color-brand-surface-2);
+  --color-fd-secondary-foreground: var(--color-brand-fg);
+  --color-fd-accent: color-mix(in srgb, var(--color-brand-accent) 16%, var(--color-brand-surface));
+  --color-fd-accent-foreground: var(--color-brand-fg);
+  --color-fd-ring: var(--color-brand-accent);
+  --color-fd-overlay: rgba(0, 0, 0, 0.58);
+  --tw-prose-body: color-mix(in srgb, var(--color-brand-fg) 88%, transparent);
+  --tw-prose-headings: var(--color-brand-fg);
+  --tw-prose-links: var(--color-brand-accent);
+  --tw-prose-bold: var(--color-brand-fg);
+  --tw-prose-counters: var(--color-brand-fg-3);
+  --tw-prose-bullets: var(--color-brand-border-strong);
+  --tw-prose-hr: var(--color-brand-border);
+  --tw-prose-quotes: var(--color-brand-fg);
+  --tw-prose-quote-borders: var(--color-brand-border-strong);
+  --tw-prose-captions: var(--color-brand-fg-3);
+  --tw-prose-code: var(--color-brand-fg);
+  --tw-prose-pre-code: var(--color-brand-fg);
+  --tw-prose-pre-bg: var(--color-brand-surface);
+  --tw-prose-th-borders: var(--color-brand-border-strong);
+  --tw-prose-td-borders: var(--color-brand-border);
+}
+
+html {
+  background: var(--color-brand-bg);
+}
+
+body {
+  background: var(--color-brand-bg);
+  color: var(--color-brand-fg);
+}
+
+code,
+kbd,
+samp,
+pre,
+.shiki,
+.shiki code,
+.prose code,
+.prose pre,
+[data-rehype-pretty-code-fragment] pre,
+[data-rehype-pretty-code-fragment] code {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+#nd-docs-layout,
+#nd-subnav,
+#nd-sidebar,
+#nd-toc {
+  background-color: transparent;
+}
+
+#nd-subnav,
+#nd-sidebar,
+[data-sidebar-panel],
+#nd-toc > div,
+[data-radix-popper-content-wrapper] [role='dialog'],
+[data-radix-popper-content-wrapper] [data-side] {
+  background-color: color-mix(in srgb, var(--color-brand-bg) 72%, var(--color-brand-surface));
+}
+
+#nd-sidebar,
+[data-sidebar-panel],
+#nd-toc > div {
+  border-color: var(--color-brand-border);
+}
+
+#nd-sidebar a:hover,
+#nd-subnav a:hover,
+#nd-toc a:hover {
+  color: var(--color-brand-fg);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] {
+  margin-top: 2.5rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state]:first-child {
+  margin-top: 0.35rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child {
+  margin-bottom: 0.7rem;
+  padding: 0 0.125rem;
+  min-height: auto;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--color-brand-fg) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.2 !important;
+  text-transform: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child[data-active='true'],
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child[data-active='true'],
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child[data-active='true'] {
+  background: transparent !important;
+  color: var(--color-brand-fg) !important;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child svg,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child svg,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child svg {
+  display: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] {
+  margin-inline-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state]::before {
+  display: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > a,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > div > a,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > div > button {
+  min-height: 2.25rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.prose code,
+.prose pre,
+.prose table,
+.prose blockquote {
+  border-color: var(--color-brand-border);
+}
+
+.prose pre,
+.prose table,
+.prose blockquote {
+  background-color: color-mix(in srgb, var(--color-brand-surface) 88%, var(--color-brand-bg));
+}
