@@ -4,26 +4,13 @@ icon: Rocket
 description: Send your first trace to Breadcrumb.
 ---
 
-## Setup
-
-Before you send traces, you need a Breadcrumb instance and an API key.
-
-<Cards>
-  <Card
-    title="Hosted"
-    href="/docs/setup/hosted"
-    description="Connect your app to a managed Breadcrumb deployment."
-  />
-  <Card
-    title="Self-Hosting"
-    href="/docs/setup/self-hosting"
-    description="Run Breadcrumb in your own infrastructure."
-  />
-</Cards>
-
 ## Install
 
-<CodeBlockTabs items={["AI SDK", "Manual"]}>
+<CodeBlockTabs defaultValue="ai-sdk">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="ai-sdk">AI SDK</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="manual">Manual</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
   <CodeBlockTab value="ai-sdk">
 
 ```bash
@@ -40,32 +27,27 @@ npm install @breadcrumb-sdk/core
   </CodeBlockTab>
 </CodeBlockTabs>
 
-## Send your first trace
+## Setup
 
-<CodeBlockTabs items={["AI SDK", "Manual"]}>
+Initialize the Breadcrumb client with your API key. You can get one from your [project settings](/docs/product/project-settings) after [setting up](/docs/setup/hosted) your instance.
+
+<CodeBlockTabs defaultValue="ai-sdk">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="ai-sdk">AI SDK</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="manual">Manual</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
   <CodeBlockTab value="ai-sdk">
 
 ```ts
 import { init } from "@breadcrumb-sdk/core";
 import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
-import { generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 
 const bc = init({
   apiKey: process.env.BREADCRUMB_API_KEY!,
   baseUrl: process.env.BREADCRUMB_BASE_URL!,
-  environment: "development",
 });
 
 const { telemetry } = initAiSdk(bc);
-
-const { text } = await generateText({
-  model: anthropic("claude-sonnet-4-5"),
-  prompt: "Explain what Breadcrumb does in one sentence.",
-  experimental_telemetry: telemetry("quickstart"),
-});
-
-console.log(text);
 ```
 
   </CodeBlockTab>
@@ -77,11 +59,35 @@ import { init } from "@breadcrumb-sdk/core";
 const bc = init({
   apiKey: process.env.BREADCRUMB_API_KEY!,
   baseUrl: process.env.BREADCRUMB_BASE_URL!,
-  environment: "development",
 });
+```
 
-const prompt = "Explain what Breadcrumb does in one sentence.";
+  </CodeBlockTab>
+</CodeBlockTabs>
 
+## Start Tracing
+
+<CodeBlockTabs defaultValue="ai-sdk">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="ai-sdk">AI SDK</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="manual">Manual</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+  <CodeBlockTab value="ai-sdk">
+
+```ts
+const { text } = await generateText({
+  model: anthropic("claude-sonnet-4-5"),
+  prompt: "Explain what Breadcrumb does in one sentence.",
+
+  // enable traces for this call
+  experimental_telemetry: telemetry("quickstart"),
+});
+```
+
+  </CodeBlockTab>
+  <CodeBlockTab value="manual">
+
+```ts
 await bc.trace("quickstart", async (root) => {
   root.set({ input: prompt });
 
@@ -109,4 +115,4 @@ await bc.trace("quickstart", async (root) => {
   </CodeBlockTab>
 </CodeBlockTabs>
 
-Use your hosted or self-hosted Breadcrumb URL for `baseUrl`, then open the dashboard to see the trace.
+Open your Breadcrumb dashboard to see the trace.

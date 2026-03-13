@@ -178,3 +178,15 @@ pre,
 .prose blockquote {
   background-color: color-mix(in srgb, var(--color-brand-surface) 88%, var(--color-brand-bg));
 }
+
+/* Remove border-radius from cards, code blocks, and tab containers */
+figure.shiki,
+[data-card],
+div:has(> [data-orientation]) {
+  border-radius: 0 !important;
+}
+
+/* Match code block background inside tabs to the tab container */
+div:has(> [data-orientation]) figure.shiki {
+  background-color: var(--color-fd-card) !important;
+}
