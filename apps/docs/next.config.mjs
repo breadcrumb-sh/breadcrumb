@@ -7,6 +7,9 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const config = {
   reactStrictMode: true,
+  images: {
+    unoptimized: true,
+  },
   ...(!isDev && {
     output: 'export',
     assetPrefix: '/docs',
