@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.4
+
+### Patch Changes
+
+- ed7cb2d: added environment field
+
 ## 0.0.3
 
 ### Patch Changes
