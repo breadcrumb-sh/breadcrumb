@@ -1,46 +1,60 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { Image } from 'astro:assets';
-import dashboardImage from '../assets/dashboard.png';
+import Layout from "../layouts/Layout.astro";
+import { Image } from "astro:assets";
+import dashboardImage from "../assets/dashboard.png";
 ---
 
 <Layout>
-
   <!-- ── NAV ─────────────────────────────────────────────── -->
   <nav>
-    <div class="inner h-[96px] flex items-center">
+    <div class="inner h-[96px] flex items-center justify-between">
       <div class="flex items-center gap-7">
         <a href="/" class="flex items-center gap-3.5">
           <svg width="26" height="26" viewBox="0 0 584 475" fill="none">
-            <path d="M347.586 0.132512C351.629 -0.38435 360.699 0.787582 366.707 0.642277C395.95 0.167608 425.194 0.0213704 454.443 0.204777C471.505 0.200603 491.006 -0.486215 507.803 1.42548C515.957 2.35401 530.956 8.83657 537.979 13.2097C559.392 26.5431 574.277 48.9316 579.956 73.2907C587.197 104.503 581.628 137.317 564.488 164.39C552.436 183.478 532.473 198.878 510.351 204.073C509.9 204.179 509.575 204.576 509.57 205.04C508.854 265.725 509.976 327.292 510.064 388.024L510.106 436.154C510.106 444.669 511.303 464.238 507.745 472.776C507.71 472.859 507.667 472.934 507.605 472.999C506.819 473.823 504.387 474.787 503.396 474.633C495.268 473.34 487.916 473.455 479.752 473.455L388.297 473.481L100.083 474.893C96.0618 474.939 93.0122 474.95 89.0805 474.642C88.8362 474.623 88.6047 474.512 88.438 474.333C83.2031 468.69 82.481 463.199 82.4292 455.787C82.3125 439.166 83.0316 422.622 83.0337 406.003L83.4946 262.393L83.5464 223.618C83.5907 218.018 84.0722 210.456 83.7719 204.979C83.7478 204.539 83.4302 204.172 83.0005 204.073C68.1725 200.657 55.5663 195.653 43.1206 186.753C20.6626 170.512 5.56415 146.025 1.13717 118.664C-3.26576 91.2668 5.41683 63.8379 21.9897 41.8171C37.8556 20.7355 64.5663 5.67801 90.5288 1.3747C104.771 0.293016 120.831 0.747659 135.077 0.80341C142.326 0.832089 178.587 -0.339907 183.308 2.34247C183.455 2.42576 183.545 2.55291 183.607 2.70966C185.066 6.40261 182.768 11.458 180.266 14.2097C174.996 20.0417 168.249 23.0493 165.783 31.0358C160.193 49.1346 174.373 69.7589 193.688 69.6628C205.679 69.6034 219.158 58.2429 220.717 46.2438C221.204 42.4985 219.316 39.326 220.679 34.7692C220.717 34.6424 220.781 34.5224 220.873 34.4265C223.1 32.0868 228.861 32.4498 231.625 33.8893C231.766 33.9628 231.884 34.0738 231.966 34.2097C233.517 36.7641 233.036 39.0757 234.001 41.5876C244.629 69.2445 275.036 79.5512 302.343 71.6413C324.986 65.0829 348.394 38.3214 343.668 13.5026C342.522 7.47271 334.833 0.701997 347.586 0.132512ZM311.109 278C309.369 278.322 308.186 278.304 307.003 279.564C306.139 281.418 306.337 283.581 306.311 285.674C293.88 303.256 293.515 280.974 284.494 280.639C277.756 280.39 282.48 291.088 284.496 294.59C302.32 322.338 326.978 278.608 311.109 278ZM269.745 242.361C266.361 240.211 263.065 240.017 259.203 240.212C254.949 240.998 253.176 241.445 249.187 243.548C246.902 247.015 246.388 248.051 245.354 252.228C247.337 261.172 251.353 269.777 261.812 270.342C271.306 268.488 276.861 259.012 274.946 249.854C274.316 246.748 272.434 244.038 269.745 242.361ZM338.088 269.841C354.729 264.118 352.708 235.085 331.055 238.673C327.137 239.89 322.006 241.699 320.479 245.731C315.748 258.233 325.428 270.21 338.088 269.841Z" fill="currentColor"/>
+            <path
+              d="M347.586 0.132512C351.629 -0.38435 360.699 0.787582 366.707 0.642277C395.95 0.167608 425.194 0.0213704 454.443 0.204777C471.505 0.200603 491.006 -0.486215 507.803 1.42548C515.957 2.35401 530.956 8.83657 537.979 13.2097C559.392 26.5431 574.277 48.9316 579.956 73.2907C587.197 104.503 581.628 137.317 564.488 164.39C552.436 183.478 532.473 198.878 510.351 204.073C509.9 204.179 509.575 204.576 509.57 205.04C508.854 265.725 509.976 327.292 510.064 388.024L510.106 436.154C510.106 444.669 511.303 464.238 507.745 472.776C507.71 472.859 507.667 472.934 507.605 472.999C506.819 473.823 504.387 474.787 503.396 474.633C495.268 473.34 487.916 473.455 479.752 473.455L388.297 473.481L100.083 474.893C96.0618 474.939 93.0122 474.95 89.0805 474.642C88.8362 474.623 88.6047 474.512 88.438 474.333C83.2031 468.69 82.481 463.199 82.4292 455.787C82.3125 439.166 83.0316 422.622 83.0337 406.003L83.4946 262.393L83.5464 223.618C83.5907 218.018 84.0722 210.456 83.7719 204.979C83.7478 204.539 83.4302 204.172 83.0005 204.073C68.1725 200.657 55.5663 195.653 43.1206 186.753C20.6626 170.512 5.56415 146.025 1.13717 118.664C-3.26576 91.2668 5.41683 63.8379 21.9897 41.8171C37.8556 20.7355 64.5663 5.67801 90.5288 1.3747C104.771 0.293016 120.831 0.747659 135.077 0.80341C142.326 0.832089 178.587 -0.339907 183.308 2.34247C183.455 2.42576 183.545 2.55291 183.607 2.70966C185.066 6.40261 182.768 11.458 180.266 14.2097C174.996 20.0417 168.249 23.0493 165.783 31.0358C160.193 49.1346 174.373 69.7589 193.688 69.6628C205.679 69.6034 219.158 58.2429 220.717 46.2438C221.204 42.4985 219.316 39.326 220.679 34.7692C220.717 34.6424 220.781 34.5224 220.873 34.4265C223.1 32.0868 228.861 32.4498 231.625 33.8893C231.766 33.9628 231.884 34.0738 231.966 34.2097C233.517 36.7641 233.036 39.0757 234.001 41.5876C244.629 69.2445 275.036 79.5512 302.343 71.6413C324.986 65.0829 348.394 38.3214 343.668 13.5026C342.522 7.47271 334.833 0.701997 347.586 0.132512ZM311.109 278C309.369 278.322 308.186 278.304 307.003 279.564C306.139 281.418 306.337 283.581 306.311 285.674C293.88 303.256 293.515 280.974 284.494 280.639C277.756 280.39 282.48 291.088 284.496 294.59C302.32 322.338 326.978 278.608 311.109 278ZM269.745 242.361C266.361 240.211 263.065 240.017 259.203 240.212C254.949 240.998 253.176 241.445 249.187 243.548C246.902 247.015 246.388 248.051 245.354 252.228C247.337 261.172 251.353 269.777 261.812 270.342C271.306 268.488 276.861 259.012 274.946 249.854C274.316 246.748 272.434 244.038 269.745 242.361ZM338.088 269.841C354.729 264.118 352.708 235.085 331.055 238.673C327.137 239.89 322.006 241.699 320.479 245.731C315.748 258.233 325.428 270.21 338.088 269.841Z"
+              fill="currentColor"></path>
           </svg>
-          <span class="font-display font-semibold text-[15px] tracking-tight text-fg">Breadcrumb</span>
-          <span class="font-display -ml-2 text-[12px] tracking-tight bg-white/5 px-1.5 h-5 leading-5 flex items-center rounded-sm text-fg">Beta</span>
+          <span
+            class="font-display font-semibold text-[16px] tracking-tight text-fg"
+            >Breadcrumb</span
+          >
+          <span
+            class="font-display font-medium -ml-1 text-[12px] tracking-tight border border-white/50 border-dashed px-2 h-5 leading-3 flex items-center rounded-full text-white/50"
+            >Beta</span
+          >
         </a>
       </div>
+      <a href="/docs/introduction" class="font-display text-[13px] font-medium text-fg-3 hover:text-fg transition-colors">Docs</a>
     </div>
   </nav>
 
   <!-- ── HERO ─────────────────────────────────────────────── -->
   <section class="border-b border-border">
     <div class="inner pt-14 pb-14 sm:pt-20 sm:pb-20">
-      <h1 class="font-display text-[clamp(32px,5vw,58px)] font-semibold text-fg leading-[1.04] tracking-[-0.03em] text-balance mb-5">
+      <h1
+        class="font-display text-[clamp(32px,5vw,58px)] font-semibold text-fg leading-[1.04] tracking-[-0.03em] text-balance mb-5"
+      >
         Simple, self-hosted LLM observability for TypeScript
       </h1>
-      <p class="text-[14px] sm:text-[15px] leading-[1.75] text-fg-2 mb-8 max-w-[430px]">
-        Breadcrumb logs every prompt, completion, token count, latency, and cost. Open source and self-hostable in one click, so your data stays in your stack.
+      <p
+        class="text-[14px] sm:text-[15px] leading-[1.75] text-fg-2 mb-8 max-w-[430px]"
+      >
+        Breadcrumb logs every prompt, completion, token count, latency, and
+        cost. Open source and self-hostable in one click, so your data stays in
+        your stack.
       </p>
       <div class="flex gap-3 w-full sm:w-auto">
         <a
-          href="https://tally.so/r/2Er8NL" target="_blank" rel="noopener noreferrer"
-          class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-3 px-5 py-3 bg-fg text-bg text-[13px] font-semibold font-display hover:opacity-80 transition-opacity whitespace-nowrap"
+          href="/docs"
+          class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-3 px-12 py-3 bg-fg text-bg text-[13px] font-semibold font-display hover:opacity-80 transition-opacity whitespace-nowrap"
         >
-          Get early access <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          Get Started
         </a>
         <a
           href="https://demo.breadcrumb.sh"
           target="_blank"
-          class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-3 px-8 py-3 border border-current text-fg-2 text-[13px] font-semibold font-display hover:text-fg transition-colors"
+          class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-3 px-14 py-3 border border-current text-fg-2 text-[13px] font-semibold font-display hover:text-fg transition-colors"
         >
           Try demo
         </a>
@@ -52,37 +66,63 @@ import dashboardImage from '../assets/dashboard.png';
   <section class="border-b border-border">
     <div class="inner">
       <div class="border-x border-border">
-        <div class="border-b border-border flex items-center justify-between px-4 sm:px-5 py-3">
+        <div
+          class="border-b border-border flex items-center justify-between px-4 sm:px-5 py-3"
+        >
           <div class="flex items-center gap-2">
             <span class="relative flex h-[6px] w-[6px]">
-              <span class="live-ping absolute inset-0 rounded-full" style="background:#22c08b;opacity:0.4"></span>
-              <span class="relative rounded-full h-[6px] w-[6px]" style="background:#22c08b"></span>
+              <span
+                class="live-ping absolute inset-0 rounded-full"
+                style="background:#22c08b;opacity:0.4"></span>
+              <span
+                class="relative rounded-full h-[6px] w-[6px]"
+                style="background:#22c08b"></span>
             </span>
-            <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">traces - live</span>
+            <span
+              class="font-mono text-[10px] text-fg-3 tracking-widest uppercase"
+              >traces - live</span
+            >
           </div>
           <div class="flex gap-[5px]">
-            <span class="block w-[6px] h-[6px]" style="background:#58508d"></span>
-            <span class="block w-[6px] h-[6px]" style="background:#b4558d"></span>
-            <span class="block w-[6px] h-[6px]" style="background:#e77371"></span>
-            <span class="block w-[6px] h-[6px]" style="background:#7b6aad"></span>
+            <span class="block w-[6px] h-[6px]" style="background:#58508d"
+            ></span>
+            <span class="block w-[6px] h-[6px]" style="background:#b4558d"
+            ></span>
+            <span class="block w-[6px] h-[6px]" style="background:#e77371"
+            ></span>
+            <span class="block w-[6px] h-[6px]" style="background:#7b6aad"
+            ></span>
           </div>
         </div>
         <div class="px-4 sm:px-5 pt-5 pb-6">
           <div class="flex justify-between mb-[10px]">
             <span class="font-mono text-[9px] text-fg-3 opacity-40">0</span>
-            <span class="font-mono text-[9px] text-fg-3 opacity-40 hidden sm:block">250ms</span>
+            <span
+              class="font-mono text-[9px] text-fg-3 opacity-40 hidden sm:block"
+              >250ms</span
+            >
             <span class="font-mono text-[9px] text-fg-3 opacity-40">500ms</span>
-            <span class="font-mono text-[9px] text-fg-3 opacity-40 hidden sm:block">750ms</span>
+            <span
+              class="font-mono text-[9px] text-fg-3 opacity-40 hidden sm:block"
+              >750ms</span
+            >
             <span class="font-mono text-[9px] text-fg-3 opacity-40">1s+</span>
           </div>
           <div class="relative">
-            <div class="absolute inset-0 flex pointer-events-none" aria-hidden="true">
+            <div
+              class="absolute inset-0 flex pointer-events-none"
+              aria-hidden="true"
+            >
               <div class="w-1/4 border-r border-border h-full"></div>
               <div class="w-1/4 border-r border-border h-full"></div>
               <div class="w-1/4 border-r border-border h-full"></div>
               <div class="w-1/4 h-full"></div>
             </div>
-            <div id="tl-rows" class="flex flex-col gap-[10px] sm:gap-[13px] relative"></div>
+            <div
+              id="tl-rows"
+              class="flex flex-col gap-[10px] sm:gap-[13px] relative"
+            >
+            </div>
           </div>
         </div>
       </div>
@@ -92,11 +132,17 @@ import dashboardImage from '../assets/dashboard.png';
   <!-- ── TEXT ROW 1 ──────────────────────────────────────── -->
   <section class="border-b border-border">
     <div class="inner py-10 sm:py-12">
-      <h2 class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3">
-        Full LLM tracing with two lines of code.
+      <h2
+        class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3"
+      >
+        Full LLM tracing with three lines of code.
       </h2>
-      <p class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[420px]">
-        Wrap a function, name a span. That's it. Every call your app makes gets logged with its prompt, completion, tokens, latency, and cost. No agents, no config files, no SDKs with a 30-page setup guide.
+      <p
+        class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[420px]"
+      >
+        Initialize the SDK, wrap your calls. That's it. Every call your app makes gets
+        logged with its prompt, completion, tokens, latency, and cost. No
+        complexity, no SDKs with a 30-page setup guide.
       </p>
     </div>
   </section>
@@ -112,7 +158,9 @@ import dashboardImage from '../assets/dashboard.png';
             <span class="browser-dot" style="background:#28c840"></span>
           </div>
           <div class="browser-address-bar">
-            <span class="font-mono text-[10px] text-fg-3">app.breadcrumb.sh</span>
+            <span class="font-mono text-[10px] text-fg-3"
+              >app.breadcrumb.sh</span
+            >
           </div>
           <div class="browser-dots" style="visibility:hidden">
             <span class="browser-dot"></span>
@@ -121,7 +169,16 @@ import dashboardImage from '../assets/dashboard.png';
           </div>
         </div>
         <div class="browser-content">
-          <Image src={dashboardImage} alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs" loading="lazy" format="webp" quality={80} widths={[640, 1024, 1400, 2062]} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1000px" class="w-full block" />
+          <Image
+            src={dashboardImage}
+            alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs"
+            loading="lazy"
+            format="webp"
+            quality={80}
+            widths={[640, 1024, 1400, 2062]}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1000px"
+            class="w-full block"
+          />
         </div>
       </div>
     </div>
@@ -130,11 +187,16 @@ import dashboardImage from '../assets/dashboard.png';
   <!-- ── TEXT ROW 2 ──────────────────────────────────────── -->
   <section class="border-b border-border">
     <div class="inner py-10 sm:py-12">
-      <h2 class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3">
+      <h2
+        class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3"
+      >
         Monitor every LLM call in production.
       </h2>
-      <p class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[400px]">
-        Every LLM call your app makes in production gets logged. Real prompts, real responses, real token counts. Not samples. All of them.
+      <p
+        class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[400px]"
+      >
+        Every LLM call your app makes in production gets logged. Real prompts,
+        real responses, real token counts.
       </p>
     </div>
   </section>
@@ -142,36 +204,88 @@ import dashboardImage from '../assets/dashboard.png';
   <!-- ── BENTO ─────────────────────────────────────────────── -->
   <section class="border-b border-border">
     <div class="inner">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-[1px] bg-border border-x border-border">
-
+      <div
+        class="grid grid-cols-1 sm:grid-cols-3 gap-[1px] bg-border border-x border-border"
+      >
         <!-- Cost tracking -->
         <div class="bg-surface p-6 sm:p-8 flex flex-col justify-between gap-8">
-          <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">cost per trace</span>
+          <span
+            class="font-mono text-[10px] text-fg-3 tracking-widest uppercase"
+            >cost per trace</span
+          >
           <div>
-            <div class="font-mono text-[40px] font-light text-fg leading-none tracking-tight mb-3">$0.0024</div>
-            <p class="text-[13px] text-fg-2 leading-[1.75]">Every trace shows its token count and cost. See which calls are expensive and where your budget is actually going.</p>
+            <div
+              class="font-mono text-[40px] font-light text-fg leading-none tracking-tight mb-3"
+            >
+              $0.0024
+            </div>
+            <p class="text-[13px] text-fg-2 leading-[1.75]">
+              Every trace shows its token count and cost. See which calls are
+              expensive and where your budget is actually going.
+            </p>
           </div>
         </div>
 
         <!-- Open source + deploy -->
-        <div class="col-span-1 sm:col-span-2 bg-surface p-6 sm:p-8 flex flex-col justify-between gap-8">
-          <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">open source</span>
+        <div
+          class="col-span-1 sm:col-span-2 bg-surface p-6 sm:p-8 flex flex-col justify-between gap-8"
+        >
+          <span
+            class="font-mono text-[10px] text-fg-3 tracking-widest uppercase"
+            >open source</span
+          >
           <div>
-            <p class="font-display text-[17px] font-semibold text-fg leading-snug mb-2">Runs on your infra. Open source, forever.</p>
-            <p class="text-[13px] text-fg-2 leading-[1.75] mb-4 max-w-[400px]">Deploy with one click on Railway or anywhere else. Your data never leaves your stack. Read the code, fork it, modify it - no usage fees, no vendor lock-in.</p>
-            <a href="https://github.com/joshuaKnauber/breadcrumb" target="_blank" rel="noopener noreferrer" class="font-mono text-[10px] text-fg-3 hover:text-fg transition-colors">★ github.com/joshuaKnauber/breadcrumb</a>
+            <p
+              class="font-display text-[17px] font-semibold text-fg leading-snug mb-2"
+            >
+              Runs on your infra. Open source, forever.
+            </p>
+            <p class="text-[13px] text-fg-2 leading-[1.75] mb-4 max-w-[400px]">
+              Deploy with one click on Railway or anywhere else. Your data never
+              leaves your stack. Read the code, fork it, modify it - no usage
+              fees, no vendor lock-in.
+            </p>
+            <a
+              href="https://github.com/joshuaKnauber/breadcrumb"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-mono text-[10px] text-fg-3 hover:text-fg transition-colors"
+              >★ github.com/joshuaKnauber/breadcrumb</a
+            >
           </div>
         </div>
 
-        <!-- TypeScript + integrations -->
-        <div class="col-span-1 sm:col-span-3 bg-surface p-6 sm:p-8 flex flex-col justify-between gap-8">
-          <span class="font-mono text-[10px] text-fg-3 tracking-widest uppercase">typescript</span>
-          <div>
-            <p class="font-display text-[17px] font-semibold text-fg leading-snug mb-2">First-class TypeScript support</p>
-            <p class="text-[13px] text-fg-2 leading-[1.75] max-w-[480px]">The SDK is written in TypeScript with full type coverage. One wrapper, drop it around any call and it starts logging. Works with the Vercel AI SDK out of the box, alongside OpenAI, Anthropic, and others.</p>
+        <!-- AI SDK integration -->
+        <div
+          class="col-span-1 sm:col-span-3 bg-surface p-6 sm:p-8 flex flex-col gap-6"
+        >
+          <span
+            class="font-mono text-[10px] text-fg-3 tracking-widest uppercase"
+            >integration</span
+          >
+          <div class="flex flex-col gap-6">
+            <div>
+              <p
+                class="font-display text-[17px] font-semibold text-fg leading-snug mb-2"
+              >
+                Three lines to trace every AI call
+              </p>
+              <p class="text-[13px] text-fg-2 leading-[1.75] max-w-[480px]">
+                Drop in the Breadcrumb SDK alongside the Vercel AI SDK. Initialize once, pass the telemetry helper, and every call gets logged automatically.
+              </p>
+            </div>
+            <pre class="bg-bg border border-border p-4 overflow-x-auto text-[12px] sm:text-[13px] leading-[1.7] font-mono text-fg-2"><code set:html={`<span style="color:#c792ea">import</span> { init } <span style="color:#c792ea">from</span> <span style="color:#E77270">"@breadcrumb-sdk/core"</span>;
+<span style="color:#c792ea">import</span> { initAiSdk } <span style="color:#c792ea">from</span> <span style="color:#E77270">"@breadcrumb-sdk/ai-sdk"</span>;
+
+<span style="color:#82aaff">const</span> bc = init({ apiKey, baseUrl });
+<span style="color:#82aaff">const</span> { telemetry } = initAiSdk(bc);
+
+<span style="color:#82aaff">const</span> { text } = <span style="color:#c792ea">await</span> generateText({
+  <span style="color:#6c6c6d">// ...</span>
+  experimental_telemetry: telemetry(<span style="color:#E77270">"summarize"</span>),
+});`} /></pre>
           </div>
         </div>
-
       </div>
     </div>
   </section>
@@ -179,17 +293,19 @@ import dashboardImage from '../assets/dashboard.png';
   <!-- ── FINAL CTA ───────────────────────────────────────── -->
   <section class="border-b border-border">
     <div class="inner py-12 sm:py-16">
-      <h2 class="font-display text-[22px] sm:text-[28px] font-semibold text-fg tracking-tight leading-snug mb-3">
-        Ready to see what's happening?
+      <h2
+        class="font-display text-[22px] sm:text-[28px] font-semibold text-fg tracking-tight leading-snug mb-3"
+      >
+        Ready to try it?
       </h2>
       <p class="text-[13px] text-fg-2 leading-[1.75] mb-7 max-w-[340px]">
-        Join the waitlist. We'll reach out when it's ready.
+        Check out the docs to get started.
       </p>
       <a
-        href="https://tally.so/r/2Er8NL" target="_blank" rel="noopener noreferrer"
-        class="inline-flex items-center gap-3 px-5 py-3 bg-fg text-bg text-[13px] font-semibold font-display hover:opacity-80 transition-opacity"
+        href="/docs/introduction"
+        class="inline-flex items-center gap-3 px-12 py-3 bg-fg text-bg text-[13px] font-semibold font-display hover:opacity-80 transition-opacity"
       >
-        Get notified <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Get started
       </a>
     </div>
   </section>
@@ -197,149 +313,202 @@ import dashboardImage from '../assets/dashboard.png';
   <!-- ── FOOTER ─────────────────────────────────────────── -->
   <footer>
     <div class="inner py-6 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2 font-display text-[13px] font-medium text-fg-3 hover:text-fg transition-colors">
+      <a
+        href="/"
+        class="flex items-center gap-2 font-display text-[13px] font-medium text-fg-3 hover:text-fg transition-colors"
+      >
         <svg width="14" height="14" viewBox="0 0 584 475" fill="none">
-          <path d="M347.586 0.132512C351.629 -0.38435 360.699 0.787582 366.707 0.642277C395.95 0.167608 425.194 0.0213704 454.443 0.204777C471.505 0.200603 491.006 -0.486215 507.803 1.42548C515.957 2.35401 530.956 8.83657 537.979 13.2097C559.392 26.5431 574.277 48.9316 579.956 73.2907C587.197 104.503 581.628 137.317 564.488 164.39C552.436 183.478 532.473 198.878 510.351 204.073C509.9 204.179 509.575 204.576 509.57 205.04C508.854 265.725 509.976 327.292 510.064 388.024L510.106 436.154C510.106 444.669 511.303 464.238 507.745 472.776C507.71 472.859 507.667 472.934 507.605 472.999C506.819 473.823 504.387 474.787 503.396 474.633C495.268 473.34 487.916 473.455 479.752 473.455L388.297 473.481L100.083 474.893C96.0618 474.939 93.0122 474.95 89.0805 474.642C88.8362 474.623 88.6047 474.512 88.438 474.333C83.2031 468.69 82.481 463.199 82.4292 455.787C82.3125 439.166 83.0316 422.622 83.0337 406.003L83.4946 262.393L83.5464 223.618C83.5907 218.018 84.0722 210.456 83.7719 204.979C83.7478 204.539 83.4302 204.172 83.0005 204.073C68.1725 200.657 55.5663 195.653 43.1206 186.753C20.6626 170.512 5.56415 146.025 1.13717 118.664C-3.26576 91.2668 5.41683 63.8379 21.9897 41.8171C37.8556 20.7355 64.5663 5.67801 90.5288 1.3747C104.771 0.293016 120.831 0.747659 135.077 0.80341C142.326 0.832089 178.587 -0.339907 183.308 2.34247C183.455 2.42576 183.545 2.55291 183.607 2.70966C185.066 6.40261 182.768 11.458 180.266 14.2097C174.996 20.0417 168.249 23.0493 165.783 31.0358C160.193 49.1346 174.373 69.7589 193.688 69.6628C205.679 69.6034 219.158 58.2429 220.717 46.2438C221.204 42.4985 219.316 39.326 220.679 34.7692C220.717 34.6424 220.781 34.5224 220.873 34.4265C223.1 32.0868 228.861 32.4498 231.625 33.8893C231.766 33.9628 231.884 34.0738 231.966 34.2097C233.517 36.7641 233.036 39.0757 234.001 41.5876C244.629 69.2445 275.036 79.5512 302.343 71.6413C324.986 65.0829 348.394 38.3214 343.668 13.5026C342.522 7.47271 334.833 0.701997 347.586 0.132512ZM311.109 278C309.369 278.322 308.186 278.304 307.003 279.564C306.139 281.418 306.337 283.581 306.311 285.674C293.88 303.256 293.515 280.974 284.494 280.639C277.756 280.39 282.48 291.088 284.496 294.59C302.32 322.338 326.978 278.608 311.109 278ZM269.745 242.361C266.361 240.211 263.065 240.017 259.203 240.212C254.949 240.998 253.176 241.445 249.187 243.548C246.902 247.015 246.388 248.051 245.354 252.228C247.337 261.172 251.353 269.777 261.812 270.342C271.306 268.488 276.861 259.012 274.946 249.854C274.316 246.748 272.434 244.038 269.745 242.361ZM338.088 269.841C354.729 264.118 352.708 235.085 331.055 238.673C327.137 239.89 322.006 241.699 320.479 245.731C315.748 258.233 325.428 270.21 338.088 269.841Z" fill="currentColor"/>
+          <path
+            d="M347.586 0.132512C351.629 -0.38435 360.699 0.787582 366.707 0.642277C395.95 0.167608 425.194 0.0213704 454.443 0.204777C471.505 0.200603 491.006 -0.486215 507.803 1.42548C515.957 2.35401 530.956 8.83657 537.979 13.2097C559.392 26.5431 574.277 48.9316 579.956 73.2907C587.197 104.503 581.628 137.317 564.488 164.39C552.436 183.478 532.473 198.878 510.351 204.073C509.9 204.179 509.575 204.576 509.57 205.04C508.854 265.725 509.976 327.292 510.064 388.024L510.106 436.154C510.106 444.669 511.303 464.238 507.745 472.776C507.71 472.859 507.667 472.934 507.605 472.999C506.819 473.823 504.387 474.787 503.396 474.633C495.268 473.34 487.916 473.455 479.752 473.455L388.297 473.481L100.083 474.893C96.0618 474.939 93.0122 474.95 89.0805 474.642C88.8362 474.623 88.6047 474.512 88.438 474.333C83.2031 468.69 82.481 463.199 82.4292 455.787C82.3125 439.166 83.0316 422.622 83.0337 406.003L83.4946 262.393L83.5464 223.618C83.5907 218.018 84.0722 210.456 83.7719 204.979C83.7478 204.539 83.4302 204.172 83.0005 204.073C68.1725 200.657 55.5663 195.653 43.1206 186.753C20.6626 170.512 5.56415 146.025 1.13717 118.664C-3.26576 91.2668 5.41683 63.8379 21.9897 41.8171C37.8556 20.7355 64.5663 5.67801 90.5288 1.3747C104.771 0.293016 120.831 0.747659 135.077 0.80341C142.326 0.832089 178.587 -0.339907 183.308 2.34247C183.455 2.42576 183.545 2.55291 183.607 2.70966C185.066 6.40261 182.768 11.458 180.266 14.2097C174.996 20.0417 168.249 23.0493 165.783 31.0358C160.193 49.1346 174.373 69.7589 193.688 69.6628C205.679 69.6034 219.158 58.2429 220.717 46.2438C221.204 42.4985 219.316 39.326 220.679 34.7692C220.717 34.6424 220.781 34.5224 220.873 34.4265C223.1 32.0868 228.861 32.4498 231.625 33.8893C231.766 33.9628 231.884 34.0738 231.966 34.2097C233.517 36.7641 233.036 39.0757 234.001 41.5876C244.629 69.2445 275.036 79.5512 302.343 71.6413C324.986 65.0829 348.394 38.3214 343.668 13.5026C342.522 7.47271 334.833 0.701997 347.586 0.132512ZM311.109 278C309.369 278.322 308.186 278.304 307.003 279.564C306.139 281.418 306.337 283.581 306.311 285.674C293.88 303.256 293.515 280.974 284.494 280.639C277.756 280.39 282.48 291.088 284.496 294.59C302.32 322.338 326.978 278.608 311.109 278ZM269.745 242.361C266.361 240.211 263.065 240.017 259.203 240.212C254.949 240.998 253.176 241.445 249.187 243.548C246.902 247.015 246.388 248.051 245.354 252.228C247.337 261.172 251.353 269.777 261.812 270.342C271.306 268.488 276.861 259.012 274.946 249.854C274.316 246.748 272.434 244.038 269.745 242.361ZM338.088 269.841C354.729 264.118 352.708 235.085 331.055 238.673C327.137 239.89 322.006 241.699 320.479 245.731C315.748 258.233 325.428 270.21 338.088 269.841Z"
+            fill="currentColor"></path>
         </svg>
         Breadcrumb
       </a>
       <div class="flex items-center gap-4">
-        <a href="https://x.com/joshuaKnauber" target="_blank" rel="noopener noreferrer" class="text-fg-3 hover:text-fg transition-colors" aria-label="X">
+        <a href="/docs/introduction" class="font-display text-[13px] font-medium text-fg-3 hover:text-fg transition-colors">Docs</a>
+        <a
+          href="https://x.com/joshuaKnauber"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-fg-3 hover:text-fg transition-colors"
+          aria-label="X"
+        >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            <path
+              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+            ></path>
           </svg>
         </a>
-        <a href="https://github.com/joshuaKnauber/breadcrumb" target="_blank" rel="noopener noreferrer" class="text-fg-3 hover:text-fg transition-colors" aria-label="GitHub">
+        <a
+          href="https://github.com/joshuaKnauber/breadcrumb"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-fg-3 hover:text-fg transition-colors"
+          aria-label="GitHub"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            <path
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+            ></path>
           </svg>
         </a>
-        <p class="text-xs text-fg-3">&copy; {new Date().getFullYear()} Breadcrumb</p>
+        <p class="text-xs text-fg-3">
+          &copy; {new Date().getFullYear()} Breadcrumb
+        </p>
       </div>
     </div>
   </footer>
 
-<style>
-  /* Content constraint - used by non-cols sections */
-  .inner {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-
-  @media (max-width: 640px) {
+  <style>
+    /* Content constraint - used by non-cols sections */
     .inner {
-      padding-left: 1.25rem;
-      padding-right: 1.25rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
-  }
 
-  /* Browser window */
-  .browser-window {
-    border: 1px solid #282829;
-    overflow: hidden;
-    border-radius: 8px 8px 0 0;
-  }
+    @media (max-width: 640px) {
+      .inner {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+      }
+    }
 
-  .browser-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
-    border-bottom: 1px solid #282829;
-    background: #1b1b1c;
-  }
+    /* Browser window */
+    .browser-window {
+      border: 1px solid #282829;
+      overflow: hidden;
+      border-radius: 8px 8px 0 0;
+    }
 
-  .browser-dots {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-  }
+    .browser-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-bottom: 1px solid #282829;
+      background: #1b1b1c;
+    }
 
-  .browser-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
 
-  .browser-address-bar {
-    flex: 1;
-    max-width: 240px;
-    margin: 0 14px;
-    padding: 5px 10px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #121213;
-    border: 1px solid #282829;
-    border-radius: 4px;
-    text-align: center;
-  }
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
 
-  .browser-content {
-    line-height: 0;
-    padding: 16px 16px 0;
-    background: #121213;
-  }
+    .browser-address-bar {
+      flex: 1;
+      max-width: 240px;
+      margin: 0 14px;
+      padding: 5px 10px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #121213;
+      border: 1px solid #282829;
+      border-radius: 4px;
+      text-align: center;
+    }
 
-  /* Live ping */
-  .live-ping {
-    animation: livePing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-  }
-  @keyframes livePing {
-    75%, 100% { transform: scale(2.8); opacity: 0; }
-  }
-</style>
+    .browser-content {
+      line-height: 0;
+      padding: 16px 16px 0;
+      background: #121213;
+    }
 
-<script>
-  type BlockColor = 'amber' | 'teal' | 'violet' | 'pink';
-  type Block = [BlockColor, number, number, number];
+    /* Live ping */
+    .live-ping {
+      animation: livePing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    @keyframes livePing {
+      75%,
+      100% {
+        transform: scale(2.8);
+        opacity: 0;
+      }
+    }
+  </style>
 
-  const COLORS: Record<BlockColor, string> = {
-    amber:  '#58508d',  // brand amber
-    teal:   '#b4558d',  // warm orange
-    violet: '#e77371',  // rust
-    pink:   '#7b6aad',  // golden yellow
-  };
+  <script>
+    type BlockColor = "amber" | "teal" | "violet" | "pink";
+    type Block = [BlockColor, number, number, number];
 
-  const SEQS: Block[][] = [
-    [['teal',   0, 13, 240], ['amber', 16, 81, 840]],
-    [['amber',  0, 19, 340], ['teal', 22,  7, 110], ['teal', 31, 5, 80], ['amber', 38, 59, 720]],
-    [['amber',  2, 94, 400]],
-    [['violet', 0, 45, 440], ['pink', 49, 48, 500]],
-    [['teal',   0,  4,  60], ['amber',  7, 90, 980]],
-    [['teal',   0,  9, 150], ['amber', 12, 85, 860]],
-    [['violet', 0, 14, 260], ['teal', 17,  6, 100], ['teal', 25, 6, 100], ['amber', 33, 64, 760]],
-  ];
+    const COLORS: Record<BlockColor, string> = {
+      amber: "#58508d", // brand amber
+      teal: "#b4558d", // warm orange
+      violet: "#e77371", // rust
+      pink: "#7b6aad", // golden yellow
+    };
 
-  const rowsEl = document.getElementById('tl-rows')!;
-  const ROW_COUNT = 5;
+    const SEQS: Block[][] = [
+      [
+        ["teal", 0, 13, 240],
+        ["amber", 16, 81, 840],
+      ],
+      [
+        ["amber", 0, 19, 340],
+        ["teal", 22, 7, 110],
+        ["teal", 31, 5, 80],
+        ["amber", 38, 59, 720],
+      ],
+      [["amber", 2, 94, 400]],
+      [
+        ["violet", 0, 45, 440],
+        ["pink", 49, 48, 500],
+      ],
+      [
+        ["teal", 0, 4, 60],
+        ["amber", 7, 90, 980],
+      ],
+      [
+        ["teal", 0, 9, 150],
+        ["amber", 12, 85, 860],
+      ],
+      [
+        ["violet", 0, 14, 260],
+        ["teal", 17, 6, 100],
+        ["teal", 25, 6, 100],
+        ["amber", 33, 64, 760],
+      ],
+    ];
 
-  const rowContainers: HTMLElement[] = [];
-  for (let i = 0; i < ROW_COUNT; i++) {
-    const row = document.createElement('div');
-    row.style.cssText = 'position:relative;height:26px;';
-    const track = document.createElement('div');
-    track.style.cssText = 'position:absolute;inset:0;background:#1b1b1c;';
-    row.appendChild(track);
-    rowsEl.appendChild(row);
-    rowContainers.push(row);
-  }
+    const rowsEl = document.getElementById("tl-rows")!;
+    const ROW_COUNT = 5;
 
-  const raf2 = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-  const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+    const rowContainers: HTMLElement[] = [];
+    for (let i = 0; i < ROW_COUNT; i++) {
+      const row = document.createElement("div");
+      row.style.cssText = "position:relative;height:26px;";
+      const track = document.createElement("div");
+      track.style.cssText = "position:absolute;inset:0;background:#1b1b1c;";
+      row.appendChild(track);
+      rowsEl.appendChild(row);
+      rowContainers.push(row);
+    }
 
-  async function animateRow(row: HTMLElement, startIdx: number) {
-    let idx = startIdx;
-    while (true) {
-      const seq = SEQS[idx % SEQS.length];
-      idx++;
-      const blockEls: HTMLElement[] = [];
-      for (const [color, startPct, widthPct, growMs] of seq) {
-        const block = document.createElement('div');
-        block.style.cssText = `
+    const raf2 = () =>
+      new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      );
+    const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+    async function animateRow(row: HTMLElement, startIdx: number) {
+      let idx = startIdx;
+      while (true) {
+        const seq = SEQS[idx % SEQS.length];
+        idx++;
+        const blockEls: HTMLElement[] = [];
+        for (const [color, startPct, widthPct, growMs] of seq) {
+          const block = document.createElement("div");
+          block.style.cssText = `
           position: absolute;
           top: 3px; bottom: 3px;
           left: ${startPct}%;
@@ -349,26 +518,26 @@ import dashboardImage from '../assets/dashboard.png';
           transform-origin: left center;
           will-change: transform;
         `;
-        row.appendChild(block);
-        blockEls.push(block);
-        await raf2();
-        block.style.transition = `transform ${growMs}ms cubic-bezier(0.2, 0, 0.05, 1)`;
-        block.style.transform = 'scaleX(1)';
-        await sleep(growMs + 20);
+          row.appendChild(block);
+          blockEls.push(block);
+          await raf2();
+          block.style.transition = `transform ${growMs}ms cubic-bezier(0.2, 0, 0.05, 1)`;
+          block.style.transform = "scaleX(1)";
+          await sleep(growMs + 20);
+        }
+        await sleep(1600);
+        blockEls.forEach((b) => {
+          b.style.transition = "opacity 0.32s ease";
+          b.style.opacity = "0";
+        });
+        await sleep(380);
+        blockEls.forEach((b) => b.remove());
+        await sleep(200);
       }
-      await sleep(1600);
-      blockEls.forEach(b => {
-        b.style.transition = 'opacity 0.32s ease';
-        b.style.opacity = '0';
-      });
-      await sleep(380);
-      blockEls.forEach(b => b.remove());
-      await sleep(200);
     }
-  }
 
-  rowContainers.forEach((row, i) => {
-    setTimeout(() => animateRow(row, i), i * 1350);
-  });
-</script>
+    rowContainers.forEach((row, i) => {
+      setTimeout(() => animateRow(row, i), i * 1350);
+    });
+  </script>
 </Layout>
