@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
-
 export default function Page() {
-  redirect('/docs');
+  return (
+    <meta httpEquiv="refresh" content="0;url=/docs/introduction" />
+  );
 }
