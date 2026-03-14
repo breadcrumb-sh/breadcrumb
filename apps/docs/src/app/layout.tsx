@@ -15,14 +15,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://breadcrumb.sh'),
   title: {
     default: 'Breadcrumb',
     template: '%s | Breadcrumb',
   },
-  description: 'Documentation for Breadcrumb.',
+  description: 'Open-source LLM tracing and observability for TypeScript.',
   applicationName: 'Breadcrumb',
   icons: {
     icon: '/favicon.svg',
+  },
+  openGraph: {
+    siteName: 'Breadcrumb',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
   },
 };
 
