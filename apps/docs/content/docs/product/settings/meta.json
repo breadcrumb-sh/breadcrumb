@@ -1,0 +1,9 @@
+{
+  "title": "Configuration",
+  "collapsible": true,
+  "pages": [
+    "api-keys",
+    "members",
+    "ai-provider"
+  ]
+}

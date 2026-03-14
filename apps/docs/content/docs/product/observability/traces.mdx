@@ -1,0 +1,32 @@
+---
+title: Traces
+description: Inspect traces, spans, and agent paths.
+---
+
+The Traces page lets you spot patterns across your traces, catch issues with AI-generated findings, and drill into individual requests to see exactly what happened.
+
+## Overview
+
+![Traces overview](/traces.webp)
+
+Filter by date range, trace name, span type, and status.
+
+**Common agent paths** - shows the most frequent sequences of spans across your traces. See which paths your agents take and how often.
+
+**Span frequency per trace** - bar chart showing how many times each span appears per trace at p5, p50, and p95. Useful for spotting loops or unexpected repetition.
+
+**Span loopback rate** - tracks how often spans repeat within a single trace. High loopback rates usually mean an agent is retrying or stuck.
+
+## Individual traces
+
+![Individual trace](/trace.webp)
+
+Click any trace to see the full span tree. Each span shows:
+
+- **Timeline** - visual bar showing when each span started and how long it ran
+- **Span tree** - nested view of all spans with type badges, duration, and token counts
+- **Detail panel** - click a span to see its full input (system/user messages), output, model, provider, and custom metadata
+
+Every span captures the actual prompts sent and responses received - not summaries, not samples.
+
+Use **Clean view** to collapse the span tree into a flat, readable conversation flow - just the inputs and outputs in order, without the nesting.

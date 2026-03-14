@@ -1,0 +1,48 @@
+---
+title: Installation
+description: Install and configure the Breadcrumb SDK.
+---
+
+## Install
+
+```bash
+npm install @breadcrumb-sdk/core
+```
+
+## Initialize
+
+```ts
+import { init } from "@breadcrumb-sdk/core";
+
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+});
+```
+
+| Option | Description |
+|--------|-------------|
+| `apiKey` | Your project API key |
+| `baseUrl` | Your Breadcrumb instance URL |
+| `environment` | Optional environment label (e.g. `"production"`) |
+| `batching` | Optional batching config (see below) |
+
+## Batching
+
+By default, spans are sent individually. Enable batching to group them into fewer requests:
+
+```ts
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+  batching: {
+    maxBatchSize: 10,
+    flushIntervalMs: 1000,
+  },
+});
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `maxBatchSize` | `10` | Max spans per batch request |
+| `flushIntervalMs` | `1000` | How often to flush the batch (ms) |

@@ -1,14 +1,17 @@
 ---
-title: AI Integrations
-icon: Bot
-description: Use AI to query traces, explore data, and catch issues automatically.
+title: MCP
+description: Connect your LLM to Breadcrumb traces via Model Context Protocol.
 ---
 
-## MCP
+The MCP server gives your LLM read-only access to your trace data. Connect it to Claude, Cursor, or any MCP-compatible client to debug and improve your prompts from real production data.
 
-Connect your editor to Breadcrumb via MCP. Your LLM gets direct access to production traces - the actual prompts sent, responses received, token counts, and costs.
+## Create an MCP key
 
-**Debug and improve** - Ask your LLM to look at failing or expensive traces. It reads the real prompts and outputs, identifies the issue, and fixes the code directly - no separate prompt management tool needed.
+Go to your **user settings** and create a new MCP key. Each key grants read-only access to traces across all your projects.
+
+![MCP key creation](/mcp.webp)
+
+## Install
 
 <CodeBlockTabs groupId="mcp-client" defaultValue="claude-code" persist>
   <CodeBlockTabsList>
@@ -47,16 +50,11 @@ codex mcp add --transport http breadcrumb https://app.breadcrumb.sh/mcp
   </CodeBlockTab>
 </CodeBlockTabs>
 
-Replace `app.breadcrumb.sh` with your instance domain if self-hosting. [Learn more](/docs/product/ai/mcp).
+Replace `app.breadcrumb.sh` with your instance domain if self-hosting.
 
----
+## What your LLM can do
 
-## Explore
-
-Chat interface in the dashboard. Ask questions in plain English, get charts and tables back. The AI writes SQL, runs it, and renders the results. [Learn more](/docs/product/ai/explore).
-
----
-
-## Observations
-
-Background monitoring for your traces. Set up what to watch, and the AI evaluates incoming traces and surfaces findings ranked by impact. [Learn more](/docs/product/ai/observations).
+- **Read traces and spans** - browse, filter, and inspect the full content of any trace including prompts, completions, and metadata
+- **Find problems** - surface the slowest, most expensive, or highest-token traces across your projects
+- **Run queries** - execute read-only SQL against your trace data for custom analysis
+- **Fix your code** - read what actually happened in production and rewrite prompts or logic based on real data

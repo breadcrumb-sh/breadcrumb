@@ -2,11 +2,8 @@
   "title": "Product",
   "collapsible": false,
   "pages": [
-    "dashboard",
-    "mcp",
-    "traces",
-    "observations",
-    "explore",
-    "project-settings"
+    "observability",
+    "ai",
+    "settings"
   ]
 }

@@ -2,7 +2,7 @@
   "title": "SDKs",
   "collapsible": false,
   "pages": [
-    "core-sdk",
+    "typescript",
     "ai-sdk"
   ]
 }

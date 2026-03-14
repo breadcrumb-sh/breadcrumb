@@ -1,0 +1,27 @@
+---
+title: Dashboard
+description: Overview of your project's trace activity.
+---
+
+The dashboard gives you a snapshot of your project's LLM usage at a glance.
+
+![Dashboard overview](/overview.webp)
+
+## Summary cards
+
+The top row shows key metrics with percentage changes from the previous period:
+
+- **Traces** - total number of traces
+- **Total cost** - combined API spend across all calls
+- **Tokens** - total input and output tokens used
+- **Avg duration** - average trace response time
+- **Error rate** - percentage of failed traces
+
+## Trace quality
+
+Stacked bar chart showing daily trace volume broken down by status - healthy, expensive, and failed. Spot spikes in errors or cost at a glance.
+
+## Cost charts
+
+- **Spend over time** - daily API cost trend
+- **Avg cost per trace** - cost efficiency over time, useful for catching regressions after prompt or model changes

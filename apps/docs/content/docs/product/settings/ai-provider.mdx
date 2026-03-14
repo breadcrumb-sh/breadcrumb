@@ -1,0 +1,24 @@
+---
+title: AI Provider
+description: Configure the AI provider for Explore and Observations.
+---
+
+Explore and Observations require an AI provider to generate queries and analyze traces.
+
+## Setup
+
+Go to project settings and select a provider:
+
+| Provider | Description |
+|----------|-------------|
+| **Anthropic** | Claude models |
+| **OpenAI** | GPT models |
+| **OpenRouter** | Access multiple providers through one API |
+| **Custom** | Any OpenAI-compatible endpoint |
+
+Enter your API key and model ID. For custom providers, set the base URL.
+
+## Which features need it
+
+- **Explore** - generates SQL queries and charts from natural language
+- **Observations** - evaluates traces and creates findings automatically

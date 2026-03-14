@@ -1,0 +1,71 @@
+---
+title: Tracing
+description: Create traces and spans to instrument your code.
+---
+
+## Traces
+
+A trace wraps a top-level operation. Call `bc.trace()` with a name and an async function:
+
+```ts
+await bc.trace("my-workflow", async (root) => {
+  root.set({ input: "user question" });
+
+  const result = await doWork();
+
+  root.set({ output: result });
+});
+```
+
+## Spans
+
+Spans represent individual steps inside a trace. Nest them to build a call tree:
+
+```ts
+await bc.trace("my-workflow", async (root) => {
+  const result = await bc.span(
+    "generate",
+    async (span) => {
+      const text = await callModel(prompt);
+
+      span.set({
+        input: prompt,
+        output: text,
+        model: "claude-sonnet-4-5",
+        provider: "anthropic",
+      });
+
+      return text;
+    },
+    { type: "llm" }
+  );
+
+  root.set({ output: result });
+});
+```
+
+## Span data
+
+Set metadata on a span with `span.set()`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input` | `string` | Input text or prompt |
+| `output` | `string` | Output text or completion |
+| `model` | `string` | Model name |
+| `provider` | `string` | Provider name |
+| `inputTokens` | `number` | Input token count |
+| `outputTokens` | `number` | Output token count |
+| `cost` | `number` | Cost in dollars |
+| `metadata` | `Record<string, unknown>` | Custom key-value data |
+
+## Span types
+
+Pass a type in the options to categorize spans:
+
+```ts
+bc.span("step", fn, { type: "llm" });
+bc.span("step", fn, { type: "tool" });
+bc.span("step", fn, { type: "retrieval" });
+bc.span("step", fn, { type: "default" });
+```

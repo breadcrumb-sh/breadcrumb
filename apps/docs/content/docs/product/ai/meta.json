@@ -1,0 +1,9 @@
+{
+  "title": "AI",
+  "collapsible": true,
+  "pages": [
+    "mcp",
+    "explore",
+    "observations"
+  ]
+}

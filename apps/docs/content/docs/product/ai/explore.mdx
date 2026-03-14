@@ -1,0 +1,30 @@
+---
+title: Explore
+description: Ask questions about your trace data and get charts back.
+---
+
+Explore is a conversational interface for querying your trace data. Ask a question, get a chart, table, or diagram back. Follow up to drill deeper.
+
+![Explore charts](/explore_charts.webp)
+
+## What you can ask
+
+- **Volume and trends** - *"Show me daily trace volume over the last 30 days"*
+- **Cost analysis** - *"What's my daily LLM spend this month?"*
+- **Performance** - *"What are my top 10 slowest spans?"*
+- **Comparisons** - *"Compare token usage across models"*
+- **Architecture** - *"Draw a mermaid diagram of my most common trace flows"*
+
+## Diagrams and analysis
+
+Explore can generate architecture diagrams from your actual trace data - showing how your agents work, which paths they take, and how spans connect.
+
+![Explore graph](/explore_graph.webp)
+
+## How it works
+
+The AI writes and runs SQL queries against your trace data, then renders results as interactive charts, tables, or mermaid diagrams. Conversations are saved in the sidebar so you can pick up where you left off.
+
+## Requirements
+
+Requires an [AI provider](/docs/product/settings/ai-provider) to be configured in your project settings.

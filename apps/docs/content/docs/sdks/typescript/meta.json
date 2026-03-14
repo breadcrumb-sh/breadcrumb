@@ -1,0 +1,9 @@
+{
+  "title": "TypeScript SDK",
+  "collapsible": true,
+  "pages": [
+    "installation",
+    "tracing",
+    "agents"
+  ]
+}

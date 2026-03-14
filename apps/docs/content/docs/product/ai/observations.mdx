@@ -1,0 +1,25 @@
+---
+title: Observations
+description: Automatic AI-powered monitoring for your traces.
+---
+
+Observations monitor your traces in the background and surface issues as findings - ranked by impact with a description and suggested fix.
+
+![Observations findings](/observations.webp)
+
+## Findings
+
+Each finding is ranked by impact - **high**, **medium**, or **low** - and includes a description of what went wrong and a suggestion for how to fix it. The AI looks across traces to identify patterns, not just one-off issues.
+
+Dismiss findings you've handled. The AI deduplicates automatically so you won't see the same issue twice.
+
+## Setup
+
+1. Go to your project settings and create an observation
+2. Choose which trace names to watch (or leave empty for all)
+3. Set a sampling rate (1-100%) to control how many traces get evaluated
+4. Optionally add custom heuristics to guide what the AI looks for
+
+## Requirements
+
+Requires an [AI provider](/docs/product/settings/ai-provider) to be configured in your project settings.

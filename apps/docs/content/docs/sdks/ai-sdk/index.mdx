@@ -1,0 +1,68 @@
+---
+title: Installation
+description: Trace Vercel AI SDK calls automatically.
+---
+
+The AI SDK integration traces `generateText`, `streamText`, and other Vercel AI SDK calls automatically.
+
+## Install
+
+```bash
+npm install @breadcrumb-sdk/core @breadcrumb-sdk/ai-sdk
+```
+
+## Setup
+
+```ts
+import { init } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
+
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+});
+
+const { telemetry } = initAiSdk(bc);
+```
+
+## Usage
+
+Pass the `telemetry` helper to any AI SDK call:
+
+```ts
+const { text } = await generateText({
+  model: anthropic("claude-sonnet-4-5"),
+  prompt: "Summarize this document.",
+  experimental_telemetry: telemetry("summarize"),
+});
+```
+
+The string you pass to `telemetry()` becomes the trace name in the dashboard.
+
+## Grouping calls
+
+Wrap multiple AI SDK calls in a single trace using `bc.trace()`:
+
+```ts
+await bc.trace("multi-step", async (root) => {
+
+  const { text: plan } = await generateText({
+    model: anthropic("claude-sonnet-4-5"),
+    prompt: "Plan the steps to answer this question.",
+    experimental_telemetry: telemetry("plan"),
+  });
+
+  const { text: answer } = await generateText({
+    model: anthropic("claude-sonnet-4-5"),
+    prompt: `Execute this plan: ${plan}`,
+    experimental_telemetry: telemetry("execute"),
+  });
+
+});
+```
+
+Each `generateText` call appears as a nested span inside the parent trace.
+
+## Tools and agents
+
+Tool calls and multi-step agent loops are traced automatically. Each tool invocation appears as a nested span inside the trace.

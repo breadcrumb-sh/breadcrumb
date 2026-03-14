@@ -1,0 +1,108 @@
+---
+title: Agents
+description: Trace multi-step agent loops with tool calls and nested spans.
+---
+
+## Agent loops
+
+Wrap the full loop in a trace. Each model call and tool execution gets its own span.
+
+<Steps>
+  <Step>
+    ### Create the trace
+
+    ```ts
+    await bc.trace("agent", async (root) => {
+      root.set({ input: userQuery });
+      // agent loop goes here
+      root.set({ output: result });
+    });
+    ```
+  </Step>
+  <Step>
+    ### Trace each model call
+
+    ```ts
+    const response = await bc.span(
+      "think",
+      async (span) => {
+        const out = await callModel(messages);
+        span.set({
+          input: JSON.stringify(messages),
+          output: out,
+          model: "claude-sonnet-4-5",
+          provider: "anthropic",
+        });
+        return out;
+      },
+      { type: "llm" }
+    );
+    ```
+  </Step>
+  <Step>
+    ### Trace each tool call
+
+    ```ts
+    const toolResult = await bc.span(
+      response.toolCall.name,
+      async (span) => {
+        const res = await executeTool(response.toolCall);
+        span.set({
+          input: JSON.stringify(response.toolCall.args),
+          output: JSON.stringify(res),
+        });
+        return res;
+      },
+      { type: "tool" }
+    );
+    ```
+  </Step>
+</Steps>
+
+This produces a trace like:
+
+```
+agent
+├─ think (llm)
+├─ search (tool)
+├─ think (llm)
+├─ calculate (tool)
+└─ think (llm)
+```
+
+---
+
+## RAG pipelines
+
+Same pattern - use `"retrieval"` and `"llm"` span types to separate the steps:
+
+```ts
+await bc.trace("rag", async (root) => {
+  root.set({ input: query });
+
+  const docs = await bc.span("retrieve", async (span) => {
+    const results = await vectorSearch(query);
+    span.set({ input: query, output: JSON.stringify(results) });
+    return results;
+  }, { type: "retrieval" });
+
+  const answer = await bc.span("generate", async (span) => {
+    const text = await callModel(query, docs);
+    span.set({ input: query, output: text, model: "claude-sonnet-4-5" });
+    return text;
+  }, { type: "llm" });
+
+  root.set({ output: answer });
+});
+```
+
+---
+
+## Tips
+
+| Tip | Why |
+|-----|-----|
+| Name spans after what they do (`"search"`, `"generate"`) | Makes traces readable in the dashboard |
+| Use span types (`"llm"`, `"tool"`, `"retrieval"`) | Lets you filter and query by category |
+| Set `input`/`output` on the root trace | Shows the user-facing request and response at the top level |
+| Use `metadata` for debugging context | Pass retry counts, selected tools, chunk counts |
