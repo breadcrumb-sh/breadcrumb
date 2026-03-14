@@ -16,11 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'breadcrumb',
-    template: '%s | breadcrumb',
+    default: 'Breadcrumb',
+    template: '%s | Breadcrumb',
   },
-  description: 'Documentation for breadcrumb.',
-  applicationName: 'breadcrumb',
+  description: 'Documentation for Breadcrumb.',
+  applicationName: 'Breadcrumb',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function Layout({ children }: LayoutProps<'/'>) {
