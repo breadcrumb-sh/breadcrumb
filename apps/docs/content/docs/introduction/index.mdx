@@ -1,34 +1,25 @@
 ---
 title: Introduction
 icon: BookOpen
-description: Open-source tracing for AI agents and pipelines.
+description: Open-source LLM tracing for TypeScript.
 ---
 
-## Introduction
+Breadcrumb is an open-source tracing platform for LLM applications. It captures every model call your app makes - prompts, completions, tokens, latency, and cost.
 
-Breadcrumb is an open-source tracing platform for AI agents and pipelines. It shows each request end to end, from retrieval and tool calls to model generations and final output.
+<Steps>
+  <Step>
+    ### Set up hosting
 
-AI systems are hard to debug with logs alone. Breadcrumb turns that flow into a trace you can inspect in one place.
+    [Self-host](/docs/setup/self-hosting) Breadcrumb on your own infrastructure, or [sign up for updates](https://tally.so/r/2Er8NL) on the hosted version.
+  </Step>
+  <Step>
+    ### Start tracing
 
-<Cards className="mt-8">
-  <Card
-    title="Full request traces"
-    description="Follow a request across nested spans in one workflow."
-  />
-  <Card
-    title="AI-native metadata"
-    description="Capture model, provider, token, cost, input, output, and custom metadata."
-  />
-  <Card
-    title="Flexible instrumentation"
-    description="Use the core SDK or the Vercel AI SDK integration."
-  />
-  <Card
-    title="Hosted or self-hosted"
-    description="Run Breadcrumb yourself or connect to a hosted deployment."
-  />
-</Cards>
+    Follow the [quick start](/docs/introduction/quick-start) to install the SDK and send your first trace.
+  </Step>
+</Steps>
 
-## Why it helps
+## Stay in the loop
 
-When something breaks, Breadcrumb helps you see which step failed, what context it received, and what the model returned.
+- [Contribute on GitHub](https://github.com/joshuaKnauber/breadcrumb)
+- [Follow on X](https://x.com/joshuaKnauber) for updates

@@ -40,9 +40,7 @@ import dashboardImage from "../assets/dashboard.png";
       <p
         class="text-[14px] sm:text-[15px] leading-[1.75] text-fg-2 mb-8 max-w-[430px]"
       >
-        Breadcrumb logs every prompt, completion, token count, latency, and
-        cost. Open source and self-hostable in one click, so your data stays in
-        your stack.
+        Prompts, completions, tokens, latency, cost - traced and logged for every request. Open source, self-hostable, and built for TypeScript.
       </p>
       <div class="flex gap-3 w-full sm:w-auto">
         <a
@@ -135,14 +133,12 @@ import dashboardImage from "../assets/dashboard.png";
       <h2
         class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3"
       >
-        Full LLM tracing with three lines of code.
+        Three lines of code. Every call traced.
       </h2>
       <p
         class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[420px]"
       >
-        Initialize the SDK, wrap your calls. That's it. Every call your app makes gets
-        logged with its prompt, completion, tokens, latency, and cost. No
-        complexity, no SDKs with a 30-page setup guide.
+        Initialize the SDK, pass the telemetry helper. No config files, no decorators, no 30-page setup guide. Your first trace shows up in under a minute.
       </p>
     </div>
   </section>
@@ -190,13 +186,12 @@ import dashboardImage from "../assets/dashboard.png";
       <h2
         class="font-display text-[22px] sm:text-[27px] font-semibold text-fg tracking-tight leading-snug mb-3"
       >
-        Monitor every LLM call in production.
+        Know exactly what your AI is doing.
       </h2>
       <p
         class="text-[13px] sm:text-[14px] leading-[1.8] text-fg-2 max-w-[400px]"
       >
-        Every LLM call your app makes in production gets logged. Real prompts,
-        real responses, real token counts.
+        See the actual prompt that was sent, the full response that came back, how long it took, and what it cost. For every request, not a sample.
       </p>
     </div>
   </section>
@@ -220,8 +215,7 @@ import dashboardImage from "../assets/dashboard.png";
               $0.0024
             </div>
             <p class="text-[13px] text-fg-2 leading-[1.75]">
-              Every trace shows its token count and cost. See which calls are
-              expensive and where your budget is actually going.
+              Every trace breaks down its token usage and cost. Find the calls burning through your budget before they hit your invoice.
             </p>
           </div>
         </div>
@@ -238,12 +232,10 @@ import dashboardImage from "../assets/dashboard.png";
             <p
               class="font-display text-[17px] font-semibold text-fg leading-snug mb-2"
             >
-              Runs on your infra. Open source, forever.
+              Your data never leaves your stack.
             </p>
             <p class="text-[13px] text-fg-2 leading-[1.75] mb-4 max-w-[400px]">
-              Deploy with one click on Railway or anywhere else. Your data never
-              leaves your stack. Read the code, fork it, modify it - no usage
-              fees, no vendor lock-in.
+              Deploy on Railway, Fly, or your own servers. Fork it, extend it, run it however you want. No usage fees, no vendor lock-in, open source forever.
             </p>
             <a
               href="https://github.com/joshuaKnauber/breadcrumb"
@@ -268,10 +260,10 @@ import dashboardImage from "../assets/dashboard.png";
               <p
                 class="font-display text-[17px] font-semibold text-fg leading-snug mb-2"
               >
-                Three lines to trace every AI call
+                Works with the Vercel AI SDK out of the box
               </p>
               <p class="text-[13px] text-fg-2 leading-[1.75] max-w-[480px]">
-                Drop in the Breadcrumb SDK alongside the Vercel AI SDK. Initialize once, pass the telemetry helper, and every call gets logged automatically.
+                Add two imports, initialize once, and pass the telemetry helper. Every <code class="text-fg-3">generateText</code> and <code class="text-fg-3">streamText</code> call gets traced automatically.
               </p>
             </div>
             <pre class="bg-bg border border-border p-4 overflow-x-auto text-[12px] sm:text-[13px] leading-[1.7] font-mono text-fg-2"><code set:html={`<span style="color:#c792ea">import</span> { init } <span style="color:#c792ea">from</span> <span style="color:#E77270">"@breadcrumb-sdk/core"</span>;
@@ -296,16 +288,16 @@ import dashboardImage from "../assets/dashboard.png";
       <h2
         class="font-display text-[22px] sm:text-[28px] font-semibold text-fg tracking-tight leading-snug mb-3"
       >
-        Ready to try it?
+        Start tracing in under a minute.
       </h2>
       <p class="text-[13px] text-fg-2 leading-[1.75] mb-7 max-w-[340px]">
-        Check out the docs to get started.
+        Install the SDK, add three lines, and see your first trace.
       </p>
       <a
         href="/docs/introduction"
         class="inline-flex items-center gap-3 px-12 py-3 bg-fg text-bg text-[13px] font-semibold font-display hover:opacity-80 transition-opacity"
       >
-        Get started
+        Read the docs
       </a>
     </div>
   </section>

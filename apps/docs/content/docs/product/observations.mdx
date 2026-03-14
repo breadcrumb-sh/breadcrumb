@@ -1,3 +1,31 @@
 ---
 title: Observations
+description: Automatic AI-powered monitoring for your traces.
 ---
+
+Observations watch your traces in the background and surface problems automatically.
+
+## Setup
+
+1. Go to Project Settings and create an observation
+2. Give it a name and choose which trace names to watch (or leave empty for all)
+3. Set a sampling rate (1-100%) to control how many matching traces get evaluated
+4. Optionally add custom heuristics to guide the analysis
+
+## What it catches
+
+- Bloated system prompts burning tokens
+- Expensive models used for simple tasks
+- Repeated or looping tool calls
+- Model errors and refusals
+- Patterns across traces, not just individual requests
+
+## Findings
+
+When the AI spots an issue, it creates a finding with an impact rating (high, medium, low), a description, and a suggested fix. Findings show up in the Observations tab on the traces page with an unread badge.
+
+Dismiss findings you've handled. The AI checks for existing findings before creating new ones, so you won't get duplicates.
+
+## Requirements
+
+Observations require an AI provider to be configured in your project settings.
