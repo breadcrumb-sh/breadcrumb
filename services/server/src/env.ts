@@ -3,7 +3,6 @@ import "dotenv/config";
 export const env = {
   betterAuthSecret:
     process.env.BETTER_AUTH_SECRET || "dev-secret-change-in-production",
-  betterAuthUrl: process.env.BETTER_AUTH_URL || "http://localhost:3100",
   appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
   databaseUrl:
     process.env.DATABASE_URL ||

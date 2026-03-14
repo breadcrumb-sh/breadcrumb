@@ -8,7 +8,7 @@ import { checkSignupAllowed } from "./signup-guard.js";
 
 export const auth = betterAuth({
   secret: env.betterAuthSecret,
-  baseURL: env.betterAuthUrl,
+  baseURL: env.appBaseUrl,
   trustedOrigins: [env.appBaseUrl, "http://localhost:3000", "http://localhost:5173"],
   database: drizzleAdapter(db, {
     provider: "pg",
