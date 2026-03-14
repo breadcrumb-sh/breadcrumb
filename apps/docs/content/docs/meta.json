@@ -3,8 +3,8 @@
   "root": true,
   "pages": [
     "introduction",
-    "sdks",
     "setup",
+    "sdks",
     "product"
   ]
 }
