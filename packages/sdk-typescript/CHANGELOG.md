@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.5
+
+### Patch Changes
+
+- 59dd4e9: Updated docs
+
 ## 0.0.4
 
 ### Patch Changes

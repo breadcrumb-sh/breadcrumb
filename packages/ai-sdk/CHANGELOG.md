@@ -1,5 +1,13 @@
 # @breadcrumb/ai-sdk
 
+## 0.0.4
+
+### Patch Changes
+
+- 59dd4e9: Updated docs
+- Updated dependencies [59dd4e9]
+  - @breadcrumb-sdk/core@0.0.5
+
 ## 0.0.3
 
 ### Patch Changes
