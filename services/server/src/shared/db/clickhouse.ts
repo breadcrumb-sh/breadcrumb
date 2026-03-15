@@ -177,6 +177,17 @@ export async function runClickhouseMigrations() {
     if (isNaN(version)) continue;
     if (version <= appliedVersion) continue;
 
+    // Skip the sandboxed user migration when sandboxing is disabled.
+    // It requires CREATE USER privileges not available on all providers.
+    if (file.includes("sandboxed_user") && !env.enableSandboxedQueries) {
+      log.info({ file }, "skipping migration (sandboxed queries disabled)");
+      // Still record as applied so it doesn't retry on next startup
+      await clickhouse.command({
+        query: `INSERT INTO breadcrumb.schema_migrations (version, name) VALUES (${version}, '${file}')`,
+      });
+      continue;
+    }
+
     log.info({ file }, "applying clickhouse migration");
     const sql = await readFile(join(dir, file), "utf-8");
     const { dbStatement, statements } = parseStatements(sql);

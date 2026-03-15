@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, orgViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse, sandboxedClickhouse } from "../../../shared/db/clickhouse.js";
+import { env } from "../../../env.js";
 import { ROLLUPS_SUBQUERY } from "../../../services/traces/helpers.js";
 import { getAiModel } from "../../../services/explore/ai-provider.js";
 import { writeSearchQuery } from "../../../services/explore/query-writer.js";
@@ -130,13 +131,15 @@ export const listRouter = router({
         LIMIT {limit: UInt32} OFFSET {offset: UInt32}
       `;
 
-      // When the WHERE includes AI-generated SQL, run on the sandboxed client.
-      const client = hasAiClause ? sandboxedClickhouse : readonlyClickhouse;
+      // When sandboxing is enabled and the WHERE includes AI-generated SQL,
+      // run on the sandboxed client with row-policy enforcement.
+      const useSandbox = hasAiClause && env.enableSandboxedQueries;
+      const client = useSandbox ? sandboxedClickhouse : readonlyClickhouse;
       const result = await client.query({
         query: sql,
         query_params: params,
         format: "JSONEachRow",
-        ...(hasAiClause ? { clickhouse_settings: { SQL_project_id: input.projectId } } : {}),
+        ...(useSandbox ? { clickhouse_settings: { SQL_project_id: input.projectId } } : {}),
       });
 
       const rows = (await result.json()) as Array<Record<string, unknown>>;

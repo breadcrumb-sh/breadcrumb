@@ -1,4 +1,5 @@
-import { sandboxedClickhouse } from "../db/clickhouse.js";
+import { sandboxedClickhouse, readonlyClickhouse } from "../db/clickhouse.js";
+import { env } from "../../env.js";
 
 /**
  * Strip any SETTINGS clause from user/AI SQL to prevent overriding SQL_project_id.
@@ -29,26 +30,35 @@ function sanitizeSql(sql: string): string {
 }
 
 /**
- * Execute a SQL query in the sandboxed ClickHouse environment.
+ * Execute a SQL query with project isolation.
  *
- * The query runs as the `ai_query` user which has row policies that automatically
- * filter all tables by `project_id = toUUID(getSetting('SQL_project_id'))`.
- * The projectId is injected via per-query clickhouse_settings — no session needed.
+ * When ENABLE_SANDBOXED_QUERIES=true, runs on the `ai_query` user with row policies
+ * that enforce project isolation at the DB level. The SQL_project_id setting is
+ * injected per-query, and SETTINGS clauses are stripped to prevent overrides.
  *
- * Security layers:
- *   1. Row policies enforce project isolation (DB-level, impossible to bypass)
- *   2. readonly=2 + GRANT blocks writes and system table access
- *   3. sanitizeSql() strips SETTINGS clauses to prevent setting override
- *   4. Resource limits cap execution time, memory, and result size
+ * When sandboxing is disabled (default), falls back to the readonly client with
+ * the projectId available as a query parameter. The SQL itself must use
+ * {projectId: UUID} for filtering — there is no DB-level enforcement.
  */
 export async function runSandboxedQuery(
   projectId: string,
   sql: string,
 ): Promise<Record<string, unknown>[]> {
-  const result = await sandboxedClickhouse.query({
-    query: sanitizeSql(sql),
-    clickhouse_settings: { SQL_project_id: projectId },
-    query_params: { projectId }, // backward compat for saved chart SQL using {projectId: UUID}
+  if (env.enableSandboxedQueries) {
+    const result = await sandboxedClickhouse.query({
+      query: sanitizeSql(sql),
+      clickhouse_settings: { SQL_project_id: projectId },
+      query_params: { projectId },
+      format: "JSONEachRow",
+    });
+    return (await result.json()) as Record<string, unknown>[];
+  }
+
+  // Fallback: readonly client with projectId as a query parameter.
+  // No row-policy enforcement — relies on the SQL using {projectId: UUID}.
+  const result = await readonlyClickhouse.query({
+    query: sql,
+    query_params: { projectId },
     format: "JSONEachRow",
   });
   return (await result.json()) as Record<string, unknown>[];

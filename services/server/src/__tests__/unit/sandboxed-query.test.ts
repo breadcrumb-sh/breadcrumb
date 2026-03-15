@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockQuery = vi.fn();
+const mockReadonlyQuery = vi.fn();
 
 vi.mock("../../shared/db/clickhouse.js", () => ({
   sandboxedClickhouse: { query: mockQuery },
+  readonlyClickhouse: { query: mockReadonlyQuery },
+}));
+
+vi.mock("../../env.js", () => ({
+  env: { enableSandboxedQueries: true },
 }));
 
 const { runSandboxedQuery } = await import(
