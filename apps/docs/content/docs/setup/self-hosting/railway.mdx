@@ -1,0 +1,43 @@
+---
+title: Railway
+description: Deploy Breadcrumb to Railway with one click.
+---
+
+Railway is the easiest way to deploy Breadcrumb. One click provisions the full stack - the Breadcrumb server, PostgreSQL, and ClickHouse - all wired together and ready to go.
+
+## Deploy
+
+Click the button below to deploy Breadcrumb to your Railway account.
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/breadcrumb?referralCode=9MtPO4&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
+This creates three services in a new Railway project:
+
+- **Breadcrumb server** - the main application
+- **PostgreSQL** - stores projects, users, and API keys
+- **ClickHouse** - stores trace and span data
+
+## After Deploying
+
+<Steps>
+  <Step>
+    ### Open your instance
+
+    Once the deploy finishes, Railway generates a public URL for the Breadcrumb server. Click it to open the dashboard and create your account.
+  </Step>
+  <Step>
+    ### Create a project
+
+    Set up your first project in the dashboard. This is where your traces will be organized.
+  </Step>
+  <Step>
+    ### Get your API key
+
+    Go to your [project settings](/docs/product/settings/api-keys) to generate an API key. You'll need this to connect the SDK.
+  </Step>
+  <Step>
+    ### Start tracing
+
+    Follow the [quick start](/docs/introduction/quick-start) to install the SDK and send your first trace. Set `baseUrl` to your Railway instance URL.
+  </Step>
+</Steps>

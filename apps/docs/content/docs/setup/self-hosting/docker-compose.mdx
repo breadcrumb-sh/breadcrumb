@@ -1,0 +1,91 @@
+---
+title: Docker Compose
+description: Run Breadcrumb on any server with Docker Compose.
+---
+
+Docker Compose lets you run Breadcrumb on any machine with Docker installed - a VPS, a cloud instance, or your own hardware.
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+- [Git](https://git-scm.com/) installed
+
+## Setup
+
+### Clone the repository
+
+```bash
+git clone https://github.com/joshuaKnauber/breadcrumb.git
+cd breadcrumb
+```
+
+### Configure environment variables
+
+```bash
+cp services/server/.env.example services/server/.env
+```
+
+Open `services/server/.env` and update the following values:
+
+```bash
+# Generate a random secret for authentication
+BETTER_AUTH_SECRET=your-random-secret-here
+
+# Set this to the public URL where you'll access Breadcrumb
+APP_BASE_URL=https://your-domain.com
+
+# Use the Docker service names for database connections
+DATABASE_URL=postgres://postgres:postgres@postgres:5432/breadcrumb
+CLICKHOUSE_URL=http://clickhouse:8123
+CLICKHOUSE_DB=breadcrumb
+
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ENCRYPTION_KEY=your-generated-key
+
+# Production settings
+PORT=3100
+NODE_ENV=production
+```
+
+<Callout type="warn">
+  Change the default Postgres password in both your `.env` and `docker-compose.prod.yml` for production deployments.
+</Callout>
+
+### Start the services
+
+The repo includes a `docker-compose.prod.yml` with healthchecks and restart policies preconfigured.
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Breadcrumb will be available at `http://your-server-ip:3100`.
+
+## Updating
+
+Pull the latest changes and rebuild:
+
+```bash
+git pull
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+## Next Steps
+
+<Steps>
+  <Step>
+    ### Create your account
+
+    Open the dashboard and sign up.
+  </Step>
+  <Step>
+    ### Create a project and get an API key
+
+    Set up a project in the dashboard, then grab an API key from [project settings](/docs/product/settings/api-keys).
+  </Step>
+  <Step>
+    ### Start tracing
+
+    Follow the [quick start](/docs/introduction/quick-start) to connect the SDK. Set `baseUrl` to your instance URL.
+  </Step>
+</Steps>

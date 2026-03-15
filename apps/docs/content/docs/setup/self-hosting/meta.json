@@ -1,0 +1,9 @@
+{
+  "title": "Self-Hosting",
+  "collapsible": true,
+  "pages": [
+    "introduction",
+    "railway",
+    "docker-compose"
+  ]
+}
