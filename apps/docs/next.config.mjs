@@ -12,6 +12,7 @@ const config = {
   },
   trailingSlash: true,
   ...(!isDev ? {
+    assetPrefix: '/docs',
     output: 'export',
   } : {}),
 };
