@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://breadcrumb.sh/docs/sitemap.xml
+Sitemap: https://breadcrumb.sh/sitemap.xml
