@@ -21,6 +21,9 @@ export function baseOptions(): BaseLayoutProps {
         </>
       ),
     },
+    searchToggle: {
+      enabled: false,
+    },
     themeSwitch: {
       enabled: false,
     },
