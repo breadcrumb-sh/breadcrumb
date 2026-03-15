@@ -1,6 +1,6 @@
 # @breadcrumb-sdk/core
 
-Trace your AI agents and pipelines with Breadcrumb.
+Trace your AI agents and pipelines with Breadcrumb. **[Documentation](https://breadcrumb.sh/docs)**
 
 ## Install
 

@@ -2,6 +2,8 @@
 
 Open-source tracing for AI agents and pipelines. Learn more at [breadcrumb.sh](https://breadcrumb.sh).
 
+**[Documentation](https://breadcrumb.sh/docs)**
+
 ## Packages
 
 | Package | Description |
@@ -9,11 +11,19 @@ Open-source tracing for AI agents and pipelines. Learn more at [breadcrumb.sh](h
 | [`@breadcrumb-sdk/core`](./packages/sdk-typescript) | Core SDK for tracing agents and pipelines |
 | [`@breadcrumb-sdk/ai-sdk`](./packages/ai-sdk) | Vercel AI SDK integration |
 
-## Self-hosting
+## Deploy
 
-A Docker image is available. It requires PostgreSQL and ClickHouse — configure the connection strings via environment variables before starting the container.
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/breadcrumb?referralCode=9MtPO4&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-Full self-hosting docs coming soon.
+Or run with Docker Compose:
+
+```bash
+cp services/server/.env.example services/server/.env
+# Edit services/server/.env with your configuration
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+See the [self-hosting docs](https://breadcrumb.sh/docs/setup/self-hosting) for full setup instructions.
 
 ## Development
 
