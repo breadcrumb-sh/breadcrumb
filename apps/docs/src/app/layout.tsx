@@ -1,8 +1,8 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './global.css';
 import { Geist, Geist_Mono } from 'next/font/google';
-
 
 const geist = Geist({
   subsets: ['latin'],
@@ -37,14 +37,13 @@ export const metadata: Metadata = {
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <head>
-        <script
+      <body className={`${geist.className} flex flex-col min-h-screen`}>
+        <Script
           defer
           data-domain="breadcrumb.sh"
           src="https://nudge-events.up.railway.app/js/script.js"
-        ></script>
-      </head>
-      <body className={`${geist.className} flex flex-col min-h-screen`}>
+          strategy="afterInteractive"
+        />
         <RootProvider
           theme={{
             forcedTheme: 'dark',
