@@ -16,4 +16,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run build --workspace=packages/sdk-typescript --workspace=packages/ai-sdk
+
+      - run: npm run typecheck
+
       - run: npm run test
