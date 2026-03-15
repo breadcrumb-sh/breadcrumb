@@ -5,6 +5,9 @@ import { db } from "../db/postgres.js";
 import { user as userTable } from "../db/schema.js";
 import { env } from "../../env.js";
 import { checkSignupAllowed } from "./signup-guard.js";
+import { createLogger } from "../lib/logger.js";
+
+const log = createLogger("auth");
 
 export const auth = betterAuth({
   secret: env.betterAuthSecret,
@@ -19,6 +22,17 @@ export const auth = betterAuth({
     provider: "pg",
   }),
   emailAndPassword: { enabled: true },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 30,
+    customRules: {
+      "/api/auth/sign-in/email": { window: 60, max: 5 },
+      "/api/auth/sign-up/email": { window: 60, max: 3 },
+      "/api/auth/change-password": { window: 60, max: 3 },
+      "/api/auth/change-email": { window: 60, max: 3 },
+    },
+  },
   session: {
     cookieCache: {
       enabled: true,
@@ -42,6 +56,24 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    session: {
+      create: {
+        after: async (hookData) => {
+          const data = hookData.data as Record<string, unknown>;
+          const ctx = hookData.ctx as
+            | { request?: { headers?: { get(name: string): string | null } } }
+            | undefined;
+          const ip =
+            ctx?.request?.headers?.get("x-forwarded-for") ??
+            ctx?.request?.headers?.get("x-real-ip") ??
+            undefined;
+          log.info(
+            { userId: data.userId, ip, sessionId: data.id },
+            "session created",
+          );
+        },
+      },
+    },
     user: {
       create: {
         before: async (user) => {
@@ -54,6 +86,34 @@ export const auth = betterAuth({
             .limit(1);
           if (existing.length === 0) {
             return { data: { ...user, role: "admin" } };
+          }
+        },
+        after: async (hookData) => {
+          const data = hookData.data as Record<string, unknown>;
+          log.info(
+            {
+              userId: data.id,
+              email: data.email,
+              isAdmin: data.role === "admin",
+            },
+            "user created",
+          );
+        },
+      },
+      update: {
+        after: async (hookData) => {
+          const data = hookData.data as Record<string, unknown>;
+          const oldData = (hookData as { oldData?: Record<string, unknown> })
+            .oldData;
+          if (oldData?.email && data.email && oldData.email !== data.email) {
+            log.info(
+              {
+                userId: data.id,
+                oldEmail: oldData.email,
+                newEmail: data.email,
+              },
+              "user email changed",
+            );
           }
         },
       },

@@ -2,6 +2,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import { rateLimiter } from "hono-rate-limiter";
 import { readFile } from "node:fs/promises";
 import { auth } from "./shared/auth/better-auth.js";
 import { requireApiKey } from "./shared/auth/api-key.js";
@@ -30,6 +31,44 @@ app.use("/trpc/*", corsConfig);
 app.use("/v1/*", corsConfig);
 app.use("/mcp", corsConfig);
 app.use("/health", corsConfig);
+
+// ── Rate limiting ───────────────────────────────────────────────────────────
+// Better Auth handles /api/auth/* rate limiting internally (configured in better-auth.ts).
+// These cover the remaining endpoints.
+
+// Ingest: per API key, 1000 req / 10s
+app.use(
+  "/v1/*",
+  rateLimiter({
+    windowMs: 10_000,
+    limit: 1000,
+    keyGenerator: (c) => c.req.header("Authorization") ?? "anonymous",
+    standardHeaders: "draft-7",
+  }),
+);
+
+// tRPC: per IP, 200 req / 60s
+app.use(
+  "/trpc/*",
+  rateLimiter({
+    windowMs: 60_000,
+    limit: 200,
+    keyGenerator: (c) =>
+      c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "anonymous",
+    standardHeaders: "draft-7",
+  }),
+);
+
+// MCP: per MCP key, 100 req / 60s
+app.use(
+  "/mcp",
+  rateLimiter({
+    windowMs: 60_000,
+    limit: 100,
+    keyGenerator: (c) => c.req.header("Authorization") ?? "anonymous",
+    standardHeaders: "draft-7",
+  }),
+);
 
 // ── Health ──────────────────────────────────────────────────────────────────
 app.get("/health", (c) => c.json({ status: "ok" }));

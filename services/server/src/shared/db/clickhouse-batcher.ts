@@ -1,4 +1,7 @@
 import type { ClickHouseClient } from "@clickhouse/client";
+import { createLogger } from "../lib/logger.js";
+
+const log = createLogger("batcher");
 
 export class ClickHouseBatcher<T extends Record<string, unknown>> {
   private buffer: T[] = [];
@@ -34,7 +37,7 @@ export class ClickHouseBatcher<T extends Record<string, unknown>> {
         });
       } catch (err) {
         // Second failure — data is lost
-        console.error(`[batcher] retry failed, dropping ${retry.length} rows from ${this.table}:`, err);
+        log.error({ err, table: this.table, rows: retry.length }, "retry failed, dropping rows");
       }
     }
 
@@ -50,7 +53,7 @@ export class ClickHouseBatcher<T extends Record<string, unknown>> {
         values: batch,
       });
     } catch (err) {
-      console.error(`[batcher] flush failed for ${batch.length} rows to ${this.table}, will retry:`, err);
+      log.error({ err, table: this.table, rows: batch.length }, "flush failed, will retry");
       this.retryBatch = batch;
     }
   }

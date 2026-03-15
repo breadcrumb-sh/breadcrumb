@@ -2,6 +2,9 @@ import { createClient } from "@clickhouse/client";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { env } from "../../env.js";
+import { createLogger } from "../lib/logger.js";
+
+const log = createLogger("clickhouse");
 
 // Client is connected to the breadcrumb database for all normal queries.
 export const clickhouse = createClient({
@@ -174,7 +177,7 @@ export async function runClickhouseMigrations() {
     if (isNaN(version)) continue;
     if (version <= appliedVersion) continue;
 
-    console.log(`applying clickhouse migration: ${file}`);
+    log.info({ file }, "applying clickhouse migration");
     const sql = await readFile(join(dir, file), "utf-8");
     const { dbStatement, statements } = parseStatements(sql);
 
@@ -201,8 +204,8 @@ export async function runClickhouseMigrations() {
   }
 
   if (applied === 0) {
-    console.log("clickhouse migrations: nothing to apply");
+    log.info("clickhouse migrations: nothing to apply");
   } else {
-    console.log(`clickhouse migrations: applied ${applied} migration(s)`);
+    log.info({ count: applied }, "clickhouse migrations applied");
   }
 }

@@ -1,5 +1,8 @@
 import { CronJob } from "cron";
 import { cache } from "./shared/lib/cache.js";
+import { createLogger } from "./shared/lib/logger.js";
+
+const log = createLogger("cron");
 
 /**
  * Start all scheduled jobs. Call once at server startup.
@@ -9,9 +12,9 @@ export function startCronJobs() {
   new CronJob("*/10 * * * *", async () => {
     try {
       const count = await cache.cleanup();
-      if (count > 0) console.log(`cache cleanup: removed ${count} expired entries`);
+      if (count > 0) log.info({ count }, "cache cleanup: removed expired entries");
     } catch (err) {
-      console.error("cache cleanup failed:", err);
+      log.error({ err }, "cache cleanup failed");
     }
   }).start();
 }

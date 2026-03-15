@@ -5,6 +5,9 @@ import { runMigrations } from "./shared/db/postgres.js";
 import { runClickhouseMigrations, clickhouse, readonlyClickhouse, sandboxedClickhouse } from "./shared/db/clickhouse.js";
 import { traceBatcher, spanBatcher } from "./api/ingest/routes.js";
 import { env } from "./env.js";
+import { createLogger } from "./shared/lib/logger.js";
+
+const log = createLogger("server");
 
 // ── Startup ─────────────────────────────────────────────────────────────────
 async function main() {
@@ -19,17 +22,17 @@ async function main() {
   startCronJobs();
 
   serve({ fetch: app.fetch, port: env.port });
-  console.log(`server listening on port ${env.port}`);
+  log.info({ port: env.port }, "server listening");
 }
 
 main().catch((err) => {
-  console.error(err);
+  log.error({ err }, "fatal startup error");
   process.exit(1);
 });
 
 // ── Graceful shutdown ───────────────────────────────────────────────────────
 async function shutdown() {
-  console.log("shutting down — flushing batchers…");
+  log.info("shutting down — flushing batchers");
   await Promise.all([traceBatcher.shutdown(), spanBatcher.shutdown()]);
   await boss.stop();
   await Promise.all([

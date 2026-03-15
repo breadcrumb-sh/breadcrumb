@@ -5,6 +5,9 @@ import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "../../services/ingest/helpers.js";
 import { boss } from "../../shared/lib/boss.js";
 import { getObservationsForProject } from "../../services/observations/cache.js";
+import { createLogger } from "../../shared/lib/logger.js";
+
+const log = createLogger("ingest");
 
 type Variables = { projectId: string };
 
@@ -126,6 +129,6 @@ async function scheduleObservationJobs(
       );
     }
   } catch (err) {
-    console.error(`[obs] scheduleObservationJobs error:`, err);
+    log.error({ err, projectId, traceId }, "scheduleObservationJobs error");
   }
 }

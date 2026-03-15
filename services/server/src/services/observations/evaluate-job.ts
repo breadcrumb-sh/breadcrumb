@@ -8,6 +8,9 @@ import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
 import { getAiModel } from "../explore/ai-provider.js";
 import { CLICKHOUSE_SCHEMA } from "../explore/clickhouse-schema.js";
 import { invalidateObservationsCache } from "./cache.js";
+import { createLogger } from "../../shared/lib/logger.js";
+
+const log = createLogger("obs-job");
 
 // In-process mutex per observationId — prevents concurrent jobs for the same
 // observation from creating duplicate findings. Safe because pg-boss workers
@@ -39,7 +42,7 @@ interface JobData {
 
 async function handleJob(job: { data: JobData }) {
   const { projectId, traceId, observationId } = job.data;
-  console.log(`[obs-job] starting job — observation=${observationId} trace=${traceId}`);
+  log.info({ observationId, traceId }, "starting job");
   return withObservationLock(observationId, () =>
     handleJobLocked({ projectId, traceId, observationId }),
   );
@@ -58,10 +61,10 @@ async function handleJobLocked({
     .where(and(eq(observations.id, observationId), eq(observations.projectId, projectId)));
 
   if (!observation) {
-    console.warn(`[obs-job] observation ${observationId} not found, skipping`);
+    log.warn({ observationId }, "observation not found, skipping");
     return;
   }
-  console.log(`[obs-job] loaded observation "${observation.name}"`);
+  log.info({ observationId, name: observation.name }, "loaded observation");
 
   // Load existing findings
   const existingFindings = await db
@@ -73,15 +76,15 @@ async function handleJobLocked({
         eq(observationFindings.referenceTraceId, traceId),
       ),
     );
-  console.log(`[obs-job] ${existingFindings.length} existing finding(s) for this trace`);
+  log.info({ observationId, traceId, count: existingFindings.length }, "existing findings for trace");
 
   // Get AI model
   let model;
   try {
     model = await getAiModel(projectId);
-    console.log(`[obs-job] AI model loaded`);
+    log.info({ projectId }, "AI model loaded");
   } catch (err) {
-    console.warn(`[obs-job] no AI provider configured for project ${projectId}:`, err);
+    log.warn({ err, projectId }, "no AI provider configured for project");
     return;
   }
 
@@ -125,7 +128,7 @@ WORKFLOW:
 
 6. Only create or update findings for real issues. Do nothing if the trace looks fine.`;
 
-  console.log(`[obs-job] running generateText…`);
+  log.info({ observationId, traceId }, "running generateText");
   await generateText({
     model,
     system: systemPrompt,
@@ -254,18 +257,18 @@ WORKFLOW:
       .set({ enabled: false, updatedAt: new Date() })
       .where(eq(observations.id, observationId));
     invalidateObservationsCache(projectId);
-    console.log(`[obs-job] trace limit reached (${updated.tracesEvaluated}/${updated.traceLimit}), pausing observation=${observationId}`);
+    log.info({ observationId, tracesEvaluated: updated.tracesEvaluated, traceLimit: updated.traceLimit }, "trace limit reached, pausing observation");
   }
 
-  console.log(`[obs-job] done — observation=${observationId} trace=${traceId}`);
+  log.info({ observationId, traceId }, "job done");
 }
 
 export async function registerWorkers() {
   await boss.createQueue(JOB_NAME);
-  console.log(`[obs] queue "${JOB_NAME}" ready`);
-  console.log(`[obs] registering worker (batchSize=${CONCURRENCY})`);
+  log.info({ queue: JOB_NAME }, "queue ready");
+  log.info({ batchSize: CONCURRENCY }, "registering worker");
   boss.work<JobData>(JOB_NAME, { batchSize: CONCURRENCY }, async (jobs) => {
-    console.log(`[obs-job] worker picked up ${jobs.length} job(s)`);
+    log.info({ count: jobs.length }, "worker picked up jobs");
     await Promise.allSettled(jobs.map((job) => handleJob(job)));
   });
 }
