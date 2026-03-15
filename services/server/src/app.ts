@@ -14,7 +14,14 @@ import { env } from "./env.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { buildMcpServer } from "./api/mcp/server.js";
 
-export const app = new Hono();
+export type AppVariables = {
+  user: { id: string; email: string; name: string; role: string } | null;
+  session: { id: string; userId: string } | null;
+  projectId: string;
+  userId: string;
+};
+
+export const app = new Hono<{ Variables: AppVariables }>();
 
 // ── Trailing slash normalization ────────────────────────────────────────────
 app.use(trimTrailingSlash());
@@ -97,10 +104,8 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // Only runs for /trpc/* — ingest (/v1/*) and MCP (/mcp) use their own auth.
 app.use("/trpc/*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (c as any).set("user", session?.user ?? null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (c as any).set("session", session?.session ?? null);
+  c.set("user", session?.user ?? null);
+  c.set("session", session?.session ?? null);
   await next();
 });
 
@@ -113,13 +118,11 @@ app.use("/trpc/*", trpcHandler);
 
 // ── MCP ─────────────────────────────────────────────────────────────────────
 app.all("/mcp", requireMcpKey, async (c) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId = (c as any).get("userId") as string;
+  const userId = c.get("userId");
   const mcpServer = buildMcpServer(userId);
   const transport = new StreamableHTTPTransport();
   await mcpServer.connect(transport);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return transport.handleRequest(c as any);
+  return transport.handleRequest(c);
 });
 
 // ── SPA fallback (production) ───────────────────────────────────────────────
