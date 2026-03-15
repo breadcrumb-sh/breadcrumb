@@ -11,21 +11,12 @@ type UserJotInitOptions = {
   theme?: UserJotTheme;
 };
 
-type UserJotIdentifyPayload = {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  avatar?: string;
-};
-
 type UserJotWidgetOptions = {
   section?: "feedback" | "roadmap" | "updates";
 };
 
 type UserJotApi = {
   init: (projectId: string, options?: UserJotInitOptions) => void;
-  identify: (payload: UserJotIdentifyPayload) => void;
   showWidget: (options?: UserJotWidgetOptions) => void;
   setTheme: (theme: UserJotTheme) => void;
 };
@@ -110,33 +101,6 @@ export async function initUserJot(theme: Theme) {
   }
 
   window.uj.setTheme(theme);
-}
-
-export async function identifyUserJot(user: {
-  id?: string;
-  email?: string | null;
-  name?: string | null;
-  image?: string | null;
-}) {
-  if (!user.id || !user.email) {
-    return;
-  }
-
-  await loadUserJotSdk();
-
-  if (!window.uj) {
-    return;
-  }
-
-  const [firstName, ...rest] = (user.name ?? "").trim().split(/\s+/).filter(Boolean);
-
-  window.uj.identify({
-    id: user.id,
-    email: user.email,
-    firstName: firstName || undefined,
-    lastName: rest.length > 0 ? rest.join(" ") : undefined,
-    avatar: user.image ?? undefined,
-  });
 }
 
 export async function openUserJotFeedback() {
