@@ -43,4 +43,4 @@ CREATE ROW POLICY IF NOT EXISTS project_filter_spans
 CREATE ROW POLICY IF NOT EXISTS project_filter_rollups
   ON breadcrumb.trace_rollups
   USING project_id = toUUID(getSetting('SQL_project_id'))
-  TO ai_query
+  TO ai_query;
