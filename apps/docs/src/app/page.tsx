@@ -263,12 +263,17 @@ export default function Home() {
             <p className="mb-7 max-w-[340px] text-[13px] leading-[1.75] text-fg-2">
               Install the SDK, add three lines, and see your first trace.
             </p>
-            <Link
-              href="/docs/introduction"
-              className="inline-flex items-center gap-3 bg-fg px-12 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
-            >
-              Read the docs
-            </Link>
+            <div className="flex flex-row gap-4 h-fit">
+              <Link
+                href="/docs/introduction"
+                className="items-center gap-3 bg-fg px-12 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
+              >
+                Read the docs
+              </Link>
+              <a target="_blank" href="https://railway.com/deploy/breadcrumb?referralCode=9MtPO4&utm_medium=integration&utm_source=template&utm_campaign=generic">
+                <img src="https://railway.com/button.svg"></img>
+              </a>
+            </div>
           </div>
         </section>
 
