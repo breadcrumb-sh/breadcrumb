@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 //   2nd call: db.select().from(invitation).where().limit(1) — checks for invitation
 const mockDbLimit = vi.fn();
 
-vi.mock("../db/index.js", () => {
+vi.mock("../shared/db/postgres.js", () => {
   const chain: any = {
     select: () => chain,
     from: () => chain,
@@ -15,7 +15,7 @@ vi.mock("../db/index.js", () => {
   return { db: chain };
 });
 
-const { checkSignupAllowed } = await import("../auth/signup-guard.js");
+const { checkSignupAllowed } = await import("../shared/auth/signup-guard.js");
 
 beforeEach(() => {
   mockDbLimit.mockReset();

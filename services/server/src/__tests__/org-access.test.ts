@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 
 const mockWhere = vi.fn();
 
-vi.mock("../db/index.js", () => ({
+vi.mock("../shared/db/postgres.js", () => ({
   db: {
     select: () => ({
       from: () => ({
@@ -13,7 +13,7 @@ vi.mock("../db/index.js", () => ({
   },
 }));
 
-const { checkOrgRole } = await import("../trpc/trpc.js");
+const { checkOrgRole } = await import("../trpc.js");
 
 beforeEach(() => {
   mockWhere.mockReset();

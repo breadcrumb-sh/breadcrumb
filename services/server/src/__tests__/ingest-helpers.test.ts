@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toChDate, toMicroDollars, toJson } from "../ingest/helpers.js";
+import { toChDate, toMicroDollars, toJson } from "../services/ingest/helpers.js";
 
 describe("toChDate", () => {
   it("converts ISO 8601 to ClickHouse datetime format", () => {

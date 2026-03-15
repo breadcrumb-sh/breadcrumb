@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcDuration, normMetadata } from "../mcp/helpers.js";
+import { calcDuration, normMetadata } from "../services/mcp/helpers.js";
 
 describe("calcDuration", () => {
   it("returns null when endTime is null", () => {

@@ -4,25 +4,25 @@
 
 These will be implemented as-is:
 
-- [ ] 1. All 16 `traces.*` endpoints unauthenticated → `orgViewerProcedure`
-- [ ] 2. `explores.chat` doesn't verify explore belongs to project → add DB check
-- [ ] 3. `explores.get` uses `procedure` with manual auth → switch to `orgViewerProcedure`
-- [ ] 4. `requery` exposes raw ClickHouse errors → wrap in try/catch
-- [ ] 5. Session middleware on ingest hot path → skip `/v1/*`, `/mcp`, `/health`
-- [ ] 6. `trustedOrigins` includes localhost in production → conditional on `nodeEnv`
-- [ ] 7. No security headers → add `hono/secure-headers`
-- [ ] 8. CORS ordering — auth route registered before CORS → fix order
-- [ ] 9. CORS allows unnecessary DELETE method → remove from allowMethods
-- [ ] 10. `toMicroDollars` falsy check → `usd == null` instead of `!usd`
-- [ ] 11. `spanSample` unbounded result → add LIMIT to trace IDs query
-- [ ] 12. SPA `index.html` read from disk per request → cache in memory
-- [ ] 13. `stats` sequential queries → `Promise.all` for current + previous period
-- [ ] 14. Remove `jose` dead dependency → delete from package.json
-- [ ] 15. Invitation dupe check doesn't filter expired → add expiry filter
-- [ ] 16. `traceId` input not validated as hex → add `.regex()` validation
-- [ ] 17. Ingest swallows JSON parse errors → return distinct 400 for malformed JSON
-- [ ] 18. Shutdown doesn't close DB connections → add cleanup
-- [ ] 19. `projects.create` slug collision → append random suffix
+- [x] 1. All 16 `traces.*` endpoints unauthenticated → `orgViewerProcedure`
+- [x] 2. `explores.chat` doesn't verify explore belongs to project → add DB check
+- [x] 3. `explores.get` missing viewer role in manual auth check → added
+- [x] 4. `requery` exposes raw ClickHouse errors → wrapped in try/catch
+- [x] 5. Session middleware on ingest hot path → scoped to `/trpc/*` only
+- [x] 6. `trustedOrigins` includes localhost in production → conditional on `nodeEnv`
+- [x] 7. No security headers → added `hono/secure-headers`
+- [x] 8. CORS ordering — auth route registered before CORS → CORS now first
+- [x] 9. CORS allows unnecessary DELETE method → removed
+- [x] 10. `toMicroDollars` falsy check → `usd == null`
+- [x] 11. `spanSample` unbounded result → added LIMIT 500 + LIMIT 50000
+- [x] 12. SPA `index.html` read from disk per request → cached in memory
+- [x] 13. `stats` sequential queries → `Promise.all` for current + previous period
+- [x] 14. Remove `jose` dead dependency → deleted from package.json
+- [x] 15. Invitation dupe check doesn't filter expired → added expiry filter
+- [x] 16. `traceId` input not validated as hex → added `.regex()` validation
+- [x] 17. Ingest swallows JSON parse errors → returns distinct 400 for malformed JSON
+- [x] 18. Shutdown doesn't close DB connections → added CH client close
+- [x] 19. `projects.create` slug collision → append random suffix
 
 ---
 

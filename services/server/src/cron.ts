@@ -1,5 +1,5 @@
 import { CronJob } from "cron";
-import { cache } from "./lib/cache.js";
+import { cache } from "./shared/lib/cache.js";
 
 /**
  * Start all scheduled jobs. Call once at server startup.

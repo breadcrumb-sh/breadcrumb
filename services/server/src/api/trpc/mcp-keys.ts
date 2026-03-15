@@ -1,0 +1,64 @@
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { router, authedProcedure } from "../../trpc.js";
+import { db } from "../../shared/db/postgres.js";
+import { mcpKeys } from "../../shared/db/schema.js";
+import {
+  generateMcpKey,
+  hashApiKey,
+  getKeyPrefix,
+} from "../../shared/lib/api-keys.js";
+
+export const mcpKeysRouter = router({
+  list: authedProcedure.query(async ({ ctx }) => {
+    return db
+      .select({
+        id: mcpKeys.id,
+        name: mcpKeys.name,
+        keyPrefix: mcpKeys.keyPrefix,
+        createdAt: mcpKeys.createdAt,
+      })
+      .from(mcpKeys)
+      .where(eq(mcpKeys.userId, ctx.user.id))
+      .orderBy(mcpKeys.createdAt);
+  }),
+
+  create: authedProcedure
+    .input(z.object({ name: z.string().min(1).max(255) }))
+    .mutation(async ({ input, ctx }) => {
+      const rawKey = generateMcpKey();
+      const [key] = await db
+        .insert(mcpKeys)
+        .values({
+          userId: ctx.user.id,
+          name: input.name,
+          keyHash: hashApiKey(rawKey),
+          keyPrefix: getKeyPrefix(rawKey),
+        })
+        .returning({
+          id: mcpKeys.id,
+          name: mcpKeys.name,
+          keyPrefix: mcpKeys.keyPrefix,
+          createdAt: mcpKeys.createdAt,
+        });
+
+      return { ...key, rawKey };
+    }),
+
+  delete: authedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const [key] = await db
+        .select({ userId: mcpKeys.userId })
+        .from(mcpKeys)
+        .where(eq(mcpKeys.id, input.id));
+
+      if (!key) throw new TRPCError({ code: "NOT_FOUND" });
+      if (key.userId !== ctx.user.id && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      await db.delete(mcpKeys).where(eq(mcpKeys.id, input.id));
+    }),
+});

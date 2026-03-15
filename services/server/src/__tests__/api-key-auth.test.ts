@@ -3,7 +3,7 @@ import { Hono } from "hono";
 
 const mockLimit = vi.fn();
 
-vi.mock("../db/index.js", () => ({
+vi.mock("../shared/db/postgres.js", () => ({
   db: {
     select: () => ({
       from: () => ({
@@ -15,7 +15,7 @@ vi.mock("../db/index.js", () => ({
   },
 }));
 
-const { requireApiKey } = await import("../auth/index.js");
+const { requireApiKey } = await import("../shared/auth/api-key.js");
 
 function buildApp() {
   const app = new Hono();

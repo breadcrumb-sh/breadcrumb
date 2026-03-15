@@ -1,20 +1,46 @@
 import "dotenv/config";
+import { z } from "zod";
+
+const envSchema = z.object({
+  BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required"),
+  APP_BASE_URL: z.string().default("http://localhost:3000"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  CLICKHOUSE_URL: z.string().default("http://localhost:8123"),
+  CLICKHOUSE_DB: z.string().default("breadcrumb"),
+  CLICKHOUSE_USER: z.string().default("default"),
+  CLICKHOUSE_PASSWORD: z.string().default(""),
+  CLICKHOUSE_AI_QUERY_PASSWORD: z.string().default(""),
+  PORT: z.coerce.number().default(3100),
+  ENCRYPTION_KEY: z.string().min(1, "ENCRYPTION_KEY is required"),
+  NODE_ENV: z.string().default("development"),
+  ALLOW_PUBLIC_VIEWING: z.string().default("false"),
+  IS_BREADCRUMB_DEMO: z.string().default("false"),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("Invalid environment variables:");
+  for (const issue of parsed.error.issues) {
+    console.error(`  ${issue.path.join(".")}: ${issue.message}`);
+  }
+  process.exit(1);
+}
+
+const p = parsed.data;
 
 export const env = {
-  betterAuthSecret:
-    process.env.BETTER_AUTH_SECRET || "dev-secret-change-in-production",
-  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:3000",
-  databaseUrl:
-    process.env.DATABASE_URL ||
-    "postgres://postgres:postgres@localhost:5432/breadcrumb",
-  clickhouseUrl: process.env.CLICKHOUSE_URL || "http://localhost:8123",
-  clickhouseDb: process.env.CLICKHOUSE_DB || "breadcrumb",
-  clickhouseUser: process.env.CLICKHOUSE_USER || "default",
-  clickhousePassword: process.env.CLICKHOUSE_PASSWORD || "",
-  clickhouseAiQueryPassword: process.env.CLICKHOUSE_AI_QUERY_PASSWORD || "",
-  port: Number(process.env.PORT) || 3100,
-  encryptionKey: process.env.ENCRYPTION_KEY || "",
-  nodeEnv: process.env.NODE_ENV || "development",
-  allowPublicViewing: process.env.ALLOW_PUBLIC_VIEWING === "true",
-  isBreadcrumbDemo: process.env.IS_BREADCRUMB_DEMO === "true",
+  betterAuthSecret: p.BETTER_AUTH_SECRET,
+  appBaseUrl: p.APP_BASE_URL,
+  databaseUrl: p.DATABASE_URL,
+  clickhouseUrl: p.CLICKHOUSE_URL,
+  clickhouseDb: p.CLICKHOUSE_DB,
+  clickhouseUser: p.CLICKHOUSE_USER,
+  clickhousePassword: p.CLICKHOUSE_PASSWORD,
+  clickhouseAiQueryPassword: p.CLICKHOUSE_AI_QUERY_PASSWORD,
+  port: p.PORT,
+  encryptionKey: p.ENCRYPTION_KEY,
+  nodeEnv: p.NODE_ENV,
+  allowPublicViewing: p.ALLOW_PUBLIC_VIEWING === "true",
+  isBreadcrumbDemo: p.IS_BREADCRUMB_DEMO === "true",
 };

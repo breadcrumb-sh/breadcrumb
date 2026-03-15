@@ -3,12 +3,12 @@ import { Hono } from "hono";
 
 // Mock ClickHouse before any route imports resolve it.
 const mockInsert = vi.fn().mockResolvedValue(undefined);
-vi.mock("../db/clickhouse.js", () => ({
+vi.mock("../shared/db/clickhouse.js", () => ({
   clickhouse: { insert: mockInsert },
 }));
 
 // Import routes after mocking their dependency.
-const { ingestRoutes, traceBatcher, spanBatcher } = await import("../ingest/index.js");
+const { ingestRoutes, traceBatcher, spanBatcher } = await import("../api/ingest/routes.js");
 
 const TEST_PROJECT_ID = "00000000-0000-0000-0000-000000000001";
 
