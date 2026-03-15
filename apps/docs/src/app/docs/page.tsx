@@ -1,5 +1,10 @@
+'use client';
+
+import { useEffect } from 'react';
+
 export default function Page() {
-  return (
-    <meta httpEquiv="refresh" content="0;url=/docs/introduction" />
-  );
+  useEffect(() => {
+    window.location.replace('/docs/introduction/');
+  }, []);
+  return null;
 }
