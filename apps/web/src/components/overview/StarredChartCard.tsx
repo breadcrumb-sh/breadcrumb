@@ -1,11 +1,11 @@
 import { DotsThree } from "@phosphor-icons/react/DotsThree";
 import { Star } from "@phosphor-icons/react/Star";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { trpc } from "../../lib/trpc";
 import { ChartSkeleton } from "../common/ChartSkeleton";
-import { ExplorationChart } from "../traces/ExplorationChart";
+import { ExplorationChart, VIZ_COLORS } from "../traces/ExplorationChart";
 
 type StarredChart = {
   id: string;
@@ -31,7 +31,6 @@ export function StarredChartCard({
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [chartData, setChartData] = useState<Record<string, unknown>[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const removeStar = trpc.explores.unstarChart.useMutation({
@@ -40,24 +39,11 @@ export function StarredChartCard({
     },
   });
 
-  const requery = trpc.explores.requery.useMutation();
-
-  // Fetch chart data on mount
-  useEffect(() => {
-    if (!chart.sql) return;
-    let cancelled = false;
-    requery
-      .mutateAsync({ projectId, sql: chart.sql })
-      .then((rows) => {
-        if (!cancelled) setChartData(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setChartData([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [chart.sql, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Now a query — React Query handles caching, dedup, and stale data
+  const chartData = trpc.explores.requery.useQuery(
+    { projectId, sql: chart.sql! },
+    { enabled: !!chart.sql },
+  );
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   useClickOutside(menuRef, closeMenu);
@@ -113,14 +99,14 @@ export function StarredChartCard({
       {/* Legend */}
       {legend.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap mb-3">
-          {legend.map((entry) => (
+          {legend.map((entry, i) => (
             <span
               key={entry.key}
               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400"
             >
               <span
                 className="inline-block w-2 h-2 rounded-full"
-                style={{ backgroundColor: entry.color }}
+                style={{ backgroundColor: VIZ_COLORS[i % VIZ_COLORS.length] }}
               />
               {entry.label}
             </span>
@@ -129,15 +115,15 @@ export function StarredChartCard({
       )}
 
       {/* Chart */}
-      {chartData === null ? (
+      {chartData.isLoading ? (
         <ChartSkeleton variant={chart.chartType === "bar" ? "bar" : "area"} />
-      ) : chartData.length > 0 && chart.chartType && chart.xKey && yKeys.length > 0 ? (
+      ) : chartData.data && chartData.data.length > 0 && chart.chartType && chart.xKey && yKeys.length > 0 ? (
         <ExplorationChart
           chartType={chart.chartType as "bar" | "line"}
           xKey={chart.xKey}
           yKeys={yKeys}
           legend={legend.length > 0 ? legend : undefined}
-          data={chartData}
+          data={chartData.data}
         />
       ) : (
         <div className="flex items-center justify-center rounded-md border border-dashed border-zinc-700 bg-zinc-900/50 py-12">

@@ -217,7 +217,7 @@ export const exploresRouter = router({
 
   requery: orgViewerProcedure
     .input(z.object({ projectId: z.string(), sql: z.string() }))
-    .mutation(async ({ input }) => {
+    .query(async ({ input }) => {
       try {
         return await runSandboxedQuery(input.projectId, input.sql);
       } catch (err) {
