@@ -10,11 +10,11 @@ const config = {
   images: {
     unoptimized: true,
   },
-  ...(!isDev && {
+  basePath: '/docs',
+  trailingSlash: true,
+  ...(!isDev ? {
     output: 'export',
-    basePath: '/docs',
-    trailingSlash: true,
-  }),
+  } : {}),
 };
 
 export default withMDX(config);
