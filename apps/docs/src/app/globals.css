@@ -1,0 +1,289 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+:root {
+  --background: #121213;
+  --foreground: #f5f5f6;
+  --brand-fg-2: #b4b4b5;
+  --brand-fg-3: #6c6c6d;
+  --brand-border: #282829;
+  --brand-border-strong: #363637;
+  --brand-surface: #1b1b1c;
+  --brand-surface-2: #282829;
+  --brand-accent: #58508d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-fg: var(--foreground);
+  --color-fg-2: var(--brand-fg-2);
+  --color-fg-3: var(--brand-fg-3);
+  --color-border: var(--brand-border);
+  --color-border-strong: var(--brand-border-strong);
+  --color-surface: var(--brand-surface);
+  --color-surface-2: var(--brand-surface-2);
+  --color-bg: var(--background);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root,
+.dark {
+  color-scheme: dark;
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-muted: var(--brand-surface);
+  --color-fd-muted-foreground: var(--brand-fg-2);
+  --color-fd-popover: var(--brand-surface);
+  --color-fd-popover-foreground: var(--foreground);
+  --color-fd-card: var(--brand-surface);
+  --color-fd-card-foreground: var(--foreground);
+  --color-fd-border: color-mix(in srgb, var(--brand-border) 88%, transparent);
+  --color-fd-primary: var(--brand-accent);
+  --color-fd-primary-foreground: var(--background);
+  --color-fd-secondary: var(--brand-surface-2);
+  --color-fd-secondary-foreground: var(--foreground);
+  --color-fd-accent: color-mix(in srgb, var(--brand-accent) 16%, var(--brand-surface));
+  --color-fd-accent-foreground: var(--foreground);
+  --color-fd-ring: var(--brand-accent);
+  --color-fd-overlay: rgba(0, 0, 0, 0.58);
+  --tw-prose-body: color-mix(in srgb, var(--foreground) 88%, transparent);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-links: var(--brand-accent);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--brand-fg-3);
+  --tw-prose-bullets: var(--brand-border-strong);
+  --tw-prose-hr: var(--brand-border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--brand-border-strong);
+  --tw-prose-captions: var(--brand-fg-3);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--brand-surface);
+  --tw-prose-th-borders: var(--brand-border-strong);
+  --tw-prose-td-borders: var(--brand-border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+code,
+kbd,
+samp,
+pre,
+.shiki,
+.shiki code,
+.prose code,
+.prose pre,
+[data-rehype-pretty-code-fragment] pre,
+[data-rehype-pretty-code-fragment] code {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+#nd-docs-layout,
+#nd-subnav,
+#nd-sidebar,
+#nd-toc {
+  background-color: transparent;
+}
+
+#nd-subnav,
+#nd-sidebar,
+[data-sidebar-panel],
+#nd-toc > div,
+[data-radix-popper-content-wrapper] [role="dialog"],
+[data-radix-popper-content-wrapper] [data-side] {
+  background-color: color-mix(in srgb, var(--background) 72%, var(--brand-surface));
+}
+
+#nd-sidebar,
+[data-sidebar-panel],
+#nd-toc > div,
+.prose code,
+.prose pre,
+.prose table,
+.prose blockquote {
+  border-color: var(--brand-border);
+}
+
+#nd-sidebar a:hover,
+#nd-subnav a:hover,
+#nd-toc a:hover {
+  color: var(--foreground);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a,
+:is(#nd-sidebar, #nd-sidebar-mobile) button,
+:is(#nd-sidebar, #nd-sidebar-mobile) [role="button"] {
+  font-weight: 500;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) [data-active="true"] {
+  font-weight: 500;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) p {
+  font-weight: 600;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] {
+  margin-top: 2.5rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state]:first-child {
+  margin-top: 0.35rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child {
+  min-height: auto;
+  margin-bottom: 0.7rem;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 0.125rem;
+  color: var(--foreground) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child:hover,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child[data-active="true"],
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child[data-active="true"],
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child[data-active="true"] {
+  background: transparent !important;
+  color: var(--foreground) !important;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > a:first-child svg,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > button:first-child svg,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > div:first-child svg {
+  display: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  margin-inline-start: 0;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state]::before {
+  display: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > a,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > div > a,
+:is(#nd-sidebar, #nd-sidebar-mobile) .p-4.overscroll-contain > div > [data-state] > [data-state] > div > button {
+  min-height: 2.25rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.prose pre,
+.prose table,
+.prose blockquote {
+  background-color: color-mix(in srgb, var(--brand-surface) 88%, var(--background));
+}
+
+figure.shiki,
+[data-card],
+div:has(> [data-orientation]) {
+  border-radius: 0 !important;
+}
+
+div:has(> [data-orientation]) figure.shiki {
+  background-color: var(--color-fd-card) !important;
+}
+
+.marketing-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.marketing-browser {
+  border: 1px solid var(--brand-border);
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+}
+
+.marketing-browser-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--brand-border);
+  background: var(--brand-surface);
+}
+
+.marketing-browser-dots {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.marketing-browser-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.marketing-browser-address {
+  flex: 1;
+  max-width: 240px;
+  margin: 0 14px;
+  padding: 5px 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  border: 1px solid var(--brand-border);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.marketing-browser-content {
+  line-height: 0;
+  padding: 16px 16px 0;
+  background: var(--background);
+}
+
+.live-ping {
+  animation: livePing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes livePing {
+  75%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .marketing-inner {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}

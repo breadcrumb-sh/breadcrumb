@@ -1,17 +1,22 @@
-import { getPageImage, source } from '@/lib/source';
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
-import { notFound, redirect } from 'next/navigation';
-import { getMDXComponents } from '@/mdx-components';
-import type { Metadata } from 'next';
-import { createRelativeLink } from 'fumadocs-ui/mdx';
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import { createRelativeLink } from "fumadocs-ui/mdx";
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from "fumadocs-ui/layouts/docs/page";
+import { getMDXComponents } from "@/mdx-components";
+import { getPageImage, source } from "@/lib/source";
 
-const DOCS_INDEX_SLUG = ['introduction'];
+const DOCS_INDEX_SLUG = ["introduction"];
 
 function getResolvedSlug(slug?: string[]) {
   return slug?.length ? slug : DOCS_INDEX_SLUG;
 }
 
-export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
+export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const params = await props.params;
   const slug = getResolvedSlug(params.slug);
   const page = source.getPage(slug);
@@ -42,7 +47,9 @@ export async function generateStaticParams() {
   return source.generateParams();
 }
 
-export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): Promise<Metadata> {
+export async function generateMetadata(
+  props: PageProps<"/docs/[[...slug]]">,
+): Promise<Metadata> {
   const params = await props.params;
   const slug = getResolvedSlug(params.slug);
   const page = source.getPage(slug);
@@ -53,6 +60,9 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
     description: page.data.description,
     openGraph: {
       images: getPageImage(page).url,
+    },
+    twitter: {
+      images: [getPageImage(page).url],
     },
   };
 }

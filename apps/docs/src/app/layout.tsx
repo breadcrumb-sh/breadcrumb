@@ -1,43 +1,49 @@
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import type { Metadata } from 'next';
-import Script from 'next/script';
-import './global.css';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { RootProvider } from "fumadocs-ui/provider/next";
+import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata } from "next";
+import Script from "next/script";
+import "./globals.css";
 
-const geist = Geist({
-  subsets: ['latin'],
-  variable: '--font-geist',
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://breadcrumb.sh'),
+  metadataBase: new URL("https://breadcrumb.sh"),
   title: {
-    default: 'Breadcrumb',
-    template: '%s | Breadcrumb',
+    default: "Breadcrumb",
+    template: "%s | Breadcrumb",
   },
-  description: 'Open-source LLM tracing and observability for TypeScript.',
-  applicationName: 'Breadcrumb',
+  description: "Open-source LLM tracing and observability for TypeScript.",
+  applicationName: "Breadcrumb",
   icons: {
-    icon: '/favicon.svg',
+    icon: "/bread_favicon.svg",
   },
   openGraph: {
-    siteName: 'Breadcrumb',
-    type: 'website',
+    siteName: "Breadcrumb",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
+    card: "summary_large_image",
   },
 };
 
-export default function Layout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body className={`${geist.className} flex flex-col min-h-screen`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <Script
           defer
           data-domain="breadcrumb.sh"
@@ -46,8 +52,8 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         />
         <RootProvider
           theme={{
-            forcedTheme: 'dark',
-            defaultTheme: 'dark',
+            forcedTheme: "dark",
+            defaultTheme: "dark",
             enableSystem: false,
           }}
         >

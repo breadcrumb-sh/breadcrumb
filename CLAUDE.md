@@ -52,7 +52,7 @@ npm run dev          # Watch mode
 
 - **`apps/web`** — React 19 SPA (Vite 6 + TanStack Router + tRPC client + React Query). File-based routing under `src/routes/`. Communicates with server exclusively via tRPC.
 
-- **`apps/marketing`** — Static Astro site.
+- **`apps/docs`** — Next.js app serving both the marketing homepage and Fumadocs docs under `/docs`.
 
 ### Packages
 
