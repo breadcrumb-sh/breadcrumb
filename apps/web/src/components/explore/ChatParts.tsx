@@ -41,6 +41,7 @@ export function ChartPart({
               onClick={() => setShowSql(true)}
               className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
               title="View SQL"
+              aria-label="View SQL"
             >
               <Code size={14} className="text-zinc-500 hover:text-zinc-300" />
             </button>
@@ -48,6 +49,7 @@ export function ChartPart({
               onClick={onToggleStar}
               className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
               title={starred ? "Remove star" : "Star chart"}
+              aria-label={starred ? "Remove star" : "Star chart"}
             >
               <Star
                 size={14}
@@ -131,6 +133,7 @@ export function SqlModal({ sql, onClose }: { sql: string; onClose: () => void })
             </button>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="p-0.5 text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               <X size={14} />

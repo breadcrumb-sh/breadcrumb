@@ -9,6 +9,7 @@ import { FeedbackButton } from "../../../components/layout/FeedbackButton";
 import { MobileNav } from "../../../components/layout/MobileNav";
 import { SubMenuProvider } from "../../../components/layout/SubMenuContext";
 import { UserMenu } from "../../../components/layout/UserMenu";
+import { ErrorBoundary } from "../../../components/common/ErrorBoundary";
 import { useAuth } from "../../../hooks/useAuth";
 import { trpc } from "../../../lib/trpc";
 
@@ -97,7 +98,9 @@ function ProjectLayout() {
         </div>
 
         <div className="page-container">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </div>
     </SubMenuProvider>

@@ -142,6 +142,7 @@ export function CommonPathsChart({
                   setDrillSpanName(null);
                   setExpanded(false);
                 }}
+                aria-label="Go back"
                 className="flex items-center gap-0.5 text-[11px] text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
               >
                 <ArrowLeft size={12} />

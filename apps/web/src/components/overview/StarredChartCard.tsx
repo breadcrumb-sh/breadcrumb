@@ -62,6 +62,7 @@ export function StarredChartCard({
         <div className="relative shrink-0 ml-2" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Open menu"
             className="p-1 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors"
           >
             <DotsThree size={16} weight="bold" />
