@@ -58,17 +58,10 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        after: async (hookData) => {
-          const data = hookData.data as Record<string, unknown>;
-          const ctx = hookData.ctx as
-            | { request?: { headers?: { get(name: string): string | null } } }
-            | undefined;
-          const ip =
-            ctx?.request?.headers?.get("x-forwarded-for") ??
-            ctx?.request?.headers?.get("x-real-ip") ??
-            undefined;
+        after: async (session) => {
+          const data = session as Record<string, unknown>;
           log.info(
-            { userId: data.userId, ip, sessionId: data.id },
+            { userId: data.userId, sessionId: data.id },
             "session created",
           );
         },
@@ -88,8 +81,8 @@ export const auth = betterAuth({
             return { data: { ...user, role: "admin" } };
           }
         },
-        after: async (hookData) => {
-          const data = hookData.data as Record<string, unknown>;
+        after: async (user) => {
+          const data = user as Record<string, unknown>;
           log.info(
             {
               userId: data.id,
@@ -101,20 +94,12 @@ export const auth = betterAuth({
         },
       },
       update: {
-        after: async (hookData) => {
-          const data = hookData.data as Record<string, unknown>;
-          const oldData = (hookData as { oldData?: Record<string, unknown> })
-            .oldData;
-          if (oldData?.email && data.email && oldData.email !== data.email) {
-            log.info(
-              {
-                userId: data.id,
-                oldEmail: oldData.email,
-                newEmail: data.email,
-              },
-              "user email changed",
-            );
-          }
+        after: async (user) => {
+          const data = user as Record<string, unknown>;
+          log.info(
+            { userId: data.id, email: data.email },
+            "user updated",
+          );
         },
       },
     },

@@ -2,6 +2,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import { trimTrailingSlash } from "hono/trailing-slash";
 import { rateLimiter } from "hono-rate-limiter";
 import { readFile } from "node:fs/promises";
 import { auth } from "./shared/auth/better-auth.js";
@@ -15,8 +16,24 @@ import { buildMcpServer } from "./api/mcp/server.js";
 
 export const app = new Hono();
 
+// ── Trailing slash normalization ────────────────────────────────────────────
+app.use(trimTrailingSlash());
+
 // ── Security headers ────────────────────────────────────────────────────────
-app.use("*", secureHeaders());
+app.use(
+  "*",
+  secureHeaders({
+    // Disable HSTS in development (HTTP, not HTTPS)
+    strictTransportSecurity: env.nodeEnv === "production"
+      ? "max-age=15552000; includeSubDomains"
+      : false,
+    // Allow cross-origin requests in development (Vite proxy)
+    crossOriginResourcePolicy:
+      env.nodeEnv === "production" ? "same-origin" : false,
+    crossOriginOpenerPolicy:
+      env.nodeEnv === "production" ? "same-origin" : false,
+  }),
+);
 
 // ── CORS (registered before all route handlers) ─────────────────────────────
 const corsConfig = cors({
