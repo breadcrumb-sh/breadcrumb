@@ -4,6 +4,9 @@ dist/
 .claude/
 *.tsbuildinfo
 
+# Fumadocs generated
+apps/docs/.source/
+
 # Environment
 .env
 .env.local

@@ -44,7 +44,7 @@ export default function Home() {
                 <span className="font-display text-[16px] font-semibold tracking-tight text-fg">
                   Breadcrumb
                 </span>
-                <span className="ml-1 flex h-5 items-center rounded-full border border-dashed border-white/50 px-2 font-display text-[12px] font-medium leading-3 tracking-tight text-white/50">
+                <span className="ml-1 flex h-5 items-center border border-dashed border-white/50 px-1.5 font-display text-[12px] leading-3 tracking-tight text-white/50">
                   Beta
                 </span>
               </Link>
