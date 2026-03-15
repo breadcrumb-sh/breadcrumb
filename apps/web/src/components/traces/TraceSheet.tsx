@@ -1,99 +1,26 @@
 import { useState } from "react";
-import { X, CaretRight, CaretDown } from "@phosphor-icons/react";
-import { trpc } from "../lib/trpc";
+import { X } from "@phosphor-icons/react/X";
+import { CaretRight } from "@phosphor-icons/react/CaretRight";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { trpc } from "../../lib/trpc";
+import {
+  buildTree,
+  flattenTree,
+  parseMs,
+  tryPrettyJson,
+  typeClass,
+  type SpanData,
+  type SpanNode,
+  type FlatSpan,
+} from "../../lib/span-utils";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type SpanData = {
-  id: string;
-  parentSpanId: string;
-  name: string;
-  type: string;
-  status: "ok" | "error";
-  statusMessage: string;
-  startTime: string;
-  endTime: string;
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  inputCostUsd: number;
-  outputCostUsd: number;
-  input: string;
-  output: string;
-  metadata: string;
-};
-
-type SpanNode = SpanData & { children: SpanNode[] };
-type FlatSpan = SpanData & { depth: number };
 type Tab = "tree" | "timeline";
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function buildTree(spans: SpanData[]): SpanNode[] {
-  const map = new Map<string, SpanNode>(
-    spans.map((s) => [s.id, { ...s, children: [] }])
-  );
-  const roots: SpanNode[] = [];
-
-  for (const node of map.values()) {
-    if (node.parentSpanId) {
-      const parent = map.get(node.parentSpanId);
-      if (parent) {
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-    } else {
-      roots.push(node);
-    }
-  }
-
-  function sortByTime(nodes: SpanNode[]) {
-    nodes.sort((a, b) => a.startTime.localeCompare(b.startTime));
-    for (const n of nodes) sortByTime(n.children);
-  }
-  sortByTime(roots);
-
-  return roots;
-}
-
-function flattenTree(nodes: SpanNode[], depth = 0): FlatSpan[] {
-  const result: FlatSpan[] = [];
-  for (const { children, ...span } of nodes) {
-    result.push({ ...span, depth });
-    result.push(...flattenTree(children, depth + 1));
-  }
-  return result;
-}
-
-function parseMs(chDate: string): number {
-  return new Date(chDate.replace(" ", "T") + "Z").getTime();
-}
 
 function spanDuration(start: string, end: string): string {
   const ms = parseMs(end) - parseMs(start);
   if (!ms || ms < 0) return "";
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
-}
-
-function tryPrettyJson(s: string): string {
-  try {
-    return JSON.stringify(JSON.parse(s), null, 2);
-  } catch {
-    return s;
-  }
-}
-
-const TYPE_CLASSES: Record<string, string> = {
-  llm:       "text-purple-400 bg-purple-400/10 border-purple-400/20",
-  tool:      "text-blue-400 bg-blue-400/10 border-blue-400/20",
-  retrieval: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-};
-
-function typeClass(type: string): string {
-  return TYPE_CLASSES[type] ?? "text-zinc-400 bg-zinc-400/10 border-zinc-400/20";
 }
 
 const BAR_CLASSES: Record<string, string> = {
@@ -209,16 +136,17 @@ function TimelineView({ tree }: { tree: SpanNode[] }) {
   const flat = flattenTree(tree);
   if (flat.length === 0) return null;
 
-  const allMs = flat.flatMap((s) => [parseMs(s.startTime), parseMs(s.endTime)]);
-  const minT    = Math.min(...allMs);
-  const maxT    = Math.max(...allMs);
+  let minT = Infinity;
+  let maxT = -Infinity;
+  let latestSpan = flat[0]!;
+  for (const s of flat) {
+    const start = parseMs(s.startTime);
+    const end = parseMs(s.endTime);
+    if (start < minT) minT = start;
+    if (end > maxT) { maxT = end; latestSpan = s; }
+  }
   const totalMs = maxT - minT || 1;
-  const totalDur = spanDuration(
-    flat[0]!.startTime,
-    flat.reduce((latest, s) =>
-      parseMs(s.endTime) > parseMs(latest.endTime) ? s : latest
-    ).endTime
-  );
+  const totalDur = spanDuration(flat[0]!.startTime, latestSpan.endTime);
 
   return (
     <div className="py-2">

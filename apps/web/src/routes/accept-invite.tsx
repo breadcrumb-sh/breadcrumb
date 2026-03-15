@@ -40,7 +40,7 @@ function AutoAccept({ token }: { token: string }) {
     authClient.organization
       .acceptInvitation({ invitationId: token })
       .finally(() => navigate({ to: "/" }));
-  }, [token]);
+  }, [token, navigate]);
 
   return null;
 }

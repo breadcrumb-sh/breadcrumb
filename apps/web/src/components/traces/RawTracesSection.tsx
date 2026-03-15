@@ -1,22 +1,21 @@
-import {
-  CheckCircle,
-  MagnifyingGlass,
-  Pulse,
-  SpinnerGap,
-  XCircle,
-} from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
+import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
+import { Pulse } from "@phosphor-icons/react/Pulse";
+import { SpinnerGap } from "@phosphor-icons/react/SpinnerGap";
+import { XCircle } from "@phosphor-icons/react/XCircle";
 import { keepPreviousData } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { DataTable, type Column, type SortState } from "../DataTable";
+import { DataTable, type Column, type SortState } from "../common/DataTable";
 import {
   DateRangePopover,
   presetFrom,
   today,
-} from "../DateRangePopover";
-import { MultiselectCombobox } from "../MultiselectCombobox";
-import { useToastManager } from "../Toasts";
+} from "../common/DateRangePopover";
+import { MultiselectCombobox } from "../common/MultiselectCombobox";
+import { useToastManager } from "../common/Toasts";
 import { trpc } from "../../lib/trpc";
+import { formatCost } from "../../lib/span-utils";
 
 const route = getRouteApi("/_authed/projects/$projectId/traces");
 
@@ -38,13 +37,6 @@ type TraceRow = {
 };
 
 // ── Formatters ────────────────────────────────────────────────────────────────
-
-function formatCost(usd: number): string {
-  if (usd === 0) return "$0.00";
-  if (usd < 0.001) return `$${usd.toFixed(6)}`;
-  if (usd < 1) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
-}
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -162,6 +154,9 @@ const TRACE_COLUMNS: Column<TraceRow>[] = [
 
 // ── Raw Traces Section ────────────────────────────────────────────────────────
 
+const EMPTY_STRINGS: string[] = [];
+const EMPTY_STATUSES: ("ok" | "error")[] = [];
+
 export function RawTracesSection() {
   const { projectId } = route.useParams();
   const navigate = route.useNavigate();
@@ -170,10 +165,10 @@ export function RawTracesSection() {
   const from = search.from ?? presetFrom(30);
   const to = search.to ?? today();
   const preset = search.preset ?? 30;
-  const selectedNames = search.names ?? [];
-  const selectedModels = search.models ?? [];
-  const selectedStatuses = search.statuses ?? [];
-  const selectedEnvs = search.env ?? [];
+  const selectedNames = search.names ?? EMPTY_STRINGS;
+  const selectedModels = search.models ?? EMPTY_STRINGS;
+  const selectedStatuses = search.statuses ?? EMPTY_STATUSES;
+  const selectedEnvs = search.env ?? EMPTY_STRINGS;
   const nlpQuery = search.q ?? "";
 
   const [draft, setDraft] = useState(nlpQuery);

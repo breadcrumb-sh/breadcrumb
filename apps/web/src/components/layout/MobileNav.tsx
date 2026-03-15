@@ -1,4 +1,5 @@
-import { CaretDown, Check } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { Check } from "@phosphor-icons/react/Check";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu } from "@base-ui/react/menu";
 import { useSubMenu } from "./SubMenuContext";

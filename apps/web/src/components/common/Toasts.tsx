@@ -1,5 +1,5 @@
 import { Toast } from "@base-ui/react/toast";
-import { X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react/X";
 
 interface ToastData {
   linkText?: string;

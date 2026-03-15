@@ -1,7 +1,8 @@
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Brain, Eye } from "@phosphor-icons/react";
+import { Brain } from "@phosphor-icons/react/Brain";
+import { Eye } from "@phosphor-icons/react/Eye";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { trpc } from "../../lib/trpc";
 
@@ -39,9 +40,12 @@ export function ObservationsSection() {
     onSuccess: () => utils.observations["findings.listAll"].invalidate({ projectId }),
   });
 
+  const markedRef = useRef<string | null>(null);
   useEffect(() => {
+    if (markedRef.current === projectId) return;
+    markedRef.current = projectId;
     markViewed.mutate({ projectId });
-  }, [projectId]);
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (aiProvider.isLoading || findings.isLoading) {
     return (

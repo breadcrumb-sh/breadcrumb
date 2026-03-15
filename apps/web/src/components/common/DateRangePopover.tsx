@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { CalendarBlank, CaretDown } from "@phosphor-icons/react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { CalendarBlank } from "@phosphor-icons/react/CalendarBlank";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 export function today() {
   return new Date().toISOString().slice(0, 10);
@@ -43,13 +45,8 @@ export function DateRangePopover({
     if (open) setShowCustom(preset === null);
   }, [open]);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const closePopover = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, closePopover);
 
   const label = preset ? `Last ${preset} days` : `${fmtDate(from)} – ${fmtDate(to)}`;
 

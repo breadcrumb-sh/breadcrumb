@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { useTheme } from "../hooks/useTheme";
-import { identifyUserJot, initUserJot } from "../lib/userjot";
+import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../hooks/useTheme";
+import { identifyUserJot, initUserJot } from "../../lib/userjot";
 
 export function UserJotBridge() {
   const { user } = useAuth();

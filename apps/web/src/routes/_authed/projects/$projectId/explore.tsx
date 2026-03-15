@@ -1,31 +1,19 @@
-import {
-  Brain,
-  ChartBar,
-  Check,
-  CircleNotch,
-  Code,
-  Copy,
-  Database,
-  List,
-  PaperPlaneTilt,
-  Plus,
-  Star,
-  X,
-} from "@phosphor-icons/react";
-import { renderMermaidSVG } from "beautiful-mermaid";
+import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
+import { List } from "@phosphor-icons/react/List";
+import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
+import { X } from "@phosphor-icons/react/X";
 import { createCodePlugin } from "@streamdown/code";
-import { codeToHtml } from "shiki";
 import { skipToken } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { Streamdown } from "streamdown";
 import { z } from "zod";
-import { ExplorationChart, VIZ_COLORS } from "../../../../components/traces/ExplorationChart";
 import { useAuth } from "../../../../hooks/useAuth";
-import { useTheme } from "../../../../hooks/useTheme";
 import { trpc } from "../../../../lib/trpc";
-import { useRegisterSubMenuAction } from "../../../../components/SubMenuContext";
+import { useRegisterSubMenuAction } from "../../../../components/layout/SubMenuContext";
+import { PartRenderer } from "../../../../components/explore/ChatParts";
+import { EmptyState } from "../../../../components/explore/EmptyState";
+import { NoProviderState } from "../../../../components/explore/NoProviderState";
+import { ExploreSidebar, groupByDate } from "../../../../components/explore/ExploreSidebar";
 import type {
   ChartSpec,
   DisplayPart,
@@ -46,204 +34,6 @@ const codePlugin = createCodePlugin({
 });
 
 const plugins = { code: codePlugin };
-
-// ── Date grouping helper ────────────────────────────────────────────────────
-
-function groupByDate<T extends { updatedAt: Date | string }>(
-  items: T[],
-): { label: string; items: T[] }[] {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  const last7 = new Date(todayStart);
-  last7.setDate(last7.getDate() - 7);
-  const last30 = new Date(todayStart);
-  last30.setDate(last30.getDate() - 30);
-
-  const buckets: Record<string, T[]> = {};
-  const order = ["Today", "Yesterday", "Last 7 days", "Last 30 days", "Older"];
-  for (const label of order) buckets[label] = [];
-
-  for (const item of items) {
-    const d =
-      item.updatedAt instanceof Date
-        ? item.updatedAt
-        : new Date(item.updatedAt);
-    if (d >= todayStart) buckets["Today"].push(item);
-    else if (d >= yesterdayStart) buckets["Yesterday"].push(item);
-    else if (d >= last7) buckets["Last 7 days"].push(item);
-    else if (d >= last30) buckets["Last 30 days"].push(item);
-    else buckets["Older"].push(item);
-  }
-
-  return order
-    .filter((label) => buckets[label].length > 0)
-    .map((label) => ({ label, items: buckets[label] }));
-}
-
-// ── Custom Streamdown components ────────────────────────────────────────────
-
-const MERMAID_THEMES = {
-  dark: {
-    bg: "transparent", fg: "#e9e9ea", line: "#909091", accent: "#58508d",
-    muted: "#6c6c6d", surface: "#282829", border: "#363637",
-  },
-  light: {
-    bg: "transparent", fg: "#1d1d1e", line: "#909091", accent: "#58508d",
-    muted: "#6c6c6d", surface: "#f0f0f0", border: "#c5c5c6",
-  },
-} as const;
-
-function useHighlightedHtml(code: string, lang: string) {
-  const { theme } = useTheme();
-  const [html, setHtml] = useState<string | null>(null);
-
-  useEffect(() => {
-    codeToHtml(code, {
-      lang,
-      theme: theme === "light" ? "github-light" : "github-dark",
-    }).then(setHtml);
-  }, [code, lang, theme]);
-
-  return html;
-}
-
-function MermaidDiagram({ code }: { code: string }) {
-  const { theme } = useTheme();
-  const svg = useMemo(
-    () => {
-      try {
-        return renderMermaidSVG(code, {
-          ...MERMAID_THEMES[theme],
-          font: "Geist, system-ui, sans-serif",
-          transparent: true,
-          padding: 24,
-        });
-      } catch {
-        return null;
-      }
-    },
-    [code, theme],
-  );
-
-  if (!svg) {
-    return (
-      <div className="my-3 rounded-md border border-dashed border-zinc-700 bg-zinc-900/50 px-4 py-6 text-xs text-zinc-500">
-        Failed to render diagram
-      </div>
-    );
-  }
-
-  // Parse SVG dimensions to decide layout
-  const widthMatch = svg.match(/width="(\d+(?:\.\d+)?)"/);
-  const heightMatch = svg.match(/height="(\d+(?:\.\d+)?)"/);
-  const svgWidth = widthMatch ? parseFloat(widthMatch[1]) : 0;
-  const svgHeight = heightMatch ? parseFloat(heightMatch[1]) : 0;
-  const isWide = svgWidth > 0 && svgHeight > 0 && svgWidth / svgHeight > 2.5;
-
-  return (
-    <div
-      className={
-        isWide
-          ? "my-3 overflow-x-auto [&_svg]:h-auto [&_svg]:min-w-[600px]"
-          : "my-3 flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
-      }
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-}
-
-function CodeBlock({ language, children }: { language: string; children: React.ReactNode }) {
-  const [copied, setCopied] = useState(false);
-  const text = extractText(children);
-  const html = useHighlightedHtml(text, language || "text");
-
-  const copy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <div className="my-4 border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-800/60 border-b border-zinc-800">
-        <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">
-          {language || "code"}
-        </span>
-        <button
-          onClick={copy}
-          className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      {html ? (
-        <div
-          className="overflow-x-auto px-3 py-3 text-[13px] leading-relaxed [&_pre]:!bg-transparent [&_code]:!bg-transparent"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <pre className="overflow-x-auto px-3 py-3 text-[13px] font-mono text-zinc-300 leading-relaxed">
-          <code>{children}</code>
-        </pre>
-      )}
-    </div>
-  );
-}
-
-function extractText(node: React.ReactNode): string {
-  if (typeof node === "string") return node;
-  if (typeof node === "number") return String(node);
-  if (!node) return "";
-  if (Array.isArray(node)) return node.map(extractText).join("");
-  if (typeof node === "object" && "props" in node) return extractText((node as React.ReactElement<{ children?: React.ReactNode }>).props.children);
-  return "";
-}
-
-const sdComponents = {
-  code: ({ className, children, ...rest }: React.ComponentProps<"code"> & { "data-block"?: boolean }) => {
-    const isBlock = "data-block" in rest;
-    const lang = className?.match(/language-(\S+)/)?.[1] ?? "";
-
-    if (isBlock) {
-      if (lang === "mermaid") {
-        return <MermaidDiagram code={extractText(children)} />;
-      }
-      return <CodeBlock language={lang}>{children}</CodeBlock>;
-    }
-
-    return (
-      <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-[13px] font-mono text-viz-7">
-        {children}
-      </code>
-    );
-  },
-  table: (p: React.ComponentProps<"table">) => (
-    <div className="my-4 overflow-x-auto border border-zinc-800 bg-zinc-900/50">
-      <table className="w-full text-xs" {...p} />
-    </div>
-  ),
-  thead: (p: React.ComponentProps<"thead">) => (
-    <thead className="bg-zinc-800/60" {...p} />
-  ),
-  th: (p: React.ComponentProps<"th">) => (
-    <th
-      className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-medium tracking-wide text-zinc-400 uppercase border-b border-zinc-800"
-      {...p}
-    />
-  ),
-  td: (p: React.ComponentProps<"td">) => (
-    <td
-      className="whitespace-nowrap px-3 py-1.5 text-zinc-300 border-b border-zinc-800/50 tabular-nums"
-      {...p}
-    />
-  ),
-  tr: (p: React.ComponentProps<"tr">) => (
-    <tr className="hover:bg-zinc-800/30 transition-colors" {...p} />
-  ),
-};
 
 // ── Stream event → DisplayPart accumulator ──────────────────────────────────
 
@@ -487,60 +277,33 @@ function ExplorePage() {
     e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
   };
 
+  // ── Sidebar callbacks ─────────────────────────────────────────────────────
+
+  const onNewChat = useCallback(() => {
+    navigate({ search: {} });
+    setDrawerOpen(false);
+  }, [navigate]);
+
+  const onSelectChat = useCallback((id: string) => {
+    navigate({ search: { id } });
+    setDrawerOpen(false);
+  }, [navigate]);
+
+  const onDeleteChat = useCallback((id: string) => {
+    deleteExplore.mutate({ id });
+  }, [deleteExplore]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const sidebarContent = (
-    <>
-      {!isViewer && (
-        <div className="p-3">
-          <button
-            onClick={() => {
-              navigate({ search: {} });
-              setDrawerOpen(false);
-            }}
-            className="flex items-center gap-1.5 w-full px-3 py-1.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
-          >
-            <Plus size={14} />
-            New chat
-          </button>
-        </div>
-      )}
-      <nav className="px-2 pb-4">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <p className="px-2 pt-3 pb-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wide">
-              {group.label}
-            </p>
-            {group.items.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  navigate({ search: { id: item.id } });
-                  setDrawerOpen(false);
-                }}
-                className={`group flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm transition-colors ${
-                  item.id === exploreId
-                    ? "bg-zinc-800/50 text-zinc-100"
-                    : "text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200"
-                }`}
-              >
-                <span className="truncate">{item.name}</span>
-                {!isViewer && (
-                  <X
-                    size={14}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-zinc-300 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteExplore.mutate({ id: item.id });
-                    }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        ))}
-      </nav>
-    </>
+    <ExploreSidebar
+      groups={groups}
+      currentExploreId={exploreId}
+      onNewChat={onNewChat}
+      onSelectChat={onSelectChat}
+      onDeleteChat={onDeleteChat}
+      isViewer={isViewer}
+    />
   );
 
   return (
@@ -594,6 +357,7 @@ function ExplorePage() {
                   streaming={streaming}
                   isStarred={isStarred}
                   onToggleStar={toggleStar}
+                  plugins={plugins}
                 />
               ))}
               <div ref={bottomRef} />
@@ -637,294 +401,4 @@ function ExplorePage() {
       </div>
     </main>
   );
-}
-
-// ── No provider state ────────────────────────────────────────────────────────
-
-function NoProviderState({ projectId }: { projectId: string }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto gap-5 py-12">
-      <div className="flex items-center justify-center w-12 h-12 rounded-full border border-zinc-800 bg-zinc-900">
-        <Brain size={22} className="text-zinc-500" />
-      </div>
-      <div className="text-center space-y-1.5">
-        <h2 className="text-base font-medium text-zinc-200">
-          AI provider not configured
-        </h2>
-        <p className="text-sm text-zinc-500 leading-relaxed">
-          Set up an AI provider in your project settings to start exploring traces with natural language.
-        </p>
-      </div>
-      <Link
-        to="/projects/$projectId/settings"
-        params={{ projectId }}
-        search={{ tab: "ai" }}
-        className="text-sm text-zinc-400 underline hover:text-zinc-200 transition-colors"
-      >
-        Configure AI provider
-      </Link>
-    </div>
-  );
-}
-
-// ── Empty state ─────────────────────────────────────────────────────────────
-
-const EXAMPLES = [
-  {
-    label: "Trace volume",
-    prompt: "Show me daily trace volume over the last 30 days",
-  },
-  {
-    label: "Slowest spans",
-    prompt: "What are the top 10 slowest spans by p95 duration?",
-  },
-  {
-    label: "Error breakdown",
-    prompt: "Show error rate by trace name as a bar chart",
-  },
-  {
-    label: "Cost trends",
-    prompt: "Chart my daily LLM cost over the past 2 weeks",
-  },
-  {
-    label: "Architecture",
-    prompt: "Draw a mermaid diagram of my most common trace flow",
-  },
-  {
-    label: "Model usage",
-    prompt: "Compare token usage across different models",
-  },
-];
-
-function EmptyState({ onSend }: { onSend: (prompt: string) => void }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto gap-8 py-12">
-      <div className="text-center space-y-2">
-        <h2 className="text-base font-medium text-zinc-200">
-          Explore your traces
-        </h2>
-        <p className="text-sm text-zinc-500 leading-relaxed">
-          Ask questions in plain English. Query your data, generate charts, or visualize architecture with mermaid diagrams.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 w-full">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex.label}
-            onClick={() => onSend(ex.prompt)}
-            className="text-left px-3 py-2.5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30 transition-colors group"
-          >
-            <span className="text-xs font-medium text-zinc-300 group-hover:text-zinc-100">
-              {ex.label}
-            </span>
-            <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">
-              {ex.prompt}
-            </p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Chart part with SQL modal ────────────────────────────────────────────────
-
-function ChartPart({
-  spec,
-  data,
-  isStarred: starred,
-  onToggleStar,
-}: {
-  spec: ChartSpec;
-  data: Record<string, unknown>[];
-  isStarred: boolean;
-  onToggleStar: () => void;
-}) {
-  const [showSql, setShowSql] = useState(false);
-
-  return (
-    <>
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <ChartBar size={14} className="text-zinc-500" />
-            {spec.title}
-          </div>
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => setShowSql(true)}
-              className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
-              title="View SQL"
-            >
-              <Code size={14} className="text-zinc-500 hover:text-zinc-300" />
-            </button>
-            <button
-              onClick={onToggleStar}
-              className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
-              title={starred ? "Remove star" : "Star chart"}
-            >
-              <Star
-                size={14}
-                weight={starred ? "fill" : "regular"}
-                className={
-                  starred ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
-                }
-              />
-            </button>
-          </div>
-        </div>
-        {spec.yKeys.length > 1 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {spec.yKeys.map((key, i) => {
-              const label = spec.legend?.find((l) => l.key === key)?.label ?? key;
-              return (
-                <span
-                  key={key}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400"
-                >
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ backgroundColor: VIZ_COLORS[i % VIZ_COLORS.length] }}
-                  />
-                  {label}
-                </span>
-              );
-            })}
-          </div>
-        )}
-        {data.length > 0 ? (
-          <ExplorationChart
-            chartType={spec.chartType}
-            xKey={spec.xKey}
-            yKeys={spec.yKeys}
-            legend={spec.legend}
-            data={data}
-          />
-        ) : (
-          <div className="flex items-center justify-center rounded-md border border-dashed border-zinc-700 bg-zinc-900/50 py-12">
-            <p className="text-xs text-zinc-500">No data returned by query</p>
-          </div>
-        )}
-      </div>
-
-      {showSql && <SqlModal sql={spec.sql} onClose={() => setShowSql(false)} />}
-    </>
-  );
-}
-
-function SqlModal({ sql, onClose }: { sql: string; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const html = useHighlightedHtml(sql.trim(), "sql");
-
-  const copy = () => {
-    navigator.clipboard.writeText(sql);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-2xl mx-4 border border-zinc-800 bg-zinc-900 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-800/60 border-b border-zinc-800">
-          <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">
-            SQL
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={copy}
-              className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? "Copied" : "Copy"}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-0.5 text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-        {html ? (
-          <div
-            className="overflow-x-auto px-4 py-4 text-[13px] leading-relaxed [&_pre]:!bg-transparent [&_code]:!bg-transparent"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        ) : (
-          <pre className="overflow-x-auto px-4 py-4 text-[13px] font-mono text-zinc-300 leading-relaxed">
-            <code>{sql.trim()}</code>
-          </pre>
-        )}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-// ── Part renderer ──────────────────────────────────────────────────────────────
-
-function PartRenderer({
-  part,
-  isLast,
-  streaming,
-  isStarred,
-  onToggleStar,
-}: {
-  part: DisplayPart;
-  isLast: boolean;
-  streaming: boolean;
-  isStarred: (sql: string) => boolean;
-  onToggleStar: (spec: ChartSpec) => void;
-}) {
-  switch (part.type) {
-    case "user":
-      return (
-        <div className="flex justify-end">
-          <div className="max-w-[80%] rounded-2xl rounded-br-md bg-zinc-700/50 px-4 py-2.5 text-sm text-zinc-100 whitespace-pre-wrap">
-            {part.content}
-          </div>
-        </div>
-      );
-
-    case "text":
-      return (
-        <div className="text-sm text-zinc-300 [&_h1]:text-zinc-100 [&_h2]:text-zinc-100 [&_h3]:text-zinc-100 [&_h4]:text-zinc-100 [&_strong]:text-zinc-200">
-          <Streamdown
-            mode={isLast && streaming ? "streaming" : "static"}
-            plugins={plugins}
-            components={sdComponents}
-          >
-            {part.content}
-          </Streamdown>
-        </div>
-      );
-
-    case "chart":
-      return (
-        <ChartPart
-          spec={part.spec}
-          data={part.data}
-          isStarred={isStarred(part.spec.sql)}
-          onToggleStar={() => onToggleStar(part.spec)}
-        />
-      );
-
-    case "tool-loading":
-      return (
-        <div className="flex items-center gap-2 text-xs text-zinc-500 py-2">
-          <CircleNotch size={12} className="animate-spin" />
-          <Database size={12} />
-          {part.toolName === "display_chart"
-            ? "Generating chart..."
-            : "Running query..."}
-        </div>
-      );
-  }
 }

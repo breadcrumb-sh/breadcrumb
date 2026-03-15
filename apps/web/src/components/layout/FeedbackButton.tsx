@@ -1,5 +1,5 @@
-import { ChatCircleDots } from "@phosphor-icons/react";
-import { openUserJotFeedback } from "../lib/userjot";
+import { ChatCircleDots } from "@phosphor-icons/react/ChatCircleDots";
+import { openUserJotFeedback } from "../../lib/userjot";
 
 export function FeedbackButton() {
   return (

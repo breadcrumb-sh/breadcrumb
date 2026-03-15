@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Check, ArrowRight } from "@phosphor-icons/react";
+import { Copy } from "@phosphor-icons/react/Copy";
+import { Check } from "@phosphor-icons/react/Check";
+import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
 import { trpc } from "../../lib/trpc";
-import { StepIndicator } from "../../components/StepIndicator";
-import { AppHeader } from "../../components/AppHeader";
+import { StepIndicator } from "../../components/common/StepIndicator";
+import { AppHeader } from "../../components/layout/AppHeader";
 
 export const Route = createFileRoute("/_authed/new")({
   component: NewProjectPage,
@@ -33,7 +35,7 @@ function NewProjectPage() {
       projectId: project.id,
       name: "Default",
     });
-    await utils.apiKeys.list.invalidate({ projectId: project.id });
+    utils.apiKeys.list.invalidate({ projectId: project.id });
     setProjectId(project.id);
     setCreatedKey(key.rawKey);
     setStep(1);

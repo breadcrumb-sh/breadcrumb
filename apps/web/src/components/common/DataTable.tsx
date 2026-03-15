@@ -1,4 +1,5 @@
-import { CaretUp, CaretDown } from "@phosphor-icons/react";
+import { CaretUp } from "@phosphor-icons/react/CaretUp";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import type { ReactNode } from "react";
 
 export type Column<T> = {

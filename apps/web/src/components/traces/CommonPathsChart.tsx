@@ -1,4 +1,5 @@
-import { CaretRight, ArrowLeft } from "@phosphor-icons/react";
+import { CaretRight } from "@phosphor-icons/react/CaretRight";
+import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
 import { useMemo, useState } from "react";
 
 type SampleSpan = {

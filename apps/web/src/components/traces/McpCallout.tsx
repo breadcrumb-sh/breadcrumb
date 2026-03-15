@@ -1,4 +1,4 @@
-import { X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react/X";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { trpc } from "../../lib/trpc";

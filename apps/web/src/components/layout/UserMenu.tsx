@@ -1,10 +1,15 @@
-import { useRef, useState, useEffect } from "react";
-import { Sun, Moon, SignOut, Gear, ChatCircleDots } from "@phosphor-icons/react";
+import { useRef, useState, useCallback } from "react";
+import { Sun } from "@phosphor-icons/react/Sun";
+import { Moon } from "@phosphor-icons/react/Moon";
+import { SignOut } from "@phosphor-icons/react/SignOut";
+import { Gear } from "@phosphor-icons/react/Gear";
+import { ChatCircleDots } from "@phosphor-icons/react/ChatCircleDots";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { authClient } from "../lib/auth-client";
-import { openUserJotFeedback } from "../lib/userjot";
-import { useAuth } from "../hooks/useAuth";
-import { useTheme } from "../hooks/useTheme";
+import { useClickOutside } from "../../hooks/useClickOutside";
+import { authClient } from "../../lib/auth-client";
+import { openUserJotFeedback } from "../../lib/userjot";
+import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../hooks/useTheme";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -25,17 +30,8 @@ export function UserMenu() {
     );
   }
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  useClickOutside(containerRef, closeMenu);
 
   const handleLogout = () => {
     authClient.signOut().then(() => navigate({ to: "/login" }));

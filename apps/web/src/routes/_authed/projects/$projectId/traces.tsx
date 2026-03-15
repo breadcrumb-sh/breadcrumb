@@ -1,8 +1,10 @@
-import { Eye, SquaresFourIcon, Table } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/Eye";
+import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+import { Table } from "@phosphor-icons/react/Table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { z } from "zod";
-import { useRegisterSubMenu } from "../../../../components/SubMenuContext";
+import { useRegisterSubMenu } from "../../../../components/layout/SubMenuContext";
 import { InsightsSection } from "../../../../components/traces/InsightsSection";
 import { McpCallout } from "../../../../components/traces/McpCallout";
 import { ObservationsSection } from "../../../../components/traces/ObservationsSection";

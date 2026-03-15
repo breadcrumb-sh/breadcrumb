@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { UserMenu } from "./UserMenu";
 import { FeedbackButton } from "./FeedbackButton";
-import { Logo } from "./common/logo/Logo";
+import { Logo } from "../common/logo/Logo";
 
 /**
  * Simple app-level header for non-project pages (projects list, new project).

@@ -12,11 +12,16 @@ import {
 import superjson from "superjson";
 import { trpc } from "./lib/trpc";
 import { router } from "./router";
-import { ToastProvider } from "./components/Toasts";
-import { UserJotBridge } from "./components/UserJotBridge";
+import { ToastProvider } from "./components/common/Toasts";
+import { UserJotBridge } from "./components/layout/UserJotBridge";
 
 function Root() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000 } },
+      }),
+  );
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

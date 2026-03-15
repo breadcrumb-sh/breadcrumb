@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Logo } from "../components/common/logo/Logo";
 import { authClient } from "../lib/auth-client";
@@ -16,8 +16,7 @@ function LoginPage() {
   const { data: session } = authClient.useSession();
 
   if (session) {
-    navigate({ to: "/" });
-    return null;
+    return <Navigate to="/" />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

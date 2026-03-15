@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus, Folder } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react/Plus";
+import { Folder } from "@phosphor-icons/react/Folder";
 import { trpc } from "../../lib/trpc";
-import { AppHeader } from "../../components/AppHeader";
+import { AppHeader } from "../../components/layout/AppHeader";
 import { useAuth } from "../../hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/")({

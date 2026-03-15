@@ -1,4 +1,4 @@
-import { CaretDown } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
 
 type Option<T extends string> = { value: T; label: string };
 

@@ -1,5 +1,5 @@
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Pulse } from "@phosphor-icons/react";
+import { Pulse } from "@phosphor-icons/react/Pulse";
 import { getRouteApi } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -12,15 +12,15 @@ import {
   YAxis,
 } from "recharts";
 import { CommonPathsChart } from "./CommonPathsChart";
-import { ChartSkeleton } from "../ChartSkeleton";
-import { InlineSelect } from "../InlineSelect";
-import { DataTable, type Column, type SortState } from "../DataTable";
+import { ChartSkeleton } from "../common/ChartSkeleton";
+import { InlineSelect } from "../common/InlineSelect";
+import { DataTable, type Column, type SortState } from "../common/DataTable";
 import {
   DateRangePopover,
   presetFrom,
   today,
-} from "../DateRangePopover";
-import { MultiselectCombobox } from "../MultiselectCombobox";
+} from "../common/DateRangePopover";
+import { MultiselectCombobox } from "../common/MultiselectCombobox";
 import { trpc } from "../../lib/trpc";
 
 const route = getRouteApi("/_authed/projects/$projectId/traces");
@@ -611,6 +611,9 @@ function LoopbackChart({
 
 // ── Insights Section ──────────────────────────────────────────────────────────
 
+const EMPTY_STRINGS: string[] = [];
+const EMPTY_STATUSES: ("ok" | "error")[] = [];
+
 export function InsightsSection() {
   const { projectId } = route.useParams();
   const navigate = route.useNavigate();
@@ -619,9 +622,9 @@ export function InsightsSection() {
   const from = search.from ?? presetFrom(30);
   const to = search.to ?? today();
   const preset = search.preset ?? 30;
-  const selectedNames = search.names ?? [];
-  const selectedStatuses = search.statuses ?? [];
-  const selectedSteps = search.steps ?? [];
+  const selectedNames = search.names ?? EMPTY_STRINGS;
+  const selectedStatuses = search.statuses ?? EMPTY_STATUSES;
+  const selectedSteps = search.steps ?? EMPTY_STRINGS;
 
   const applyPreset = (days: 7 | 30 | 90) =>
     navigate({

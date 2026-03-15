@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
 import { trpc } from "../lib/trpc";
 
@@ -10,13 +10,11 @@ function AuthedLayout() {
   const { data: session, isPending } = authClient.useSession();
   const { data: config, isLoading: configLoading } =
     trpc.config.publicViewing.useQuery();
-  const navigate = useNavigate();
 
   if (isPending || configLoading) return null;
 
   if (!session && !config?.enabled) {
-    navigate({ to: "/login" });
-    return null;
+    return <Navigate to="/login" />;
   }
 
   return (

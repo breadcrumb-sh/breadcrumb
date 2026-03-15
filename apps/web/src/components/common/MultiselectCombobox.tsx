@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { CaretDown, Check } from "@phosphor-icons/react";
+import { useState, useRef, useCallback } from "react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { Check } from "@phosphor-icons/react/Check";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 export function MultiselectCombobox({
   options,
@@ -16,16 +18,11 @@ export function MultiselectCombobox({
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+  const close = useCallback(() => {
+    setOpen(false);
+    setQuery("");
   }, []);
+  useClickOutside(ref, close);
 
   const filtered = query
     ? options.filter((n) => n.toLowerCase().includes(query.toLowerCase()))

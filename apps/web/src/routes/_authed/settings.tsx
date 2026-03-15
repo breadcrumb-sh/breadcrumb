@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  Plus,
-  Trash,
-  Copy,
-  Check,
-  X,
-} from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react/Plus";
+import { Trash } from "@phosphor-icons/react/Trash";
+import { Copy } from "@phosphor-icons/react/Copy";
+import { Check } from "@phosphor-icons/react/Check";
+import { X } from "@phosphor-icons/react/X";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { trpc } from "../../lib/trpc";
-import { AppHeader } from "../../components/AppHeader";
+import { AppHeader } from "../../components/layout/AppHeader";
 
 export const Route = createFileRoute("/_authed/settings")({
   component: SettingsPage,
