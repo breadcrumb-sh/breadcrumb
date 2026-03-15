@@ -10,7 +10,6 @@ const config = {
   images: {
     unoptimized: true,
   },
-  basePath: '/docs',
   trailingSlash: true,
   ...(!isDev ? {
     output: 'export',
