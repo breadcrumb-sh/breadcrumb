@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, procedure } from "../trpc.js";
 import { readonlyClickhouse } from "../../db/clickhouse.js";
+import { sandboxedClickhouse } from "../../db/clickhouse.js";
 import { getAiModel } from "../../lib/ai-provider.js";
 import { writeSearchQuery } from "../../lib/query-writer.js";
 import { cache } from "../../lib/cache.js";
@@ -344,13 +345,15 @@ export const tracesRouter = router({
         LIMIT {limit: UInt32} OFFSET {offset: UInt32}
       `;
 
-      // When the WHERE clause includes AI-generated SQL, enforce read-only
-      // mode at the ClickHouse session level. This is server-enforced —
-      // even if the AI produces destructive SQL, ClickHouse will reject it.
-      const result = await readonlyClickhouse.query({
+      // When the WHERE includes AI-generated SQL, run on the sandboxed client.
+      // Row policies enforce project isolation at the DB level, and resource
+      // limits prevent DoS. For non-AI queries, use the regular readonly client.
+      const client = hasAiClause ? sandboxedClickhouse : readonlyClickhouse;
+      const result = await client.query({
         query: sql,
         query_params: params,
         format: "JSONEachRow",
+        ...(hasAiClause ? { clickhouse_settings: { SQL_project_id: input.projectId } } : {}),
       });
 
       const rows = (await result.json()) as Array<Record<string, unknown>>;
@@ -869,6 +872,7 @@ export const tracesRouter = router({
           )
           WHERE name = {traceName: String}
             ${dateFilter}
+          LIMIT 500
         `,
         query_params: { projectId: input.projectId, traceName: input.traceName, from: input.from ?? "", to: input.to ?? "" },
         format: "JSONEachRow",
@@ -888,6 +892,7 @@ export const tracesRouter = router({
           WHERE project_id = {projectId: UUID}
             AND trace_id IN {traceIds: Array(String)}
           ORDER BY start_time ASC
+          LIMIT 50000
         `,
         query_params: { projectId: input.projectId, traceIds },
         format: "JSONEachRow",

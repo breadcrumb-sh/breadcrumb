@@ -11,6 +11,7 @@ export const env = {
   clickhouseDb: process.env.CLICKHOUSE_DB || "breadcrumb",
   clickhouseUser: process.env.CLICKHOUSE_USER || "default",
   clickhousePassword: process.env.CLICKHOUSE_PASSWORD || "",
+  clickhouseAiQueryPassword: process.env.CLICKHOUSE_AI_QUERY_PASSWORD || "",
   port: Number(process.env.PORT) || 3100,
   encryptionKey: process.env.ENCRYPTION_KEY || "",
   nodeEnv: process.env.NODE_ENV || "development",

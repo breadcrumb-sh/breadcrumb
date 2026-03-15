@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProcedure, checkOrgRole } from "../trpc.js";
 import { env } from "../../env.js";
 import { db } from "../../db/index.js";
-import { readonlyClickhouse } from "../../db/clickhouse.js";
+import { runSandboxedQuery } from "../../lib/sandboxed-query.js";
 import { explores, starredCharts } from "../../db/schema.js";
 import { getAiModel } from "../../lib/ai-provider.js";
 import { streamChartGeneration } from "../../lib/chart-generator.js";
@@ -222,12 +222,14 @@ export const exploresRouter = router({
   requery: orgViewerProcedure
     .input(z.object({ projectId: z.string(), sql: z.string() }))
     .mutation(async ({ input }) => {
-      const result = await readonlyClickhouse.query({
-        query: input.sql,
-        query_params: { projectId: input.projectId },
-        format: "JSONEachRow",
-      });
-      return (await result.json()) as Record<string, unknown>[];
+      try {
+        return await runSandboxedQuery(input.projectId, input.sql);
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: err instanceof Error ? err.message : "Query execution failed",
+        });
+      }
     }),
 });
 

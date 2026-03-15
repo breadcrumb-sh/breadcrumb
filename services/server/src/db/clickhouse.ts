@@ -46,6 +46,31 @@ export const readonlyClickhouse = createClient({
   },
 });
 
+// Sandboxed client for AI-generated and user-supplied SQL queries.
+// Connects as the `ai_query` user which has:
+//   - Row policies enforcing project isolation via SQL_project_id setting
+//   - readonly=2 (settings changes allowed, writes blocked)
+//   - Resource limits (max_execution_time, max_rows_to_read, etc.)
+//   - SELECT only on breadcrumb.{traces,spans,trace_rollups}
+// Use runSandboxedQuery() from lib/sandboxed-query.ts instead of calling directly.
+export const sandboxedClickhouse = createClient({
+  url: env.clickhouseUrl,
+  username: "ai_query",
+  password: env.clickhouseAiQueryPassword,
+  database: env.clickhouseDb,
+  application: "breadcrumb-server-sandbox",
+  max_open_connections: 20,
+  request_timeout: 15_000,
+  compression: {
+    response: true,
+    request: true,
+  },
+  keep_alive: {
+    enabled: true,
+    idle_socket_ttl: 2500,
+  },
+});
+
 // Separate client without a database selected, used only during migration
 // setup when the database may not exist yet.
 const adminClient = createClient({

@@ -5,6 +5,7 @@ import { readonlyClickhouse } from "../db/clickhouse.js";
 import { db } from "../db/index.js";
 import { member, organization, user as userTable } from "../db/schema.js";
 import { CLICKHOUSE_SCHEMA } from "../lib/clickhouse-schema.js";
+import { runSandboxedQuery } from "../lib/sandboxed-query.js";
 
 import { calcDuration, normMetadata, toUtc, truncateSpanField } from "./helpers.js";
 
@@ -718,13 +719,7 @@ export function buildMcpServer(userId: string): McpServer {
       }
 
       try {
-        const result = await readonlyClickhouse.query({
-          query: sql,
-          query_params: { projectId: project_id },
-          format: "JSONEachRow",
-        });
-
-        const rows = (await result.json()) as Record<string, unknown>[];
+        const rows = await runSandboxedQuery(project_id, sql);
         const { data, note } = truncateResult(rows);
         const parts = [`rowCount: ${rows.length}`, note ? `note: ${note}` : null, data]
           .filter(Boolean)

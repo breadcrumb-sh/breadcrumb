@@ -4,7 +4,7 @@ import { eq, and, or, ilike, sql } from "drizzle-orm";
 import { boss } from "../lib/boss.js";
 import { db } from "../db/index.js";
 import { observations, observationFindings } from "../db/schema.js";
-import { readonlyClickhouse } from "../db/clickhouse.js";
+import { runSandboxedQuery } from "../lib/sandboxed-query.js";
 import { getAiModel } from "../lib/ai-provider.js";
 import { CLICKHOUSE_SCHEMA } from "../lib/clickhouse-schema.js";
 import { invalidateObservationsCache } from "../lib/observations-cache.js";
@@ -141,12 +141,7 @@ WORKFLOW:
         }),
         execute: async ({ sql }) => {
           try {
-            const result = await readonlyClickhouse.query({
-              query: sql,
-              query_params: { projectId },
-              format: "JSONEachRow",
-            });
-            const rows = (await result.json()) as Record<string, unknown>[];
+            const rows = await runSandboxedQuery(projectId, sql);
             const truncated = rows.slice(0, 100);
             return { success: true as const, rowCount: rows.length, data: JSON.stringify(truncated) };
           } catch (err) {

@@ -2,7 +2,7 @@ import { streamText, tool, stepCountIs } from "ai";
 import type { LanguageModel, ModelMessage } from "ai";
 import { z } from "zod";
 import { CLICKHOUSE_SCHEMA } from "./clickhouse-schema.js";
-import { readonlyClickhouse } from "../db/clickhouse.js";
+import { runSandboxedQuery } from "./sandboxed-query.js";
 import { chartSpecSchema, type ChartSpec } from "./explore-types.js";
 
 export { chartSpecSchema, type ChartSpec };
@@ -96,12 +96,7 @@ export function streamChartGeneration({
         }),
         execute: async ({ sql }) => {
           try {
-            const result = await readonlyClickhouse.query({
-              query: sql,
-              query_params: { projectId },
-              format: "JSONEachRow",
-            });
-            const rows = (await result.json()) as Record<string, unknown>[];
+            const rows = await runSandboxedQuery(projectId, sql);
             return {
               success: true as const,
               rowCount: rows.length,
@@ -138,12 +133,7 @@ export function streamChartGeneration({
         }),
         execute: async ({ title, chartType, sql, xKey, yKeys, legend }) => {
           try {
-            const result = await readonlyClickhouse.query({
-              query: sql,
-              query_params: { projectId },
-              format: "JSONEachRow",
-            });
-            const rows = (await result.json()) as Record<string, unknown>[];
+            const rows = await runSandboxedQuery(projectId, sql);
             const spec: ChartSpec = { title, chartType, sql, xKey, yKeys, legend };
 
             onChartUpdate?.(spec, rows);
