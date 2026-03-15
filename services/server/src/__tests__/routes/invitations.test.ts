@@ -1,0 +1,259 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// ── Mock external dependencies ───────────────────────────────────────────────
+
+const mockOrderBy = vi.fn();
+const mockLimit = vi.fn();
+const mockReturning = vi.fn();
+const mockInnerJoin = vi.fn();
+const mockLeftJoin = vi.fn();
+const mockOnConflictDoUpdate = vi.fn();
+
+let chain: any;
+const mockWhere = vi.fn();
+
+vi.mock("../../shared/db/postgres.js", () => {
+  chain = {
+    select: () => chain,
+    from: () => chain,
+    where: mockWhere,
+    limit: mockLimit,
+    orderBy: mockOrderBy,
+    innerJoin: mockInnerJoin,
+    leftJoin: mockLeftJoin,
+    insert: () => chain,
+    values: () => chain,
+    returning: mockReturning,
+    update: () => chain,
+    set: () => chain,
+    delete: () => chain,
+    onConflictDoUpdate: mockOnConflictDoUpdate,
+    execute: vi.fn().mockResolvedValue([]),
+  };
+  return { db: chain };
+});
+
+vi.mock("../../shared/db/clickhouse.js", () => ({
+  clickhouse: { query: vi.fn(), insert: vi.fn(), command: vi.fn() },
+  readonlyClickhouse: { query: vi.fn() },
+  sandboxedClickhouse: { query: vi.fn() },
+}));
+
+const mockEnv = {
+  allowPublicViewing: false,
+  encryptionKey: "a".repeat(64),
+  appBaseUrl: "http://localhost:3000",
+};
+
+vi.mock("../../env.js", () => ({
+  env: mockEnv,
+}));
+
+vi.mock("../../shared/lib/cache.js", () => ({
+  cache: {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock("../../services/explore/ai-provider.js", () => ({
+  getAiModel: vi.fn(),
+}));
+
+vi.mock("../../services/explore/query-writer.js", () => ({
+  writeSearchQuery: vi.fn(),
+}));
+
+vi.mock("../../services/explore/generation-manager.js", () => ({
+  getGeneration: vi.fn().mockReturnValue(null),
+  subscribeGeneration: vi.fn(),
+}));
+
+vi.mock("../../services/explore/generation.js", () => ({
+  runGeneration: vi.fn(),
+}));
+
+vi.mock("../../shared/lib/sandboxed-query.js", () => ({
+  runSandboxedQuery: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("../../services/observations/cache.js", () => ({
+  invalidateObservationsCache: vi.fn(),
+}));
+
+vi.mock("../../shared/lib/encryption.js", () => ({
+  encrypt: vi.fn().mockReturnValue("encrypted"),
+  decrypt: vi.fn().mockReturnValue("decrypted"),
+  maskApiKey: vi.fn().mockReturnValue("bc_****"),
+}));
+
+const { appRouter } = await import("../../api/trpc/router.js");
+
+beforeEach(() => {
+  mockWhere.mockReset();
+  mockLimit.mockReset();
+  mockOrderBy.mockReset();
+  mockInnerJoin.mockReset();
+  mockReturning.mockReset();
+  mockLeftJoin.mockReset();
+  mockOnConflictDoUpdate.mockReset();
+});
+
+// ── Helper contexts ──────────────────────────────────────────────────────────
+
+const adminCtx = {
+  user: { id: "admin-1", email: "admin@test.com", name: "Admin", role: "admin" },
+  session: { id: "sess-admin", userId: "admin-1" },
+};
+
+const userCtx = {
+  user: { id: "user-1", email: "user@test.com", name: "User", role: "user" },
+  session: { id: "sess-1", userId: "user-1" },
+};
+
+const ORG_ID = "org-1";
+
+// ── invitations.create ───────────────────────────────────────────────────────
+
+describe("invitations.create", () => {
+  it("rejects if user is already a member", async () => {
+    // orgAdminProcedure: global admin bypasses checkOrgRole
+    const caller = appRouter.createCaller(adminCtx);
+
+    // 1st where: find user by email → terminal
+    mockWhere.mockResolvedValueOnce([{ id: "existing-user" }]);
+    // 2nd where: find member by userId + orgId → terminal
+    mockWhere.mockResolvedValueOnce([{ id: "member-1" }]);
+
+    await expect(
+      caller.invitations.create({
+        organizationId: ORG_ID,
+        email: "existing@test.com",
+      })
+    ).rejects.toThrow("already a member");
+  });
+
+  it("rejects if pending non-expired invitation exists", async () => {
+    const caller = appRouter.createCaller(adminCtx);
+
+    // 1st where: user lookup — no user found → terminal
+    mockWhere.mockResolvedValueOnce([]);
+    // 2nd where: existing pending invitation found → terminal
+    mockWhere.mockResolvedValueOnce([{ id: "inv-existing" }]);
+
+    await expect(
+      caller.invitations.create({
+        organizationId: ORG_ID,
+        email: "pending@test.com",
+      })
+    ).rejects.toThrow("pending invitation already exists");
+  });
+
+  it("allows creation if only expired invitation exists (no pending match)", async () => {
+    const inv = {
+      id: "inv-new",
+      organizationId: ORG_ID,
+      email: "new@test.com",
+      role: "member",
+      status: "pending",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      inviterId: "admin-1",
+    };
+
+    const caller = appRouter.createCaller(adminCtx);
+
+    // 1st where: user lookup — no user found → terminal
+    mockWhere.mockResolvedValueOnce([]);
+    // 2nd where: existing pending invitation — none → terminal
+    mockWhere.mockResolvedValueOnce([]);
+    // insert().values().returning()
+    mockReturning.mockResolvedValueOnce([inv]);
+
+    const result = await caller.invitations.create({
+      organizationId: ORG_ID,
+      email: "new@test.com",
+    });
+    expect(result).toMatchObject({
+      id: "inv-new",
+      inviteUrl: expect.stringContaining("/accept-invite?token=inv-new"),
+    });
+  });
+
+  it("generates invite URL with token", async () => {
+    const inv = {
+      id: "inv-abc",
+      organizationId: ORG_ID,
+      email: "invite@test.com",
+      role: "member",
+      status: "pending",
+    };
+
+    const caller = appRouter.createCaller(adminCtx);
+
+    // No existing user → terminal
+    mockWhere.mockResolvedValueOnce([]);
+    // No existing invitation → terminal
+    mockWhere.mockResolvedValueOnce([]);
+    // insert returns the invitation
+    mockReturning.mockResolvedValueOnce([inv]);
+
+    const result = await caller.invitations.create({
+      organizationId: ORG_ID,
+      email: "invite@test.com",
+    });
+    expect(result.inviteUrl).toBe("http://localhost:3000/accept-invite?token=inv-abc");
+  });
+});
+
+// ── invitations.list ─────────────────────────────────────────────────────────
+
+describe("invitations.list", () => {
+  it("returns only pending invitations for the org", async () => {
+    const invitations = [
+      { id: "inv-1", status: "pending", email: "a@test.com" },
+      { id: "inv-2", status: "pending", email: "b@test.com" },
+    ];
+    // checkOrgRole: where() terminal — user is member
+    mockWhere.mockResolvedValueOnce([{ role: "member" }]);
+    // invitation query: where() terminal
+    mockWhere.mockResolvedValueOnce(invitations);
+
+    const caller = appRouter.createCaller(userCtx);
+    const result = await caller.invitations.list({ organizationId: ORG_ID });
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      id: "inv-1",
+      inviteUrl: expect.stringContaining("/accept-invite?token=inv-1"),
+    });
+  });
+});
+
+// ── invitations.delete ───────────────────────────────────────────────────────
+
+describe("invitations.delete", () => {
+  it("requires admin/owner role", async () => {
+    // 1st where: fetch invitation to get its orgId → terminal
+    mockWhere.mockResolvedValueOnce([{ id: "inv-1", organizationId: ORG_ID }]);
+    // 2nd where: checkOrgRole — user is only a member → terminal
+    mockWhere.mockResolvedValueOnce([{ role: "member" }]);
+
+    const caller = appRouter.createCaller(userCtx);
+    await expect(
+      caller.invitations.delete({ invitationId: "inv-1" })
+    ).rejects.toThrow("FORBIDDEN");
+  });
+
+  it("succeeds for global admin", async () => {
+    // Global admin bypasses checkOrgRole
+    const caller = appRouter.createCaller(adminCtx);
+
+    // 1st where: fetch invitation → terminal
+    mockWhere.mockResolvedValueOnce([{ id: "inv-1", organizationId: ORG_ID }]);
+    // delete().where() → terminal
+    mockWhere.mockResolvedValueOnce(undefined);
+
+    await expect(
+      caller.invitations.delete({ invitationId: "inv-1" })
+    ).resolves.toBeUndefined();
+  });
+});
