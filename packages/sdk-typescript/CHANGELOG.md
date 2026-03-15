@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.6
+
+### Patch Changes
+
+- 0ed2239: Added timeouts and retries
+
 ## 0.0.5
 
 ### Patch Changes
