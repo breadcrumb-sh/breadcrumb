@@ -28,7 +28,7 @@
     "@opentelemetry/sdk-trace-node": "^1.26.0"
   },
   "devDependencies": {
-    "tsdown": "^0.9",
+    "tsdown": "^0.21.3",
     "typescript": "^5.7",
     "vitest": "^3"
   }
