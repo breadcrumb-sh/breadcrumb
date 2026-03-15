@@ -27,7 +27,31 @@ export interface InitOptions {
       };
 }
 
+// Track the active provider so we can clean up on re-init and avoid
+// accumulating process exit handlers.
+let activeProvider: NodeTracerProvider | null = null;
+let exitHandlerRegistered = false;
+
 export function init(options: InitOptions): Breadcrumb {
+  if (!options.apiKey) {
+    throw new Error("Breadcrumb SDK: apiKey is required");
+  }
+  if (!options.baseUrl) {
+    throw new Error("Breadcrumb SDK: baseUrl is required");
+  }
+
+  try {
+    new URL(options.baseUrl);
+  } catch {
+    throw new Error(`Breadcrumb SDK: baseUrl is not a valid URL: ${options.baseUrl}`);
+  }
+
+  // Shut down previous provider if init() is called multiple times
+  if (activeProvider) {
+    activeProvider.shutdown().catch(() => {});
+    activeProvider = null;
+  }
+
   const exporter = new BreadcrumbSpanExporter(
     options.apiKey,
     options.baseUrl,
@@ -47,10 +71,18 @@ export function init(options: InitOptions): Breadcrumb {
 
   const provider = new NodeTracerProvider({ spanProcessors: [processor] });
   provider.register();
+  activeProvider = provider;
 
-  process.once("beforeExit", async () => {
-    await provider.shutdown().catch(() => {});
-  });
+  // Register the exit handler only once across all init() calls
+  if (!exitHandlerRegistered) {
+    exitHandlerRegistered = true;
+    process.once("beforeExit", async () => {
+      if (activeProvider) {
+        await activeProvider.shutdown().catch(() => {});
+        activeProvider = null;
+      }
+    });
+  }
 
   const tracer = provider.getTracer("@breadcrumb-sdk/core");
 

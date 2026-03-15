@@ -15,6 +15,9 @@ const MAPPER_NAMESPACES = ["ai.", "gen_ai.", "breadcrumb.", "resource.name"];
 // These come from AI SDK / OTel conventions and are not user-meaningful.
 const GLOBAL_DROP = new Set(["operation.name"]);
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+const MAX_RETRIES = 1;
+
 function hrTimeToISO(hrTime: [number, number]): string {
   return new Date(hrTime[0] * 1000 + hrTime[1] / 1_000_000).toISOString();
 }
@@ -59,36 +62,40 @@ function passthroughMetadata(
 }
 
 export class BreadcrumbSpanExporter implements SpanExporter {
+  private inflight: Promise<void>[] = [];
+
   constructor(
     private readonly apiKey: string,
     private readonly baseUrl: string,
     private readonly environment?: string,
+    private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
   ) {}
 
   export(
     spans: ReadableSpan[],
     resultCallback: (result: ExportResult) => void,
   ): void {
-    this._export(spans).then(
+    const p = this._export(spans);
+    this.inflight.push(p);
+    p.finally(() => {
+      this.inflight = this.inflight.filter((x) => x !== p);
+    });
+    p.then(
       () => resultCallback({ code: ExportResultCode.SUCCESS }),
-      () => resultCallback({ code: ExportResultCode.SUCCESS }), // fail silently
+      () => resultCallback({ code: ExportResultCode.FAILED }),
     );
   }
 
   private async _export(spans: ReadableSpan[]): Promise<void> {
-    try {
-      const roots = spans.filter((s) => !s.parentSpanId);
-      const spanPayloads = spans.map((s) => this._mapSpan(s));
+    const roots = spans.filter((s) => !s.parentSpanId);
+    const spanPayloads = spans.map((s) => this._mapSpan(s));
 
-      const sends: Promise<void>[] = roots.map((s) => this._sendTrace(s));
-      if (spanPayloads.length > 0) {
-        sends.push(this._post("/v1/spans", spanPayloads));
-      }
-
-      await Promise.all(sends);
-    } catch {
-      // Fail silently
+    const sends: Promise<void>[] = roots.map((s) => this._sendTrace(s));
+    if (spanPayloads.length > 0) {
+      sends.push(this._post("/v1/spans", spanPayloads));
     }
+
+    await Promise.all(sends);
   }
 
   private _mapSpan(span: ReadableSpan) {
@@ -133,25 +140,38 @@ export class BreadcrumbSpanExporter implements SpanExporter {
   }
 
   private async _post(path: string, body: unknown): Promise<void> {
-    try {
-      await fetch(`${this.baseUrl}${path}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
-    } catch {
-      // Fail silently — backend unreachable
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+        try {
+          const res = await fetch(`${this.baseUrl}${path}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.apiKey}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+          if (res.ok) return;
+          // Server error — retry if we have attempts left
+          if (attempt < MAX_RETRIES) continue;
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        // Network error or timeout — retry if we have attempts left
+        if (attempt < MAX_RETRIES) continue;
+      }
     }
   }
 
   shutdown(): Promise<void> {
-    return Promise.resolve();
+    return this.forceFlush();
   }
 
   forceFlush(): Promise<void> {
-    return Promise.resolve();
+    return Promise.all(this.inflight).then(() => {});
   }
 }
