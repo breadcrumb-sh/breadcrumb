@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "build:site": "turbo run build --filter=marketing --filter=docs && cp -r apps/docs/out/. apps/marketing/dist/docs && cp -r apps/docs/out/docs/. apps/marketing/dist/docs",
+    "build:site": "turbo run build --filter=marketing --filter=docs && cp -r apps/docs/out/. apps/marketing/dist/docs && cp -r apps/docs/out/docs/. apps/marketing/dist/docs && rm -rf apps/marketing/dist/docs/docs",
     "dev": "docker compose -f infra/docker-compose.yml up -d && turbo run dev --filter=@breadcrumb/server --filter=@breadcrumb/web",
     "dev:packages": "turbo run dev --filter=./packages/*",
     "db:up": "docker compose -f infra/docker-compose.yml up -d",
