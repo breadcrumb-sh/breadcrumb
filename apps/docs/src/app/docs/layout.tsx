@@ -6,14 +6,14 @@ import { source } from "@/lib/source";
 export default function Layout({ children }: LayoutProps<"/docs">) {
   return (
     <>
-      <Banner id="beta-out-banner">
+      {/* <Banner id="beta-out-banner">
         <span className="inline-flex items-center gap-3">
           <span>The beta is out!</span>
           <a href="/" className="underline underline-offset-4">
             Learn more
           </a>
         </span>
-      </Banner>
+      </Banner> */}
       <DocsLayout tree={source.getPageTree()} {...baseOptions()}>
         {children}
       </DocsLayout>
