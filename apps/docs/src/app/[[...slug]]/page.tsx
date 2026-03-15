@@ -1,14 +1,25 @@
 import { getPageImage, source } from '@/lib/source';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getMDXComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
-export default async function Page(props: PageProps<'/docs/[...slug]'>) {
+const DOCS_INDEX_SLUG = ['introduction'];
+
+function getResolvedSlug(slug?: string[]) {
+  return slug?.length ? slug : DOCS_INDEX_SLUG;
+}
+
+export default async function Page(props: PageProps<'/[[...slug]]'>) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+  const slug = getResolvedSlug(params.slug);
+  const page = source.getPage(slug);
   if (!page) notFound();
+
+  if (!params.slug?.length) {
+    redirect(page.url);
+  }
 
   const MDX = page.data.body;
 
@@ -19,7 +30,6 @@ export default async function Page(props: PageProps<'/docs/[...slug]'>) {
       <DocsBody>
         <MDX
           components={getMDXComponents({
-            // this allows you to link to other pages with relative file paths
             a: createRelativeLink(source, page),
           })}
         />
@@ -32,9 +42,10 @@ export async function generateStaticParams() {
   return source.generateParams();
 }
 
-export async function generateMetadata(props: PageProps<'/docs/[...slug]'>): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<'/[[...slug]]'>): Promise<Metadata> {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+  const slug = getResolvedSlug(params.slug);
+  const page = source.getPage(slug);
   if (!page) notFound();
 
   return {
