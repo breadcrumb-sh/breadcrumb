@@ -6,7 +6,17 @@ description: Send your first trace to Breadcrumb.
 
 Visit the [hosting](/docs/setup/hosted) section to set up your breadcrumb instance to get ready to track your calls.
 
-## Install
+## Setup with your Coding Agent
+
+If you're using an AI coding agent like Claude Code or Codex, you can install the Breadcrumb skill to let your agent automatically instrument your project:
+
+```bash
+npx skills add https://github.com/joshuaKnauber/breadcrumb --skill breadcrumb-tracing
+```
+
+Then ask your agent to add tracing to your project - it knows the full SDK API and will handle the setup for you.
+
+## Manual Install
 
 <CodeBlockTabs groupId="sdk" defaultValue="ai-sdk" persist>
   <CodeBlockTabsList>
@@ -29,7 +39,7 @@ npm install @breadcrumb-sdk/core
   </CodeBlockTab>
 </CodeBlockTabs>
 
-## Setup
+### Setup
 
 Initialize the Breadcrumb client with your API key. You can get one from your [project settings](/docs/product/settings/api-keys) after [setting up](/docs/setup/hosted) your instance.
 
@@ -67,7 +77,7 @@ const bc = init({
   </CodeBlockTab>
 </CodeBlockTabs>
 
-## Start Tracing
+### Start Tracing
 
 <CodeBlockTabs groupId="sdk" defaultValue="ai-sdk" persist>
   <CodeBlockTabsList>
