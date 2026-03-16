@@ -4,9 +4,9 @@ import Link from "next/link";
 import { TimelineAnimation } from "./timeline-animation";
 
 export const metadata: Metadata = {
-  title: "Open Source LLM Tracing & Observability",
+  title: "Simple, Open-Source LLM Tracing",
   description:
-    "Breadcrumb is an open source, self-hosted LLM observability tool for TypeScript. Track every prompt, completion, token count, latency, and cost.",
+    "Like Plausible, but for your AI agents. Self-hostable, TypeScript-native LLM tracing - track every prompt, completion, token count, and cost.",
   openGraph: {
     images: "/opengraph-image",
   },
@@ -61,11 +61,11 @@ export default function Home() {
         <section className="border-b border-border">
           <div className="marketing-inner pb-14 pt-14 sm:pb-20 sm:pt-20">
             <h1 className="mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
-              Simple, self-hosted LLM observability for TypeScript
+              Simple, open-source LLM tracing
             </h1>
             <p className="mb-8 max-w-[430px] text-[14px] leading-[1.75] text-fg-2 sm:text-[15px]">
-              Prompts, completions, tokens, latency, cost - traced and logged for every
-              request. Open source, self-hostable, and built for TypeScript.
+              Like Plausible, but for your AI agents. Self-hostable, TypeScript-native,
+              and built to explore your traces, not just store them.
             </p>
             <div className="flex w-full gap-3 sm:w-auto">
               <Link
