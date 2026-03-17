@@ -1,5 +1,6 @@
 import { sandboxedClickhouse, readonlyClickhouse } from "../db/clickhouse.js";
 import { env } from "../../env.js";
+import { trackSlowClickhouseQuery } from "./telemetry.js";
 
 /**
  * Strip any SETTINGS clause from user/AI SQL to prevent overriding SQL_project_id.
@@ -43,7 +44,11 @@ function sanitizeSql(sql: string): string {
 export async function runSandboxedQuery(
   projectId: string,
   sql: string,
+  source = "explore",
 ): Promise<Record<string, unknown>[]> {
+  const start = performance.now();
+
+  let rows: Record<string, unknown>[];
   if (env.enableSandboxedQueries) {
     const result = await sandboxedClickhouse.query({
       query: sanitizeSql(sql),
@@ -51,15 +56,18 @@ export async function runSandboxedQuery(
       query_params: { projectId },
       format: "JSONEachRow",
     });
-    return (await result.json()) as Record<string, unknown>[];
+    rows = (await result.json()) as Record<string, unknown>[];
+  } else {
+    // Fallback: readonly client with projectId as a query parameter.
+    // No row-policy enforcement — relies on the SQL using {projectId: UUID}.
+    const result = await readonlyClickhouse.query({
+      query: sql,
+      query_params: { projectId },
+      format: "JSONEachRow",
+    });
+    rows = (await result.json()) as Record<string, unknown>[];
   }
 
-  // Fallback: readonly client with projectId as a query parameter.
-  // No row-policy enforcement — relies on the SQL using {projectId: UUID}.
-  const result = await readonlyClickhouse.query({
-    query: sql,
-    query_params: { projectId },
-    format: "JSONEachRow",
-  });
-  return (await result.json()) as Record<string, unknown>[];
+  trackSlowClickhouseQuery(source, performance.now() - start);
+  return rows;
 }

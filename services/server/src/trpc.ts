@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "./shared/db/postgres.js";
 import { member } from "./shared/db/schema.js";
 import { env } from "./env.js";
+import { trackSlowTrpcRequest, trackEvent } from "./shared/lib/telemetry.js";
 
 export type TRPCContext = {
   user: {
@@ -19,7 +20,24 @@ export type TRPCContext = {
 const t = initTRPC.context<TRPCContext>().create({ transformer: superjson });
 
 export const router = t.router;
-export const procedure = t.procedure;
+
+const EXPECTED_CODES = new Set(["UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "BAD_REQUEST", "CONFLICT"]);
+
+const timingMiddleware = t.middleware(async ({ path, next }) => {
+  const start = performance.now();
+  const result = await next();
+  const durationMs = performance.now() - start;
+  trackSlowTrpcRequest(path, durationMs, result.ok);
+  if (!result.ok) {
+    const code = result.error.code ?? "INTERNAL_SERVER_ERROR";
+    if (!EXPECTED_CODES.has(code)) {
+      trackEvent("server_error", { procedure: path, error_code: code });
+    }
+  }
+  return result;
+});
+
+export const procedure = t.procedure.use(timingMiddleware);
 
 export const authedProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });

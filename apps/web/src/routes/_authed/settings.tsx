@@ -7,6 +7,7 @@ import { Check } from "@phosphor-icons/react/Check";
 import { X } from "@phosphor-icons/react/X";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { usePageView } from "../../hooks/usePageView";
 import { trpc } from "../../lib/trpc";
 import { AppHeader } from "../../components/layout/AppHeader";
 
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/_authed/settings")({
 });
 
 function SettingsPage() {
+  usePageView("global_settings");
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <AppHeader />

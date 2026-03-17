@@ -12,6 +12,7 @@ import {
   subscribeGeneration,
 } from "../../services/explore/generation-manager.js";
 import { runGeneration } from "../../services/explore/generation.js";
+import { trackExploreMessageSent, trackExploreChartStarred } from "../../shared/lib/telemetry.js";
 
 export const exploresRouter = router({
   list: orgViewerProcedure
@@ -129,6 +130,7 @@ export const exploresRouter = router({
           legend: input.legend,
         })
         .returning();
+      trackExploreChartStarred();
       return starred;
     }),
 
@@ -209,6 +211,7 @@ export const exploresRouter = router({
       if (!input.prompt) return;
 
       // Otherwise kick off a new background generation
+      trackExploreMessageSent();
       runGeneration(input.exploreId, input.projectId, input.prompt);
 
       // Subscribe to its output

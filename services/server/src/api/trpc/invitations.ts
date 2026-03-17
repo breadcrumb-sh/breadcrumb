@@ -11,6 +11,7 @@ import {
 import { db } from "../../shared/db/postgres.js";
 import { invitation, member, user } from "../../shared/db/schema.js";
 import { env } from "../../env.js";
+import { trackMemberInvited } from "../../shared/lib/telemetry.js";
 
 export const invitationsRouter = router({
   create: orgAdminProcedure
@@ -78,6 +79,7 @@ export const invitationsRouter = router({
           inviterId: ctx.user.id,
         })
         .returning();
+      trackMemberInvited(input.role);
       return {
         ...inv,
         inviteUrl: `${env.appBaseUrl}/accept-invite?token=${inv.id}`,

@@ -4,6 +4,7 @@
   "pages": [
     "introduction",
     "railway",
-    "docker-compose"
+    "docker-compose",
+    "telemetry"
   ]
 }

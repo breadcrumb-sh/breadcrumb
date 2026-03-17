@@ -6,6 +6,7 @@ import { db } from "../../shared/db/postgres.js";
 import { organization, member } from "../../shared/db/schema.js";
 import { clickhouse } from "../../shared/db/clickhouse.js";
 import { env } from "../../env.js";
+import { trackProjectCreated } from "../../shared/lib/telemetry.js";
 
 export const projectsRouter = router({
   list: procedure.query(async ({ ctx }) => {
@@ -87,6 +88,7 @@ export const projectsRouter = router({
         role: "owner",
         createdAt: new Date(),
       });
+      void trackProjectCreated();
       return org;
     }),
 

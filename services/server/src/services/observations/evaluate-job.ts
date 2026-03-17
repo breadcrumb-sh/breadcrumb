@@ -9,6 +9,7 @@ import { getAiModel } from "../explore/ai-provider.js";
 import { CLICKHOUSE_SCHEMA } from "../explore/clickhouse-schema.js";
 import { invalidateObservationsCache } from "./cache.js";
 import { createLogger } from "../../shared/lib/logger.js";
+import { trackFindingCreated } from "../../shared/lib/telemetry.js";
 
 const log = createLogger("obs-job");
 
@@ -144,7 +145,7 @@ WORKFLOW:
         }),
         execute: async ({ sql }) => {
           try {
-            const rows = await runSandboxedQuery(projectId, sql);
+            const rows = await runSandboxedQuery(projectId, sql, "observation");
             const truncated = rows.slice(0, 100);
             return { success: true as const, rowCount: rows.length, data: JSON.stringify(truncated) };
           } catch (err) {
@@ -205,6 +206,7 @@ WORKFLOW:
               suggestion: input.suggestion ?? null,
             })
             .returning();
+          trackFindingCreated(input.impact);
           return { id: row.id, ...input };
         },
       }),

@@ -33,7 +33,7 @@ export function registerQueryTools(server: McpServer, userId: string) {
       }
 
       try {
-        const rows = await runSandboxedQuery(project_id, sql);
+        const rows = await runSandboxedQuery(project_id, sql, "mcp");
         const { data, note } = truncateResult(rows);
         const parts = [`rowCount: ${rows.length}`, note ? `note: ${note}` : null, data]
           .filter(Boolean)

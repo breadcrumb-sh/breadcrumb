@@ -11,6 +11,13 @@ import {
   integer,
 } from "drizzle-orm/pg-core";
 
+// ── Instance settings (KV) ───────────────────────────────────────────
+
+export const instanceSettings = pgTable("instance_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
 // ── Better Auth core tables ──────────────────────────────────────────
 
 export const user = pgTable("user", {

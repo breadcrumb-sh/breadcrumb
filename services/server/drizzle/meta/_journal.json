@@ -64,6 +64,13 @@
       "when": 1772920000000,
       "tag": "0008_observation_views",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773736158644,
+      "tag": "0009_careful_tigra",
+      "breakpoints": true
     }
   ]
 }

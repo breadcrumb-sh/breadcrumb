@@ -6,4 +6,7 @@ export const configRouter = router({
     enabled: env.allowPublicViewing,
     isDemo: env.isBreadcrumbDemo,
   })),
+  telemetry: procedure.query(() => ({
+    disabled: env.disableTelemetry,
+  })),
 });

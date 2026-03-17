@@ -6,6 +6,7 @@ import { runClickhouseMigrations, clickhouse, readonlyClickhouse, sandboxedClick
 import { traceBatcher, spanBatcher } from "./api/ingest/routes.js";
 import { env } from "./env.js";
 import { createLogger } from "./shared/lib/logger.js";
+import { initTelemetry, shutdownTelemetry, trackServerStarted } from "./shared/lib/telemetry.js";
 
 const log = createLogger("server");
 
@@ -21,6 +22,9 @@ async function main() {
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
 
+  await initTelemetry();
+  void trackServerStarted();
+
   serve({ fetch: app.fetch, port: env.port });
   log.info({ port: env.port }, "server listening");
 }
@@ -35,6 +39,7 @@ async function shutdown() {
   log.info("shutting down — flushing batchers");
   await Promise.all([traceBatcher.shutdown(), spanBatcher.shutdown()]);
   await boss.stop();
+  await shutdownTelemetry();
   await Promise.all([
     clickhouse.close(),
     readonlyClickhouse.close(),

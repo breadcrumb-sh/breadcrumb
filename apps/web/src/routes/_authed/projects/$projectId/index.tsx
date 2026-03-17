@@ -7,6 +7,7 @@ import {
   today,
 } from "../../../../components/common/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/common/MultiselectCombobox";
+import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
 import { ChartCard } from "../../../../components/overview/ChartCard";
@@ -35,6 +36,7 @@ type Metric = "traces" | "cost" | "errors";
 const EMPTY_STRINGS: string[] = [];
 
 function OverviewPage() {
+  usePageView("overview");
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const search = Route.useSearch();

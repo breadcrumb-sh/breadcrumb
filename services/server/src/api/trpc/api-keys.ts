@@ -15,6 +15,7 @@ import {
   hashApiKey,
   getKeyPrefix,
 } from "../../shared/lib/api-keys.js";
+import { trackApiKeyCreated } from "../../shared/lib/telemetry.js";
 
 export const apiKeysRouter = router({
   list: orgMemberProcedure
@@ -56,6 +57,7 @@ export const apiKeysRouter = router({
           createdAt: apiKeys.createdAt,
         });
 
+      trackApiKeyCreated();
       return { ...key, rawKey };
     }),
 

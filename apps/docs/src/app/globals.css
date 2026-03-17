@@ -206,7 +206,8 @@ pre,
 
 figure.shiki,
 [data-card],
-div:has(> [data-orientation]) {
+div:has(> [data-orientation]),
+.prose table {
   border-radius: 0 !important;
 }
 

@@ -9,6 +9,7 @@ import { InsightsSection } from "../../../../components/traces/InsightsSection";
 import { McpCallout } from "../../../../components/traces/McpCallout";
 import { ObservationsSection } from "../../../../components/traces/ObservationsSection";
 import { RawTracesSection } from "../../../../components/traces/RawTracesSection";
+import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 type Section = "overview" | "observations" | "raw";
@@ -50,6 +51,7 @@ const SIDEBAR_ITEMS: { id: Section; label: string; icon: React.ReactNode }[] = [
 ];
 
 function TracesPage() {
+  usePageView("traces");
   const navigate = Route.useNavigate();
   const { projectId } = Route.useParams();
   const { tab } = Route.useSearch();

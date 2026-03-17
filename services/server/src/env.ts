@@ -16,6 +16,7 @@ const envSchema = z.object({
   ALLOW_PUBLIC_VIEWING: z.string().default("false"),
   IS_BREADCRUMB_DEMO: z.string().default("false"),
   ENABLE_SANDBOXED_QUERIES: z.string().default("false"),
+  DISABLE_TELEMETRY: z.string().default("false"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -45,4 +46,5 @@ export const env = {
   allowPublicViewing: p.ALLOW_PUBLIC_VIEWING === "true",
   isBreadcrumbDemo: p.IS_BREADCRUMB_DEMO === "true",
   enableSandboxedQueries: p.ENABLE_SANDBOXED_QUERIES === "true",
+  disableTelemetry: p.DISABLE_TELEMETRY === "true",
 };

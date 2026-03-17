@@ -6,6 +6,7 @@ import { toMicroDollars, toJson, toChDate } from "../../services/ingest/helpers.
 import { boss } from "../../shared/lib/boss.js";
 import { getObservationsForProject } from "../../services/observations/cache.js";
 import { createLogger } from "../../shared/lib/logger.js";
+import { trackTraceIngested } from "../../shared/lib/telemetry.js";
 
 const log = createLogger("ingest");
 
@@ -53,6 +54,7 @@ ingestRoutes.post("/traces", async (c) => {
   }]);
 
   if (t.end_time) {
+    trackTraceIngested();
     void scheduleObservationJobs(projectId, t.id, t.name);
   }
 

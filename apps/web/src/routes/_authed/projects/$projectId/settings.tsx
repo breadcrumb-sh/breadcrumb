@@ -15,6 +15,7 @@ import { MembersSection } from "../../../../components/settings/MembersSection";
 import { ObservationsSection } from "../../../../components/settings/ObservationsSection";
 import { useRegisterSubMenu } from "../../../../components/layout/SubMenuContext";
 import { useAuth } from "../../../../hooks/useAuth";
+import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 type Section = "general" | "api-keys" | "members" | "ai" | "observations" | "danger";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
 });
 
 function SettingsPage() {
+  usePageView("settings");
   const { projectId } = Route.useParams();
   const { user, isAdmin: isGlobalAdmin } = useAuth();
 

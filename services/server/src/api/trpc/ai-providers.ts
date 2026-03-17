@@ -4,6 +4,7 @@ import { router, orgMemberProcedure, orgAdminProcedure } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { aiProviders } from "../../shared/db/schema.js";
 import { encrypt, maskApiKey } from "../../shared/lib/encryption.js";
+import { trackAiProviderConfigured } from "../../shared/lib/telemetry.js";
 
 const providerEnum = z.enum(["openai", "anthropic", "openrouter", "custom"]);
 
@@ -92,6 +93,7 @@ export const aiProvidersRouter = router({
           updatedAt: aiProviders.updatedAt,
         });
 
+      trackAiProviderConfigured(input.provider);
       return row;
     }),
 

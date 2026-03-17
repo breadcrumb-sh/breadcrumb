@@ -14,6 +14,7 @@ import { trpc } from "./lib/trpc";
 import { router } from "./router";
 import { ToastProvider } from "./components/common/Toasts";
 import { UserJotBridge } from "./components/layout/UserJotBridge";
+import { TelemetryProvider } from "./components/TelemetryProvider";
 
 function Root() {
   const [queryClient] = useState(
@@ -45,6 +46,7 @@ function Root() {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <UserJotBridge />
+          <TelemetryProvider />
           <RouterProvider router={router} />
         </ToastProvider>
       </QueryClientProvider>

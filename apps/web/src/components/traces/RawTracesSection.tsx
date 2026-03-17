@@ -5,6 +5,7 @@ import { SpinnerGap } from "@phosphor-icons/react/SpinnerGap";
 import { XCircle } from "@phosphor-icons/react/XCircle";
 import { keepPreviousData } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
+import { capture } from "../../lib/telemetry";
 import { useEffect, useRef, useState } from "react";
 import { DataTable, type Column, type SortState } from "../common/DataTable";
 import {
@@ -202,6 +203,9 @@ export function RawTracesSection() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
+    if (trimmed) {
+      capture("trace_search_used");
+    }
     navigate({
       search: (prev) => ({
         ...prev,

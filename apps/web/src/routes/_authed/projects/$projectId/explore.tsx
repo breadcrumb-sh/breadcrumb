@@ -8,6 +8,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { useAuth } from "../../../../hooks/useAuth";
+import { usePageView } from "../../../../hooks/usePageView";
+import { capture } from "../../../../lib/telemetry";
 import { trpc } from "../../../../lib/trpc";
 import { useRegisterSubMenuAction } from "../../../../components/layout/SubMenuContext";
 import { PartRenderer } from "../../../../components/explore/ChatParts";
@@ -76,6 +78,7 @@ function applyStreamEvent(event: StreamEvent, parts: DisplayPart[]) {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 function ExplorePage() {
+  usePageView("explore");
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const exploreId = Route.useSearch().id;
@@ -224,6 +227,7 @@ function ExplorePage() {
       try {
         const created = await createExplore.mutateAsync({ projectId });
         activeId = created.id;
+        capture("explore_created");
         navigate({ search: { id: activeId } });
       } catch {
         return;

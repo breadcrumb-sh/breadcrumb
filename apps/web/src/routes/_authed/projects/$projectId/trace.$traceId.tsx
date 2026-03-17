@@ -16,6 +16,7 @@ import { SpanRow } from "../../../../components/trace-detail/SpanRow";
 import { SpanDetail } from "../../../../components/trace-detail/SpanDetail";
 import { SpanMinimap } from "../../../../components/trace-detail/SpanMinimap";
 import { fmtMs } from "../../../../components/trace-detail/helpers";
+import { usePageView } from "../../../../hooks/usePageView";
 
 export const Route = createFileRoute(
   "/_authed/projects/$projectId/trace/$traceId",
@@ -56,6 +57,7 @@ function collapseTree(
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 function TraceDetailPage() {
+  usePageView("trace_detail");
   const { projectId, traceId } = Route.useParams();
   const router = useRouter();
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);

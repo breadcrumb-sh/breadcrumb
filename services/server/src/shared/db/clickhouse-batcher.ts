@@ -1,5 +1,6 @@
 import type { ClickHouseClient } from "@clickhouse/client";
 import { createLogger } from "../lib/logger.js";
+import { trackSlowIngestBatch } from "../lib/telemetry.js";
 
 const log = createLogger("batcher");
 
@@ -47,11 +48,13 @@ export class ClickHouseBatcher<T extends Record<string, unknown>> {
     this.buffer = [];
 
     try {
+      const start = performance.now();
       await this.client.insert({
         table: this.table,
         format: "JSONEachRow",
         values: batch,
       });
+      trackSlowIngestBatch(this.table, batch.length, performance.now() - start);
     } catch (err) {
       log.error({ err, table: this.table, rows: batch.length }, "flush failed, will retry");
       this.retryBatch = batch;

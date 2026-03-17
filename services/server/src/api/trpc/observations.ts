@@ -4,6 +4,7 @@ import { router, orgMemberProcedure, orgViewerProcedure } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { observations, observationFindings, observationViews } from "../../shared/db/schema.js";
 import { invalidateObservationsCache } from "../../services/observations/cache.js";
+import { trackObservationCreated, trackObservationToggled, trackFindingDismissed } from "../../shared/lib/telemetry.js";
 
 const IMPACT_ORDER = sql`CASE ${observationFindings.impact} WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END`;
 
@@ -43,6 +44,11 @@ export const observationsRouter = router({
         })
         .returning();
       invalidateObservationsCache(input.projectId);
+      trackObservationCreated({
+        sampling_rate: input.samplingRate,
+        has_heuristics: !!input.heuristics,
+        trace_filter_count: input.traceNames.length,
+      });
       return row;
     }),
 
@@ -60,6 +66,7 @@ export const observationsRouter = router({
         )
         .returning();
       invalidateObservationsCache(input.projectId);
+      trackObservationToggled(input.enabled);
       return row;
     }),
 
@@ -160,6 +167,7 @@ export const observationsRouter = router({
           ),
         )
         .returning();
+      if (row) trackFindingDismissed(row.impact);
       return row;
     }),
 

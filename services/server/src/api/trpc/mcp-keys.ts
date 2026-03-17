@@ -9,6 +9,7 @@ import {
   hashApiKey,
   getKeyPrefix,
 } from "../../shared/lib/api-keys.js";
+import { trackMcpKeyCreated } from "../../shared/lib/telemetry.js";
 
 export const mcpKeysRouter = router({
   list: authedProcedure.query(async ({ ctx }) => {
@@ -43,6 +44,7 @@ export const mcpKeysRouter = router({
           createdAt: mcpKeys.createdAt,
         });
 
+      trackMcpKeyCreated();
       return { ...key, rawKey };
     }),
 

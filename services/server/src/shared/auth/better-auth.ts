@@ -6,6 +6,7 @@ import { user as userTable } from "../db/schema.js";
 import { env } from "../../env.js";
 import { checkSignupAllowed } from "./signup-guard.js";
 import { createLogger } from "../lib/logger.js";
+import { trackUserSignedUp } from "../lib/telemetry.js";
 
 const log = createLogger("auth");
 
@@ -99,6 +100,7 @@ export const auth = betterAuth({
             },
             "user created",
           );
+          void trackUserSignedUp();
         },
       },
       update: {

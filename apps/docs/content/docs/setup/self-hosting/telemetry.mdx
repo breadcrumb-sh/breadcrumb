@@ -1,0 +1,65 @@
+---
+title: Telemetry
+description: What Breadcrumb collects, what it doesn't, and how to turn it off.
+---
+
+Breadcrumb collects anonymous telemetry to understand which features are used and where to focus development. This data contains no personal information, trace contents, or project details.
+
+Every event we track is listed on this page. If it's not here, we don't collect it.
+
+## What we collect
+
+### Server events
+
+| Event | Properties | Description |
+| ----- | ---------- | ----------- |
+| `server_started` | `node_version`, `user_count`, `project_count` | Sent once when the server boots. |
+| `user_signed_up` | `user_count` | A new user account was created. |
+| `project_created` | `project_count` | A new project was created. |
+| `trace_ingested` | - | A completed trace was received. |
+| `api_key_created` | - | An API key was generated. |
+| `mcp_key_created` | - | An MCP key was generated. |
+| `ai_provider_configured` | `provider` | An AI provider was connected. |
+| `observation_created` | `sampling_rate`, `has_heuristics`, `trace_filter_count` | An observation rule was created. |
+| `observation_toggled` | `enabled` | An observation rule was enabled or disabled. |
+| `finding_created` | `impact` | An observation run produced a finding. |
+| `finding_dismissed` | `impact` | A finding was dismissed. |
+| `explore_message_sent` | - | A message was sent in Explore. |
+| `explore_chart_starred` | - | A chart was starred in Explore. |
+| `member_invited` | `role` | A team member was invited. |
+| `mcp_tool_used` | `tool_name` | An MCP tool was called by an LLM client. |
+| `slow_trpc_request` | `procedure`, `duration_ms`, `ok` | A tRPC request took longer than 1 second. |
+| `slow_clickhouse_query` | `source`, `duration_ms` | A ClickHouse query took longer than 500ms. |
+| `slow_ingest_batch` | `table`, `row_count`, `duration_ms` | An ingest batch insert took longer than 500ms. |
+| `server_error` | `procedure`, `error_code` | An unexpected error occurred in a tRPC procedure. Expected errors (auth, not found, validation) are excluded. |
+
+### Frontend events
+
+All frontend events include a `theme` property (`dark` or `light`).
+
+| Event | Properties | Description |
+| ----- | ---------- | ----------- |
+| `app_loaded` | - | The dashboard was opened in a browser. |
+| `page_viewed` | `page_type` | A page was viewed. Only the generic type is sent (e.g. `traces`, `settings`) - never the URL. |
+| `trace_search_used` | - | A trace search was performed. |
+| `explore_created` | - | A new Explore session was started. |
+
+## What we never collect
+
+- Trace or span contents
+- Project names, API keys, or anything you type into Breadcrumb
+- IP addresses or geolocation
+- URLs, page paths, or referrer information
+- Personally identifiable information of any kind
+
+Each instance is identified by a random ID stored in the database. The browser uses an in-memory identifier that resets on every page load - no cookies or local storage are involved.
+
+## Opting out
+
+Add one environment variable to your server configuration:
+
+```bash
+DISABLE_TELEMETRY=true
+```
+
+This turns off telemetry completely. The server skips initialization and the dashboard never loads the telemetry client.

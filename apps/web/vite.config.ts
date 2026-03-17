@@ -19,6 +19,7 @@ export default defineConfig({
       "/api": "http://localhost:3100",
       "/v1": "http://localhost:3100",
       "/mcp": "http://localhost:3100",
+      "/ext": "http://localhost:3100",
     },
   },
 });

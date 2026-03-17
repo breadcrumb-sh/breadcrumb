@@ -125,6 +125,43 @@ app.all("/mcp", requireMcpKey, async (c) => {
   return transport.handleRequest(c);
 });
 
+// ── Telemetry proxy ─────────────────────────────────────────────────
+// Proxies frontend telemetry through our own domain so ad blockers
+// don't recognise the requests. Uses a non-obvious path prefix — common
+// names like /ingest, /analytics, /telemetry are on filter lists.
+const PH_API = "https://eu.i.posthog.com";
+const PH_ASSETS = "https://eu-assets.i.posthog.com";
+
+app.all("/ext/static/*", async (c) => {
+  const url = new URL(c.req.url);
+  const target = `${PH_ASSETS}${url.pathname.replace("/ext/static", "/static")}${url.search}`;
+  const resp = await fetch(target, {
+    method: c.req.method,
+    body: c.req.method === "GET" ? undefined : await c.req.arrayBuffer(),
+  });
+  return new Response(resp.body, {
+    status: resp.status,
+    headers: {
+      "Content-Type": resp.headers.get("content-type") ?? "application/javascript",
+      "Cache-Control": resp.headers.get("cache-control") ?? "public, max-age=86400",
+    },
+  });
+});
+
+app.all("/ext/*", async (c) => {
+  const url = new URL(c.req.url);
+  const target = `${PH_API}${url.pathname.replace("/ext", "")}${url.search}`;
+  const resp = await fetch(target, {
+    method: c.req.method,
+    headers: { "Content-Type": c.req.header("content-type") ?? "application/json" },
+    body: c.req.method === "GET" ? undefined : await c.req.arrayBuffer(),
+  });
+  return new Response(resp.body, {
+    status: resp.status,
+    headers: { "Content-Type": resp.headers.get("content-type") ?? "application/json" },
+  });
+});
+
 // ── SPA fallback (production) ───────────────────────────────────────────────
 if (env.nodeEnv === "production") {
   app.use("/*", serveStatic({ root: "./public" }));
