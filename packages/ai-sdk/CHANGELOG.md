@@ -1,5 +1,13 @@
 # @breadcrumb/ai-sdk
 
+## 0.0.5
+
+### Patch Changes
+
+- 842ee0b: Improve compatibility with other otel tools like sentry
+- Updated dependencies [842ee0b]
+  - @breadcrumb-sdk/core@0.0.7
+
 ## 0.0.4
 
 ### Patch Changes
