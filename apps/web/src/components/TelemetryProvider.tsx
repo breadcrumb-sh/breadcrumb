@@ -9,7 +9,7 @@ export function TelemetryProvider() {
   useEffect(() => {
     if (data && !initialized.current) {
       initialized.current = true;
-      initPostHog(data.disabled);
+      initPostHog(data.disabled, data.instanceId);
       capture("app_loaded");
     }
   }, [data]);

@@ -8,7 +8,7 @@ function getTheme(): "dark" | "light" {
   return document.documentElement.classList.contains("light") ? "light" : "dark";
 }
 
-export function initPostHog(disabled: boolean) {
+export function initPostHog(disabled: boolean, instanceId?: string | null) {
   if (disabled) return;
 
   posthog.init(POSTHOG_KEY, {
@@ -28,6 +28,10 @@ export function initPostHog(disabled: boolean) {
       "$referring_domain",
     ],
   });
+
+  if (instanceId) {
+    posthog.identify(instanceId);
+  }
 
   enabled = true;
 }

@@ -49,6 +49,10 @@ export async function initTelemetry() {
   }
 }
 
+export function getInstanceId(): string | null {
+  return instanceId;
+}
+
 export function trackEvent(
   event: string,
   properties?: Record<string, unknown>,
