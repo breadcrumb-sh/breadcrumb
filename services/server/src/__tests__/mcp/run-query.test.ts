@@ -155,7 +155,8 @@ describe("run_query tool", () => {
 
     expect(mockRunSandboxedQuery).toHaveBeenCalledWith(
       "project-1",
-      "SELECT count(*) as count"
+      "SELECT count(*) as count",
+      "mcp"
     );
   });
 
