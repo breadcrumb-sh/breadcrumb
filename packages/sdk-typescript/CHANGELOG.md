@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.7
+
+### Patch Changes
+
+- 842ee0b: Improve compatibility with other otel tools like sentry
+
 ## 0.0.6
 
 ### Patch Changes
