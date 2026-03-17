@@ -4,6 +4,7 @@ import { Eye } from "@phosphor-icons/react/Eye";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "../../hooks/useAuth";
 import { trpc } from "../../lib/trpc";
 
 const backdropCls =
@@ -30,8 +31,11 @@ const IMPACT_STYLES = {
 
 export function ObservationsSection() {
   const { projectId } = routeApi.useParams();
+  const { authenticated } = useAuth();
   const utils = trpc.useUtils();
-  const aiProvider = trpc.aiProviders.get.useQuery({ projectId });
+  const aiProvider = trpc.aiProviders.get.useQuery({ projectId }, {
+    enabled: authenticated,
+  });
   const findings = trpc.observations["findings.listAll"].useQuery({ projectId });
   const markViewed = trpc.observations.markViewed.useMutation({
     onSuccess: () => utils.observations.unreadCount.invalidate({ projectId }),
@@ -42,10 +46,11 @@ export function ObservationsSection() {
 
   const markedRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!authenticated) return;
     if (markedRef.current === projectId) return;
     markedRef.current = projectId;
     markViewed.mutate({ projectId });
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectId, authenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (aiProvider.isLoading || findings.isLoading) {
     return (

@@ -1,18 +1,22 @@
 import { X } from "@phosphor-icons/react/X";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
 import { trpc } from "../../lib/trpc";
 
 const DISMISS_KEY = "breadcrumb_mcp_callout_dismissed";
 
 export function McpCallout() {
+  const { authenticated } = useAuth();
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISS_KEY) === "true",
   );
-  const mcpKeys = trpc.mcpKeys.list.useQuery();
+  const mcpKeys = trpc.mcpKeys.list.useQuery(undefined, {
+    enabled: authenticated,
+  });
 
-  // Wait for data — avoid a flash of the callout when keys already exist
-  if (dismissed || !mcpKeys.data || mcpKeys.data.length > 0) return null;
+  // Hide for unauthenticated users or when dismissed/keys exist
+  if (!authenticated || dismissed || !mcpKeys.data || mcpKeys.data.length > 0) return null;
 
   function dismiss() {
     localStorage.setItem(DISMISS_KEY, "true");

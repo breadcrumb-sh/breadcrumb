@@ -79,10 +79,12 @@ function ExplorePage() {
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const exploreId = Route.useSearch().id;
-  const { isViewer } = useAuth();
+  const { isViewer, authenticated } = useAuth();
 
   const utils = trpc.useUtils();
-  const aiProvider = trpc.aiProviders.get.useQuery({ projectId });
+  const aiProvider = trpc.aiProviders.get.useQuery({ projectId }, {
+    enabled: authenticated,
+  });
   const explores = trpc.explores.list.useQuery({ projectId });
   const currentExplore = trpc.explores.get.useQuery(
     { id: exploreId! },
