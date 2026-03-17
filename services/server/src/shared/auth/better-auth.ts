@@ -18,6 +18,14 @@ export const auth = betterAuth({
       ? ["http://localhost:3000", "http://localhost:5173"]
       : []),
   ],
+  advanced: {
+    // Behind a TLS-terminating reverse proxy (e.g. Railway) the raw request
+    // is HTTP. These two settings fix the resulting CSRF / cookie issues:
+    // 1. useSecureCookies — force Secure flag so cookies work over HTTPS
+    // 2. useSecureCookies also tells Better Auth the real protocol is HTTPS,
+    //    preventing Origin (https://) vs request-URL (http://) CSRF mismatches
+    ...(env.nodeEnv === "production" && { useSecureCookies: true }),
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
