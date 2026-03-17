@@ -66,3 +66,7 @@ Each `generateText` call appears as a nested span inside the parent trace.
 ## Tools and agents
 
 Tool calls and multi-step agent loops are traced automatically. Each tool invocation appears as a nested span inside the trace.
+
+## Using with Sentry, Langfuse, or other OTel tools
+
+Breadcrumb works alongside other OpenTelemetry tools without configuration. See the [compatibility guide](/docs/sdks/ai-sdk/compatibility) for details on shared providers and custom tracers.

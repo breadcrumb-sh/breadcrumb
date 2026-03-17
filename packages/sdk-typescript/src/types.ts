@@ -44,4 +44,6 @@ export interface Breadcrumb {
     fn: (span: BreadcrumbSpan) => Promise<T>,
     options?: SpanOptions,
   ): Promise<T>;
+  /** @internal — used by @breadcrumb-sdk/ai-sdk to get a tracer */
+  __provider: import("@opentelemetry/sdk-trace-node").NodeTracerProvider;
 }

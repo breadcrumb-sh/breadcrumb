@@ -1,11 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { initAiSdk } from "../index.js";
 import type { Breadcrumb } from "@breadcrumb-sdk/core";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+
+const mockProvider = new NodeTracerProvider();
 
 // A structural mock — we only care that initAiSdk accepts a Breadcrumb
 const mockBc = {
   trace: vi.fn(),
   span: vi.fn(),
+  __provider: mockProvider,
 } satisfies Breadcrumb;
 
 describe("initAiSdk()", () => {
@@ -47,6 +51,19 @@ describe("initAiSdk()", () => {
       expect(a).not.toBe(b);
       expect((a.metadata as { x: number }).x).toBe(1);
       expect((b.metadata as { x: number }).x).toBe(2);
+    });
+
+    it("includes tracer from the Breadcrumb provider", () => {
+      const { telemetry } = initAiSdk(mockBc);
+      const config = telemetry("fn");
+      expect(config.tracer).toBeDefined();
+    });
+
+    it("accepts a custom tracer override", () => {
+      const customTracer = mockProvider.getTracer("custom");
+      const { telemetry } = initAiSdk(mockBc, { tracer: customTracer });
+      const config = telemetry("fn");
+      expect(config.tracer).toBe(customTracer);
     });
   });
 });

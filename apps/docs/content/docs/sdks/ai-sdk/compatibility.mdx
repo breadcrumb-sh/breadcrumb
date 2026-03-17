@@ -1,0 +1,73 @@
+---
+title: OTel Compatibility
+description: Using Breadcrumb alongside Sentry, Datadog, Langfuse, and other OpenTelemetry tools.
+---
+
+Breadcrumb uses OpenTelemetry under the hood but never registers as the global provider. This means it works alongside Sentry, Datadog, and other OTel-based tools out of the box - no configuration needed.
+
+## Default setup
+
+If you followed the [installation](/docs/sdks/ai-sdk) guide, you're already set. Breadcrumb and Sentry (or any other OTel tool) run in parallel without interfering with each other.
+
+```ts
+import * as Sentry from "@sentry/node";
+import { init } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
+
+// Sentry works as usual
+Sentry.init({ dsn: process.env.SENTRY_DSN });
+
+// Breadcrumb works alongside it - no conflicts
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+});
+const { telemetry } = initAiSdk(bc);
+```
+
+Sentry traces HTTP requests. Breadcrumb traces LLM calls. Neither tool sees the other's spans.
+
+## Shared provider with Langfuse
+
+If you're migrating from Langfuse and want to run both tools during the transition, use `createBreadcrumbSpanProcessor` to add Breadcrumb to a shared OpenTelemetry provider.
+
+```ts
+import { createBreadcrumbSpanProcessor } from "@breadcrumb-sdk/core";
+import { initAiSdk } from "@breadcrumb-sdk/ai-sdk";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+
+// Create a shared provider with both processors
+const provider = new NodeTracerProvider({
+  spanProcessors: [
+    createBreadcrumbSpanProcessor({
+      apiKey: process.env.BREADCRUMB_API_KEY!,
+      baseUrl: process.env.BREADCRUMB_BASE_URL!,
+    }),
+    new LangfuseSpanProcessor(),
+  ],
+});
+
+// Pass the shared tracer to initAiSdk
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+});
+const { telemetry } = initAiSdk(bc, {
+  tracer: provider.getTracer("ai"),
+});
+```
+
+Every AI SDK span flows to both Breadcrumb and Langfuse. Remove the Langfuse processor when you're done migrating.
+
+## Custom tracer
+
+For full control over which OTel provider handles AI SDK spans, pass a custom `tracer` to `initAiSdk`:
+
+```ts
+const { telemetry } = initAiSdk(bc, {
+  tracer: yourProvider.getTracer("ai"),
+});
+```
+
+This overrides the default tracer. Breadcrumb's manual `bc.trace()` and `bc.span()` continue to work independently regardless of which tracer the AI SDK uses.

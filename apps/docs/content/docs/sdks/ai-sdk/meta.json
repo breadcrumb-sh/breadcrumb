@@ -2,6 +2,7 @@
   "title": "AI SDK",
   "collapsible": true,
   "pages": [
-    "index"
+    "index",
+    "compatibility"
   ]
 }

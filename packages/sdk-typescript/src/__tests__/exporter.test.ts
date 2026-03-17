@@ -152,11 +152,14 @@ describe("BreadcrumbSpanExporter", () => {
 
   describe("child span (has parent)", () => {
     it("does NOT post to /v1/traces", async () => {
+      // Register the parent so the exporter recognises it as our own span
+      exporter.tracker.add(PARENT_ID);
       await exportSpans(exporter, [makeSpan({ parentSpanId: PARENT_ID })]);
       expect(getTracesBody(fetchMock)).toBeUndefined();
     });
 
     it("posts to /v1/spans with parent_span_id set", async () => {
+      exporter.tracker.add(PARENT_ID);
       await exportSpans(exporter, [makeSpan({ spanId: SPAN_ID, parentSpanId: PARENT_ID })]);
       const [span] = getSpansBody(fetchMock);
       expect(span.parent_span_id).toBe(PARENT_ID);

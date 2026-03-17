@@ -22,10 +22,13 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@breadcrumb-sdk/core": "*"
+    "@breadcrumb-sdk/core": "*",
+    "@opentelemetry/api": "^1.9.0"
   },
   "devDependencies": {
     "@breadcrumb-sdk/core": "*",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-trace-node": "^1.30.1",
     "tsdown": "^0.21.3",
     "typescript": "^5.7",
     "vitest": "^3"

@@ -61,15 +61,51 @@ function passthroughMetadata(
   return { ...extra, ...existing }; // existing (breadcrumb) still wins
 }
 
+const KNOWN_SPANS_CAP = 10_000;
+
+/**
+ * Tracks span IDs we've seen so we can detect cross-provider parents.
+ * When a span's parentSpanId isn't in this set, the parent is from a foreign
+ * provider (e.g. Sentry) and we treat the span as a trace root.
+ *
+ * Shared between the exporter and any code that needs to register IDs
+ * early (e.g. on span start, before export).
+ */
+export class SpanIdTracker {
+  private ids = new Set<string>();
+
+  add(spanId: string) {
+    if (this.ids.size >= KNOWN_SPANS_CAP) {
+      // Drop oldest half (Set iterates in insertion order)
+      const keep = new Set<string>();
+      let i = 0;
+      const half = KNOWN_SPANS_CAP / 2;
+      for (const v of this.ids) {
+        if (i++ >= half) keep.add(v);
+      }
+      this.ids = keep;
+    }
+    this.ids.add(spanId);
+  }
+
+  has(spanId: string): boolean {
+    return this.ids.has(spanId);
+  }
+}
+
 export class BreadcrumbSpanExporter implements SpanExporter {
   private inflight: Promise<void>[] = [];
+  readonly tracker: SpanIdTracker;
 
   constructor(
     private readonly apiKey: string,
     private readonly baseUrl: string,
     private readonly environment?: string,
     private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
-  ) {}
+    tracker?: SpanIdTracker,
+  ) {
+    this.tracker = tracker ?? new SpanIdTracker();
+  }
 
   export(
     spans: ReadableSpan[],
@@ -86,8 +122,23 @@ export class BreadcrumbSpanExporter implements SpanExporter {
     );
   }
 
+  private isOwnSpan(parentSpanId: string | undefined): boolean {
+    return !!parentSpanId && this.tracker.has(parentSpanId);
+  }
+
   private async _export(spans: ReadableSpan[]): Promise<void> {
-    const roots = spans.filter((s) => !s.parentSpanId);
+    // Register span IDs (may already be registered via onStart, but
+    // this ensures coverage for spans from external providers using
+    // createBreadcrumbSpanProcessor without the tracking wrapper).
+    for (const s of spans) {
+      this.tracker.add(s.spanContext().spanId);
+    }
+
+    // A span is a trace root if it has no parent or its parent is from a
+    // foreign provider (not in our known set).
+    const roots = spans.filter(
+      (s) => !s.parentSpanId || !this.isOwnSpan(s.parentSpanId),
+    );
     const spanPayloads = spans.map((s) => this._mapSpan(s));
 
     const sends: Promise<void>[] = roots.map((s) => this._sendTrace(s));
@@ -103,10 +154,16 @@ export class BreadcrumbSpanExporter implements SpanExporter {
     const mapped = mergeMappers(span);
     const metadata = passthroughMetadata(span, mapped.metadata);
 
+    // Only include parent_span_id if the parent is one of our own spans.
+    // Foreign parents (e.g. from Sentry) are stripped to avoid orphaned references.
+    const parentSpanId = this.isOwnSpan(span.parentSpanId)
+      ? span.parentSpanId
+      : undefined;
+
     return {
       id: ctx.spanId,
       trace_id: ctx.traceId,
-      parent_span_id: span.parentSpanId || undefined,
+      parent_span_id: parentSpanId,
       name: mapped.name ?? span.name,
       type: mapped.type ?? "custom",
       start_time: hrTimeToISO(span.startTime),
