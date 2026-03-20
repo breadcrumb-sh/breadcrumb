@@ -1,4 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("../../shared/lib/logger.js", () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
+vi.mock("../../shared/lib/telemetry.js", () => ({
+  trackSlowIngestBatch: vi.fn(),
+}));
+
 import { ClickHouseBatcher } from "../../shared/db/clickhouse-batcher.js";
 
 type Row = { id: number };

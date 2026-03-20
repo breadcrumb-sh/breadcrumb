@@ -13,6 +13,14 @@ vi.mock("../shared/db/postgres.js", () => ({
   },
 }));
 
+vi.mock("../env.js", () => ({
+  env: {
+    nodeEnv: "test",
+    allowPublicViewing: false,
+    disableTelemetry: true,
+  },
+}));
+
 const { checkOrgRole } = await import("../trpc.js");
 
 beforeEach(() => {

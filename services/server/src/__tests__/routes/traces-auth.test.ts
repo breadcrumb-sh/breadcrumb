@@ -9,7 +9,6 @@ const mockChQuery = vi.fn().mockResolvedValue({
 vi.mock("../../shared/db/clickhouse.js", () => ({
   clickhouse: { query: mockChQuery, insert: vi.fn() },
   readonlyClickhouse: { query: mockChQuery },
-  sandboxedClickhouse: { query: mockChQuery },
 }));
 
 vi.mock("../../shared/db/postgres.js", () => {

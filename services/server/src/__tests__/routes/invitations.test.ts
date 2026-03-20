@@ -36,7 +36,6 @@ vi.mock("../../shared/db/postgres.js", () => {
 vi.mock("../../shared/db/clickhouse.js", () => ({
   clickhouse: { query: vi.fn(), insert: vi.fn(), command: vi.fn() },
   readonlyClickhouse: { query: vi.fn() },
-  sandboxedClickhouse: { query: vi.fn() },
 }));
 
 const mockEnv = {

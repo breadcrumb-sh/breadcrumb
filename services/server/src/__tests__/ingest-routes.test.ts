@@ -7,6 +7,28 @@ vi.mock("../shared/db/clickhouse.js", () => ({
   clickhouse: { insert: mockInsert },
 }));
 
+vi.mock("../shared/lib/logger.js", () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
+vi.mock("../shared/lib/telemetry.js", () => ({
+  trackTraceIngested: vi.fn(),
+  trackSlowIngestBatch: vi.fn(),
+}));
+
+vi.mock("../shared/lib/boss.js", () => ({
+  boss: { send: vi.fn().mockResolvedValue(undefined) },
+}));
+
+vi.mock("../services/observations/cache.js", () => ({
+  getObservationsForProject: vi.fn().mockResolvedValue([]),
+}));
+
 // Import routes after mocking their dependency.
 const { ingestRoutes, traceBatcher, spanBatcher } = await import("../api/ingest/routes.js");
 
@@ -150,6 +172,32 @@ describe("POST /traces", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when trace input is too large", async () => {
+    const app = buildApp();
+    const res = await app.request("/traces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_TRACE_START,
+        input: "x".repeat(70_000),
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 413 when the trace request body is too large", async () => {
+    const app = buildApp();
+    const res = await app.request("/traces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...VALID_TRACE_START,
+        input: "x".repeat(1_200_000),
+      }),
+    });
+    expect(res.status).toBe(413);
+  });
 });
 
 // ── POST /spans ────────────────────────────────────────────────────────────────
@@ -209,6 +257,20 @@ describe("POST /spans", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: "bad", type: "unknown-type" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when too many spans are sent in one request", async () => {
+    const app = buildApp();
+    const spans = Array.from({ length: 101 }, (_, i) => ({
+      ...VALID_SPAN,
+      id: i.toString(16).padStart(16, "0"),
+    }));
+    const res = await app.request("/spans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(spans),
     });
     expect(res.status).toBe(400);
   });

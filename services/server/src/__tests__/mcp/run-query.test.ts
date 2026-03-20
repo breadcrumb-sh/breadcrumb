@@ -27,7 +27,6 @@ vi.mock("../../shared/db/postgres.js", () => {
 vi.mock("../../shared/db/clickhouse.js", () => ({
   clickhouse: { query: vi.fn() },
   readonlyClickhouse: { query: vi.fn() },
-  sandboxedClickhouse: { query: vi.fn() },
 }));
 
 vi.mock("../../env.js", () => ({
@@ -35,6 +34,11 @@ vi.mock("../../env.js", () => ({
     allowPublicViewing: false,
     encryptionKey: "a".repeat(64),
   },
+}));
+
+vi.mock("../../services/traces/helpers.js", () => ({
+  getProjectTimezone: vi.fn().mockResolvedValue("UTC"),
+  ROLLUPS_SUBQUERY: vi.fn().mockReturnValue("SELECT 1"),
 }));
 
 const { getUserProjectIds, truncateResult } = await import("../../api/mcp/helpers.js");
@@ -156,7 +160,8 @@ describe("run_query tool", () => {
     expect(mockRunSandboxedQuery).toHaveBeenCalledWith(
       "project-1",
       "SELECT count(*) as count",
-      "mcp"
+      "mcp",
+      { tz: "UTC" },
     );
   });
 

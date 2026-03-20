@@ -1,73 +1,80 @@
-import { sandboxedClickhouse, readonlyClickhouse } from "../db/clickhouse.js";
-import { env } from "../../env.js";
-import { trackSlowClickhouseQuery } from "./telemetry.js";
+import { readonlyClickhouse } from "../db/clickhouse.js";
+import {
+  validateAndRewriteQuery,
+  QueryValidationError,
+} from "./query-validator.js";
+import { trackSlowClickhouseQuery, trackQueryRejected } from "./telemetry.js";
+import { createLogger } from "./logger.js";
 
-/**
- * Strip any SETTINGS clause from user/AI SQL to prevent overriding SQL_project_id.
- *
- * ClickHouse SETTINGS is always the last clause in a statement. We find the last
- * occurrence of the SETTINGS keyword that isn't inside a string literal and remove
- * everything from that point onward.
- */
-function sanitizeSql(sql: string): string {
-  const upper = sql.toUpperCase();
-  let inSingle = false;
-  let inDouble = false;
-  let lastSettings = -1;
+const log = createLogger("sandboxed-query");
 
-  for (let i = 0; i < sql.length; i++) {
-    const ch = sql[i];
-    if (ch === "'" && !inDouble) inSingle = !inSingle;
-    else if (ch === '"' && !inSingle) inDouble = !inDouble;
-    else if (!inSingle && !inDouble && upper.startsWith("SETTINGS", i)) {
-      const before = i === 0 || /\s/.test(sql[i - 1]);
-      const after = i + 8 >= sql.length || /\s/.test(sql[i + 8]);
-      if (before && after) lastSettings = i;
-    }
-  }
+export { QueryValidationError };
 
-  if (lastSettings === -1) return sql;
-  return sql.slice(0, lastSettings).trim();
+/** ClickHouse resource limits for sandboxed queries.
+ *  Type notes: Seconds = number, UInt64 = string, OverflowMode = 'throw'|'break' */
+const SANDBOXED_QUERY_SETTINGS = {
+  /** Kill query after 30 seconds (Seconds = number) */
+  max_execution_time: 30,
+  /** Return at most 10 000 rows (UInt64 = string) */
+  max_result_rows: "10000",
+  /** Throw if result exceeds max_result_rows */
+  result_overflow_mode: "throw" as const,
+  /** Cap the serialized result payload to 1 MiB (UInt64 = string) */
+  max_result_bytes: "1048576",
+  /** Scan at most 1 million rows from tables (UInt64 = string) */
+  max_rows_to_read: "1000000",
+  /** Scan at most 25 MiB from storage (UInt64 = string) */
+  max_bytes_to_read: "25000000",
+  /** Cap per-query memory to 500 MB (UInt64 = string) */
+  max_memory_usage: "500000000",
+};
+
+export { SANDBOXED_QUERY_SETTINGS };
+
+interface RunSandboxedQueryOptions {
+  abortSignal?: AbortSignal;
 }
 
 /**
  * Execute a SQL query with project isolation.
  *
- * When ENABLE_SANDBOXED_QUERIES=true, runs on the `ai_query` user with row policies
- * that enforce project isolation at the DB level. The SQL_project_id setting is
- * injected per-query, and SETTINGS clauses are stripped to prevent overrides.
- *
- * When sandboxing is disabled (default), falls back to the readonly client with
- * the projectId available as a query parameter. The SQL itself must use
- * {projectId: UUID} for filtering — there is no DB-level enforcement.
+ * Every query is parsed into an AST, validated against allowlists (tables,
+ * functions, statement types), and rewritten to inject project_id filters on
+ * every table reference. The validated SQL is then executed via the readonly
+ * ClickHouse client.
  */
 export async function runSandboxedQuery(
   projectId: string,
   sql: string,
   source = "explore",
   extraParams?: Record<string, unknown>,
+  options?: RunSandboxedQueryOptions,
 ): Promise<Record<string, unknown>[]> {
   const start = performance.now();
 
-  let rows: Record<string, unknown>[];
-  if (env.enableSandboxedQueries) {
-    const result = await sandboxedClickhouse.query({
-      query: sanitizeSql(sql),
-      clickhouse_settings: { SQL_project_id: projectId },
-      query_params: { projectId, ...extraParams },
-      format: "JSONEachRow",
-    });
-    rows = (await result.json()) as Record<string, unknown>[];
-  } else {
-    // Fallback: readonly client with projectId as a query parameter.
-    // No row-policy enforcement — relies on the SQL using {projectId: UUID}.
-    const result = await readonlyClickhouse.query({
-      query: sql,
-      query_params: { projectId, ...extraParams },
-      format: "JSONEachRow",
-    });
-    rows = (await result.json()) as Record<string, unknown>[];
+  let validatedSql: string;
+  try {
+    validatedSql = validateAndRewriteQuery(sql, projectId);
+  } catch (err) {
+    if (err instanceof QueryValidationError) {
+      trackQueryRejected(source, err.code, err.details);
+      log.warn(
+        { source, code: err.code, details: err.details },
+        "query rejected",
+      );
+    }
+    throw err;
   }
+
+  const result = await readonlyClickhouse.query({
+    query: validatedSql,
+    // projectId MUST come last so extraParams can never override it
+    query_params: { ...extraParams, projectId },
+    format: "JSONEachRow",
+    clickhouse_settings: SANDBOXED_QUERY_SETTINGS,
+    abort_signal: options?.abortSignal,
+  });
+  const rows = (await result.json()) as Record<string, unknown>[];
 
   trackSlowClickhouseQuery(source, performance.now() - start);
   return rows;

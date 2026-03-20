@@ -25,13 +25,15 @@ export const clickhouse = createClient({
   },
 });
 
-// Read-only client for all SELECT queries. ClickHouse enforces readonly=1 at
-// the server level — no DDL, no DML, no INSERT can slip through regardless of
-// what SQL is passed. Use this everywhere user-supplied or AI-generated queries run.
+// Read-only client for all SELECT queries. ClickHouse enforces readonly at
+// the session level — no DDL, no DML, no INSERT can slip through regardless of
+// what SQL is passed. readonly=2 (vs 1) allows per-query setting overrides
+// (e.g. max_execution_time, max_result_rows) which we use for resource limits
+// on sandboxed queries, while still blocking all writes.
 export const readonlyClickhouse = createClient({
   url: env.clickhouseUrl,
-  username: env.clickhouseUser,
-  password: env.clickhousePassword,
+  username: env.clickhouseReadonlyUser ?? env.clickhouseUser,
+  password: env.clickhouseReadonlyPassword ?? env.clickhousePassword,
   database: env.clickhouseDb,
   application: "breadcrumb-server-ro",
   max_open_connections: 20,
@@ -45,32 +47,7 @@ export const readonlyClickhouse = createClient({
     idle_socket_ttl: 2500,
   },
   clickhouse_settings: {
-    readonly: "1",
-  },
-});
-
-// Sandboxed client for AI-generated and user-supplied SQL queries.
-// Connects as the `ai_query` user which has:
-//   - Row policies enforcing project isolation via SQL_project_id setting
-//   - readonly=2 (settings changes allowed, writes blocked)
-//   - Resource limits (max_execution_time, max_rows_to_read, etc.)
-//   - SELECT only on breadcrumb.{traces,spans,trace_rollups}
-// Use runSandboxedQuery() from lib/sandboxed-query.ts instead of calling directly.
-export const sandboxedClickhouse = createClient({
-  url: env.clickhouseUrl,
-  username: "ai_query",
-  password: env.clickhouseAiQueryPassword,
-  database: env.clickhouseDb,
-  application: "breadcrumb-server-sandbox",
-  max_open_connections: 20,
-  request_timeout: 15_000,
-  compression: {
-    response: true,
-    request: true,
-  },
-  keep_alive: {
-    enabled: true,
-    idle_socket_ttl: 2500,
+    readonly: "2",
   },
 });
 
@@ -176,17 +153,6 @@ export async function runClickhouseMigrations() {
     const version = parseInt(file.split("_")[0], 10);
     if (isNaN(version)) continue;
     if (version <= appliedVersion) continue;
-
-    // Skip the sandboxed user migration when sandboxing is disabled.
-    // It requires CREATE USER privileges not available on all providers.
-    if (file.includes("sandboxed_user") && !env.enableSandboxedQueries) {
-      log.info({ file }, "skipping migration (sandboxed queries disabled)");
-      // Still record as applied so it doesn't retry on next startup
-      await clickhouse.command({
-        query: `INSERT INTO breadcrumb.schema_migrations (version, name) VALUES (${version}, '${file}')`,
-      });
-      continue;
-    }
 
     log.info({ file }, "applying clickhouse migration");
     const sql = await readFile(join(dir, file), "utf-8");

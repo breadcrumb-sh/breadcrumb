@@ -47,7 +47,6 @@ const mockCommand = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../shared/db/clickhouse.js", () => ({
   clickhouse: { query: vi.fn(), insert: vi.fn(), command: mockCommand },
   readonlyClickhouse: { query: vi.fn() },
-  sandboxedClickhouse: { query: vi.fn() },
 }));
 
 const mockEnv = {

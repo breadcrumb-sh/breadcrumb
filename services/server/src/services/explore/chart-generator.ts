@@ -123,7 +123,7 @@ export function streamChartGeneration({
               tz,
               now,
               days: 30,
-            });
+            }, { abortSignal });
             return {
               success: true as const,
               rowCount: rows.length,
@@ -181,7 +181,7 @@ export function streamChartGeneration({
               tz,
               now,
               days: defaultDays,
-            });
+            }, { abortSignal });
             const spec: ChartSpec = {
               title,
               chartType,

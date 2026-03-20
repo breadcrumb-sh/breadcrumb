@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { clickhouse } from "../../shared/db/clickhouse.js";
 import { ClickHouseBatcher } from "../../shared/db/clickhouse-batcher.js";
 import { TraceSchema, SpanSchema } from "./schemas.js";
@@ -11,6 +12,36 @@ import { trackTraceIngested } from "../../shared/lib/telemetry.js";
 const log = createLogger("ingest");
 
 type Variables = { projectId: string };
+const MAX_INGEST_BODY_BYTES = 1024 * 1024;
+const MAX_SPANS_PER_REQUEST = 100;
+
+function exceedsBodyLimit(body: unknown): boolean {
+  return JSON.stringify(body).length > MAX_INGEST_BODY_BYTES;
+}
+
+type JsonBodyContext = {
+  req: { json: () => Promise<unknown> };
+  json: (body: unknown, status?: number) => Response;
+};
+
+async function parseJsonBody(c: JsonBodyContext): Promise<
+  { body: unknown; error: null } | { body: null; error: Response }
+> {
+  try {
+    return { body: await c.req.json(), error: null };
+  } catch (err) {
+    if (err instanceof Error && err.message === "Payload Too Large") {
+      return {
+        body: null,
+        error: c.json({ error: "Request body too large" }, 413),
+      };
+    }
+    return {
+      body: null,
+      error: c.json({ error: "Invalid JSON in request body" }, 400),
+    };
+  }
+}
 
 // ── Batchers ─────────────────────────────────────────────────────────────────
 
@@ -21,12 +52,17 @@ export const spanBatcher = new ClickHouseBatcher(clickhouse, "breadcrumb.spans")
 
 export const ingestRoutes = new Hono<{ Variables: Variables }>();
 
+ingestRoutes.use("*", bodyLimit({
+  maxSize: MAX_INGEST_BODY_BYTES,
+  onError: (c) => c.json({ error: "Request body too large" }, 413),
+}));
+
 ingestRoutes.post("/traces", async (c) => {
   const projectId = c.get("projectId");
-  const body = await c.req.json().catch(() => null);
-
-  if (body === null) {
-    return c.json({ error: "Invalid JSON in request body" }, 400);
+  const { body, error } = await parseJsonBody(c);
+  if (error) return error;
+  if (exceedsBodyLimit(body)) {
+    return c.json({ error: "Request body too large" }, 413);
   }
 
   const parsed = TraceSchema.safeParse(body);
@@ -63,13 +99,19 @@ ingestRoutes.post("/traces", async (c) => {
 
 ingestRoutes.post("/spans", async (c) => {
   const projectId = c.get("projectId");
-  const body = await c.req.json().catch(() => null);
-
-  if (body === null) {
-    return c.json({ error: "Invalid JSON in request body" }, 400);
+  const { body, error } = await parseJsonBody(c);
+  if (error) return error;
+  if (exceedsBodyLimit(body)) {
+    return c.json({ error: "Request body too large" }, 413);
   }
 
   const raw = Array.isArray(body) ? body : [body];
+  if (raw.length > MAX_SPANS_PER_REQUEST) {
+    return c.json(
+      { error: `Too many spans in a single request (max ${MAX_SPANS_PER_REQUEST})` },
+      400,
+    );
+  }
 
   const spans = [];
   for (const item of raw) {

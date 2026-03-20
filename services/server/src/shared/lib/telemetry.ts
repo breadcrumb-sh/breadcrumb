@@ -164,6 +164,10 @@ export function trackMcpToolUsed(toolName: string) {
   trackEvent("mcp_tool_used", { tool_name: toolName });
 }
 
+export function trackQueryRejected(source: string, code: string, details: string[]) {
+  trackEvent("query_rejected", { source, code, detail_count: details.length });
+}
+
 // ── Performance events ──────────────────────────────────────────────
 // Only sent when a threshold is exceeded to avoid noise.
 
