@@ -264,6 +264,7 @@ function ExplorePage() {
           xKey: spec.xKey,
           yKeys: spec.yKeys,
           legend: spec.legend,
+          defaultDays: spec.defaultDays,
         });
       }
     },
@@ -364,6 +365,7 @@ function ExplorePage() {
                   isStarred={isStarred}
                   onToggleStar={toggleStar}
                   plugins={plugins}
+                  projectId={projectId}
                 />
               ))}
               <div ref={bottomRef} />

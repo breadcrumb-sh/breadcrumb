@@ -62,7 +62,10 @@ export const projectsRouter = router({
     }),
 
   create: adminProcedure
-    .input(z.object({ name: z.string().min(1).max(255) }))
+    .input(z.object({
+      name: z.string().min(1).max(255),
+      timezone: z.string().max(64).default("UTC"),
+    }))
     .mutation(async ({ input, ctx }) => {
       const baseSlug = input.name
         .toLowerCase()
@@ -78,6 +81,7 @@ export const projectsRouter = router({
           id: orgId,
           name: input.name,
           slug,
+          timezone: input.timezone,
           createdAt: new Date(),
         })
         .returning();
@@ -101,6 +105,20 @@ export const projectsRouter = router({
       const [org] = await db
         .update(organization)
         .set({ name: input.name })
+        .where(eq(organization.id, input.id))
+        .returning();
+      return org;
+    }),
+
+  updateTimezone: authedProcedure
+    .input(
+      z.object({ id: z.string(), timezone: z.string().max(64) })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await checkOrgRole(ctx.user.id, ctx.user.role, input.id, ["owner"]);
+      const [org] = await db
+        .update(organization)
+        .set({ timezone: input.timezone })
         .where(eq(organization.id, input.id))
         .returning();
       return org;

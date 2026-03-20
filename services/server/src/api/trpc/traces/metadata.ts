@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, orgViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
+import { getProjectTimezone } from "../../../services/traces/helpers.js";
 
 export const metadataRouter = router({
   environments: orgViewerProcedure
@@ -78,10 +79,11 @@ export const metadataRouter = router({
       })
     )
     .query(async ({ input }) => {
+      const tz = await getProjectTimezone(input.projectId);
       const result = await readonlyClickhouse.query({
         query: `
           SELECT
-            toDate(start_time) AS day,
+            toDate(start_time, {tz: String}) AS day,
             count()            AS trace_count
           FROM (
             SELECT id, argMax(start_time, version) AS start_time
@@ -93,7 +95,7 @@ export const metadataRouter = router({
           GROUP BY day
           ORDER BY day ASC
         `,
-        query_params: { projectId: input.projectId, days: input.days },
+        query_params: { projectId: input.projectId, days: input.days, tz },
         format: "JSONEachRow",
       });
 

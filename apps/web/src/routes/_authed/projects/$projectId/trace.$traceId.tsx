@@ -14,7 +14,8 @@ import {
 } from "../../../../lib/span-utils";
 import { SpanRow } from "../../../../components/trace-detail/SpanRow";
 import { SpanDetail } from "../../../../components/trace-detail/SpanDetail";
-import { SpanMinimap } from "../../../../components/trace-detail/SpanMinimap";
+import { TraceChat } from "../../../../components/trace-detail/TraceChat";
+
 import { fmtMs } from "../../../../components/trace-detail/helpers";
 import { usePageView } from "../../../../hooks/usePageView";
 
@@ -62,6 +63,7 @@ function TraceDetailPage() {
   const router = useRouter();
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);
   const [copied, setCopied] = useState(false);
+  const [leftTab, setLeftTab] = useState<"tree" | "chat">("tree");
   const [cleanView, setCleanView] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem("bc:clean-view");
@@ -153,15 +155,6 @@ function TraceDetailPage() {
         )}
       </div>
 
-      {/* ── Minimap ── */}
-      {flat.length > 0 && (
-        <SpanMinimap
-          spans={flat}
-          selectedId={selectedSpan?.id ?? null}
-          onSelect={setSelectedSpan}
-        />
-      )}
-
       {/* ── Body ── */}
       <div className="px-4 sm:px-8 pb-4 pt-2 flex-1 min-h-0 overflow-y-auto sm:overflow-visible">
         {spans.isLoading ? (
@@ -174,32 +167,54 @@ function TraceDetailPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:h-full sm:overflow-hidden">
-            {/* Span list */}
-            <div className="flex flex-col rounded-lg border border-zinc-800 sm:w-[420px] sm:shrink-0 sm:overflow-y-auto">
-              {/* Tree header with clean view toggle */}
-              <div className="flex items-center justify-end px-3 py-2 border-b border-zinc-800/60 shrink-0">
-                <button
-                  onClick={toggleCleanView}
-                  className={`text-[11px] font-medium px-2 py-1 rounded transition-colors ${
-                    cleanView
-                      ? "text-zinc-100 bg-zinc-700/60"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  Clean view
-                </button>
+            {/* Span list / Chat */}
+            <div className="flex flex-col rounded-lg border border-zinc-800 sm:w-[420px] sm:shrink-0 sm:overflow-hidden">
+              {/* Header with tab toggle */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 shrink-0">
+                <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-md p-0.5 gap-0.5">
+                  {(["tree", "chat"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setLeftTab(t)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                        leftTab === t
+                          ? "bg-zinc-800 text-zinc-100"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      {t === "tree" ? "Tree" : "Chat"}
+                    </button>
+                  ))}
+                </div>
+                {leftTab === "tree" && (
+                  <button
+                    onClick={toggleCleanView}
+                    className={`text-[11px] font-medium px-2 py-1 rounded transition-colors ${
+                      cleanView
+                        ? "text-zinc-100 bg-zinc-700/60"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    Clean view
+                  </button>
+                )}
               </div>
-              <div className="flex-1">
-                {tree.map((node) => (
-                  <SpanRow
-                    key={node.id}
-                    node={node}
-                    depth={0}
-                    selectedId={selectedSpan?.id ?? null}
-                    onSelect={setSelectedSpan}
-                  />
-                ))}
-              </div>
+
+              {leftTab === "tree" ? (
+                <div className="flex-1 overflow-y-auto">
+                  {tree.map((node) => (
+                    <SpanRow
+                      key={node.id}
+                      node={node}
+                      depth={0}
+                      selectedId={selectedSpan?.id ?? null}
+                      onSelect={setSelectedSpan}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <TraceChat traceId={traceId} />
+              )}
             </div>
 
             {/* Span detail */}

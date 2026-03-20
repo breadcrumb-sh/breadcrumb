@@ -5,7 +5,10 @@
  * No framework imports — pure functions and SQL fragments only.
  */
 
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "../../shared/db/postgres.js";
+import { organization } from "../../shared/db/schema.js";
 
 // ── toStr ────────────────────────────────────────────────────────────────────
 
@@ -95,6 +98,17 @@ export function buildTraceFilters(input: {
 }
 
 // ── filterInput ──────────────────────────────────────────────────────────────
+
+// ── getProjectTimezone ──────────────────────────────────────────────────────
+
+/** Look up the project's configured timezone (defaults to 'UTC'). */
+export async function getProjectTimezone(projectId: string): Promise<string> {
+  const [org] = await db
+    .select({ timezone: organization.timezone })
+    .from(organization)
+    .where(eq(organization.id, projectId));
+  return org?.timezone ?? "UTC";
+}
 
 /** Shared Zod filter input schema (all optional for backward compat). */
 export const filterInput = {

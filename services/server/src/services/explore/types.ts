@@ -17,6 +17,8 @@ export const chartSpecSchema = z.object({
   xKey: z.string(),
   yKeys: z.array(z.string()),
   legend: z.array(legendEntrySchema).optional(),
+  /** Default lookback window in days (7, 30, or 90). Used on the dashboard. */
+  defaultDays: z.number().int().positive().optional(),
 });
 
 export type ChartSpec = z.infer<typeof chartSpecSchema>;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, orgViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
-import { buildTraceFilters, filterInput, ROLLUPS_SUBQUERY } from "../../../services/traces/helpers.js";
+import { buildTraceFilters, filterInput, ROLLUPS_SUBQUERY, getProjectTimezone } from "../../../services/traces/helpers.js";
 
 export const statsRouter = router({
   stats: orgViewerProcedure
@@ -145,11 +145,12 @@ export const statsRouter = router({
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
+      const tz = await getProjectTimezone(input.projectId);
 
       const result = await readonlyClickhouse.query({
         query: `
           SELECT
-            toDate(t.start_time)                AS day,
+            toDate(t.start_time, {tz: String})  AS day,
             count()                             AS trace_count,
             countIf(t.status = 'error')         AS error_count,
             sum(coalesce(r.total_cost_usd, 0))  AS total_cost_usd,
@@ -182,7 +183,7 @@ export const statsRouter = router({
           GROUP BY day
           ORDER BY day ASC
         `,
-        query_params: params,
+        query_params: { ...params, tz },
         format: "JSONEachRow",
       });
 
@@ -200,11 +201,12 @@ export const statsRouter = router({
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
+      const tz = await getProjectTimezone(input.projectId);
 
       const result = await readonlyClickhouse.query({
         query: `
           SELECT
-            toDate(t.start_time)                           AS day,
+            toDate(t.start_time, {tz: String})             AS day,
             t.name                                         AS trace_name,
             count()                                        AS trace_count,
             sum(coalesce(r.total_cost_usd, 0))             AS total_cost_usd
@@ -231,7 +233,7 @@ export const statsRouter = router({
           GROUP BY day, trace_name
           ORDER BY day ASC, trace_name ASC
         `,
-        query_params: params,
+        query_params: { ...params, tz },
         format: "JSONEachRow",
       });
 
@@ -248,6 +250,7 @@ export const statsRouter = router({
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
+      const tz = await getProjectTimezone(input.projectId);
 
       // Step 1: compute p75 cost & duration from successful traces in the range
       const threshResult = await readonlyClickhouse.query({
@@ -300,7 +303,7 @@ export const statsRouter = router({
       const result = await readonlyClickhouse.query({
         query: `
           SELECT
-            toDate(t.start_time) AS day,
+            toDate(t.start_time, {tz: String}) AS day,
             countIf(t.status = 'error') AS failed,
             countIf(
               t.status != 'error'
@@ -347,7 +350,7 @@ export const statsRouter = router({
           GROUP BY day
           ORDER BY day ASC
         `,
-        query_params: { ...params, p75Cost, p75Duration },
+        query_params: { ...params, p75Cost, p75Duration, tz },
         format: "JSONEachRow",
       });
 

@@ -80,6 +80,7 @@ export const organization = pgTable("organization", {
   logo: text("logo"),
   createdAt: timestamp("created_at").notNull(),
   metadata: text("metadata"),
+  timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
 });
 
 export const member = pgTable(
@@ -247,6 +248,8 @@ export const starredCharts = pgTable("starred_charts", {
   xKey: varchar("x_key", { length: 64 }),
   yKeys: jsonb("y_keys"),
   legend: jsonb("legend"),
+  /** Default lookback window in days (7, 30, or 90) set by the AI. Users can override on the dashboard. */
+  defaultDays: integer("default_days"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 },
   (t) => [index("starred_charts_project_id_idx").on(t.projectId)],

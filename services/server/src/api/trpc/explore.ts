@@ -5,6 +5,7 @@ import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProced
 import { env } from "../../env.js";
 import { db } from "../../shared/db/postgres.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
+import { getProjectTimezone } from "../../services/traces/helpers.js";
 import { explores, starredCharts } from "../../shared/db/schema.js";
 import { legendEntrySchema } from "../../services/explore/types.js";
 import {
@@ -114,6 +115,7 @@ export const exploresRouter = router({
         xKey: z.string().optional(),
         yKeys: z.array(z.string()).optional(),
         legend: z.array(legendEntrySchema).optional(),
+        defaultDays: z.number().int().positive().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -128,6 +130,7 @@ export const exploresRouter = router({
           xKey: input.xKey,
           yKeys: input.yKeys,
           legend: input.legend,
+          defaultDays: input.defaultDays,
         })
         .returning();
       trackExploreChartStarred();
@@ -164,6 +167,7 @@ export const exploresRouter = router({
           xKey: starredCharts.xKey,
           yKeys: starredCharts.yKeys,
           legend: starredCharts.legend,
+          defaultDays: starredCharts.defaultDays,
           exploreId: starredCharts.exploreId,
           exploreName: explores.name,
         })
@@ -219,10 +223,26 @@ export const exploresRouter = router({
     }),
 
   requery: orgViewerProcedure
-    .input(z.object({ projectId: z.string(), sql: z.string() }))
+    .input(
+      z.object({
+        projectId: z.string(),
+        sql: z.string(),
+        /** Lookback window in days. Overrides the chart's defaultDays. Falls back to 30. */
+        days: z.number().int().positive().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       try {
-        return await runSandboxedQuery(input.projectId, input.sql);
+        const tz = await getProjectTimezone(input.projectId);
+        // Pass the current UTC time and selected day range so parameterized
+        // queries using {now: DateTime} and {days: UInt32} work correctly.
+        const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+        const days = input.days ?? 30;
+        return await runSandboxedQuery(input.projectId, input.sql, "explore", {
+          tz,
+          now,
+          days,
+        });
       } catch (err) {
         throw new TRPCError({
           code: "BAD_REQUEST",

@@ -87,7 +87,7 @@ function OverviewPage() {
   );
 
   return (
-    <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6">
+    <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6 page-container-small">
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Date range */}
@@ -270,6 +270,8 @@ function OverviewPage() {
                 key={chart.id}
                 chart={chart}
                 projectId={projectId}
+                from={from}
+                to={to}
               />
             ))}
           </div>

@@ -69,7 +69,7 @@ function ProjectLayout() {
 
           {/* Tab row — hidden on mobile */}
           <div className="border-b border-zinc-800/70 hidden sm:block">
-            <nav className="pt-1 flex items-end gap-1 -mb-px max-w-[1250px] px-4 sm:px-8 mx-auto">
+            <nav className="pt-1 flex items-end gap-1 -mb-px max-w-[1500px] px-4 sm:px-8 mx-auto">
               {visibleTabs.map(({ label, path, exact }) => {
                 const href = `/projects/${projectId}${path}`;
                 const isActive = exact
@@ -96,7 +96,6 @@ function ProjectLayout() {
             </nav>
           </div>
         </div>
-
         <div className="page-container">
           <ErrorBoundary>
             <Outlet />

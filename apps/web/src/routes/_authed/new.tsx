@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
 import { trpc } from "../../lib/trpc";
 import { StepIndicator } from "../../components/common/StepIndicator";
 import { AppHeader } from "../../components/layout/AppHeader";
+import { TimezoneSelect } from "../../components/common/TimezoneSelect";
 
 export const Route = createFileRoute("/_authed/new")({
   component: NewProjectPage,
@@ -20,6 +21,9 @@ function NewProjectPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [projectName, setProjectName] = useState("");
+  const [timezone, setTimezone] = useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
   const [projectId, setProjectId] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -30,7 +34,7 @@ function NewProjectPage() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    const project = await createProject.mutateAsync({ name: projectName });
+    const project = await createProject.mutateAsync({ name: projectName, timezone });
     const key = await createApiKey.mutateAsync({
       projectId: project.id,
       name: "Default",
@@ -80,6 +84,12 @@ function NewProjectPage() {
                   autoFocus
                   className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-zinc-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                  Timezone
+                </label>
+                <TimezoneSelect value={timezone} onChange={setTimezone} />
               </div>
               <button
                 type="submit"

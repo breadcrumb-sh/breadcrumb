@@ -45,6 +45,7 @@ export async function runSandboxedQuery(
   projectId: string,
   sql: string,
   source = "explore",
+  extraParams?: Record<string, unknown>,
 ): Promise<Record<string, unknown>[]> {
   const start = performance.now();
 
@@ -53,7 +54,7 @@ export async function runSandboxedQuery(
     const result = await sandboxedClickhouse.query({
       query: sanitizeSql(sql),
       clickhouse_settings: { SQL_project_id: projectId },
-      query_params: { projectId },
+      query_params: { projectId, ...extraParams },
       format: "JSONEachRow",
     });
     rows = (await result.json()) as Record<string, unknown>[];
@@ -62,7 +63,7 @@ export async function runSandboxedQuery(
     // No row-policy enforcement — relies on the SQL using {projectId: UUID}.
     const result = await readonlyClickhouse.query({
       query: sql,
-      query_params: { projectId },
+      query_params: { projectId, ...extraParams },
       format: "JSONEachRow",
     });
     rows = (await result.json()) as Record<string, unknown>[];

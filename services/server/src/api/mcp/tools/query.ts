@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CLICKHOUSE_SCHEMA } from "../../../services/explore/clickhouse-schema.js";
 import { runSandboxedQuery } from "../../../shared/lib/sandboxed-query.js";
+import { getProjectTimezone } from "../../../services/traces/helpers.js";
 import { getUserProjectIds, truncateResult } from "../helpers.js";
 
 export function registerQueryTools(server: McpServer, userId: string) {
@@ -33,7 +34,8 @@ export function registerQueryTools(server: McpServer, userId: string) {
       }
 
       try {
-        const rows = await runSandboxedQuery(project_id, sql, "mcp");
+        const tz = await getProjectTimezone(project_id);
+        const rows = await runSandboxedQuery(project_id, sql, "mcp", { tz });
         const { data, note } = truncateResult(rows);
         const parts = [`rowCount: ${rows.length}`, note ? `note: ${note}` : null, data]
           .filter(Boolean)

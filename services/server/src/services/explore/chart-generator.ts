@@ -3,6 +3,7 @@ import type { LanguageModel, ModelMessage } from "ai";
 import { z } from "zod";
 import { CLICKHOUSE_SCHEMA } from "./clickhouse-schema.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
+import { getProjectTimezone } from "../traces/helpers.js";
 import { chartSpecSchema, type ChartSpec } from "./types.js";
 
 export { chartSpecSchema, type ChartSpec };
@@ -33,12 +34,25 @@ SQL RULES:
 - Always filter by project_id using ClickHouse parameterized syntax: {projectId: UUID}
   IMPORTANT: You MUST include the type annotation. Write {projectId: UUID}, NOT {projectId} alone.
 - Use ClickHouse syntax: toDate(), toStartOfDay(), formatDateTime(), etc.
+- When grouping by day/date, always apply the project timezone: toDate(column, {tz: String}). The tz parameter is automatically provided.
 - For cost values, divide micro-dollar columns by 1000000 to get USD.
 - Alias columns to short, readable names (e.g. "date", "count", "cost").
 - The xKey and yKeys in display_chart must exactly match your SELECT aliases.
 - Order results appropriately (usually by date/time ascending).
-- Limit results to a reasonable number of rows (e.g. 30 days, top 10).
 - NEVER produce destructive statements — SELECT only.
+
+TIME RANGE RULES (for time-series charts):
+- NEVER hard-code dates or use now() directly. Instead, use these parameters which are automatically provided:
+    {now: DateTime}   — the current UTC timestamp at query execution time
+    {days: UInt32}    — the lookback window in days (set by the user on the dashboard)
+- Filter time ranges like this:
+    WHERE t.start_time >= {now: DateTime} - toIntervalDay({days: UInt32})
+      AND t.start_time < {now: DateTime}
+- You can still use {tz: String} for date bucketing:
+    toDate(t.start_time, {tz: String})
+- In display_chart, set defaultDays to 7, 30, or 90 — whichever best matches the natural
+  granularity of the chart (e.g. 7 for hourly breakdowns, 30 for daily trends, 90 for weekly views).
+  This becomes the default range shown on the dashboard, but users can override it.
 
 CHART RULES:
 - Use "line" for time-series data (trends over time).
@@ -68,6 +82,11 @@ function truncateResult(rows: Record<string, unknown>[]): string {
  * The LLM can call run_query and display_chart tools iteratively.
  * Returns the streamText result for the caller to iterate fullStream.
  */
+/** Returns the current UTC time in ClickHouse DateTime format: 'YYYY-MM-DD HH:MM:SS' */
+function nowClickhouse(): string {
+  return new Date().toISOString().replace("T", " ").slice(0, 19);
+}
+
 export function streamChartGeneration({
   model,
   messages,
@@ -81,6 +100,8 @@ export function streamChartGeneration({
   abortSignal?: AbortSignal;
   onChartUpdate?: (spec: ChartSpec, data: Record<string, unknown>[]) => void;
 }) {
+  const tzPromise = getProjectTimezone(projectId);
+
   return streamText({
     abortSignal,
     model,
@@ -96,7 +117,13 @@ export function streamChartGeneration({
         }),
         execute: async ({ sql }) => {
           try {
-            const rows = await runSandboxedQuery(projectId, sql);
+            const tz = await tzPromise;
+            const now = nowClickhouse();
+            const rows = await runSandboxedQuery(projectId, sql, "explore", {
+              tz,
+              now,
+              days: 30,
+            });
             return {
               success: true as const,
               rowCount: rows.length,
@@ -120,6 +147,13 @@ export function streamChartGeneration({
           sql: z.string().describe("ClickHouse SELECT query for the chart"),
           xKey: z.string().describe("Column alias for x-axis"),
           yKeys: z.array(z.string()).describe("Column aliases for y-axis"),
+          defaultDays: z
+            .number()
+            .int()
+            .positive()
+            .describe(
+              "Default lookback window in days: 7, 30, or 90. Choose based on the natural granularity of the chart."
+            ),
           legend: z
             .array(
               z.object({
@@ -131,10 +165,32 @@ export function streamChartGeneration({
             .optional()
             .describe("Legend entries with display labels and hex colors"),
         }),
-        execute: async ({ title, chartType, sql, xKey, yKeys, legend }) => {
+        execute: async ({
+          title,
+          chartType,
+          sql,
+          xKey,
+          yKeys,
+          defaultDays,
+          legend,
+        }) => {
           try {
-            const rows = await runSandboxedQuery(projectId, sql);
-            const spec: ChartSpec = { title, chartType, sql, xKey, yKeys, legend };
+            const tz = await tzPromise;
+            const now = nowClickhouse();
+            const rows = await runSandboxedQuery(projectId, sql, "explore", {
+              tz,
+              now,
+              days: defaultDays,
+            });
+            const spec: ChartSpec = {
+              title,
+              chartType,
+              sql,
+              xKey,
+              yKeys,
+              legend,
+              defaultDays,
+            };
 
             onChartUpdate?.(spec, rows);
 

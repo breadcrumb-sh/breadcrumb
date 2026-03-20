@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { Streamdown } from "streamdown";
 import { ExplorationChart, VIZ_COLORS } from "../traces/ExplorationChart";
 import { useHighlightedHtml, sdComponents } from "./StreamdownComponents";
+import { trpc } from "../../lib/trpc";
 import type { ChartSpec, DisplayPart } from "@breadcrumb/server/trpc";
 
 // ── Chart part with SQL modal ────────────────────────────────────────────────
@@ -20,13 +21,17 @@ export function ChartPart({
   data,
   isStarred: starred,
   onToggleStar,
+  projectId,
 }: {
   spec: ChartSpec;
   data: Record<string, unknown>[];
   isStarred: boolean;
   onToggleStar: () => void;
+  projectId: string;
 }) {
   const [showSql, setShowSql] = useState(false);
+  const project = trpc.projects.get.useQuery({ id: projectId });
+  const timezone = project.data?.timezone ?? undefined;
 
   return (
     <>
@@ -87,6 +92,7 @@ export function ChartPart({
             yKeys={spec.yKeys}
             legend={spec.legend}
             data={data}
+            timezone={timezone}
           />
         ) : (
           <div className="flex items-center justify-center rounded-md border border-dashed border-zinc-700 bg-zinc-900/50 py-12">
@@ -165,6 +171,7 @@ export function PartRenderer({
   isStarred,
   onToggleStar,
   plugins,
+  projectId,
 }: {
   part: DisplayPart;
   isLast: boolean;
@@ -172,6 +179,7 @@ export function PartRenderer({
   isStarred: (sql: string) => boolean;
   onToggleStar: (spec: ChartSpec) => void;
   plugins: Record<string, unknown>;
+  projectId: string;
 }) {
   switch (part.type) {
     case "user":
@@ -203,6 +211,7 @@ export function PartRenderer({
           data={part.data}
           isStarred={isStarred(part.spec.sql)}
           onToggleStar={() => onToggleStar(part.spec)}
+          projectId={projectId}
         />
       );
 

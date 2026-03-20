@@ -80,7 +80,7 @@ function TracesPage() {
   useRegisterSubMenu(subMenuItems, section, setSection);
 
   return (
-    <main className="px-5 py-6 sm:px-8 sm:py-8">
+    <main className="px-5 py-6 sm:px-8 sm:py-8 page-container-small">
       <div className="flex gap-8">
         <nav className="hidden sm:block w-44 shrink-0 space-y-0.5 sticky top-32 self-start">
           {SIDEBAR_ITEMS.map((item) => {

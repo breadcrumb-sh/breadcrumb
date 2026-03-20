@@ -13,6 +13,84 @@ import {
 // Detect ISO date strings like "2026-02-16" or "2026-02-16T00:00:00.000Z"
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/;
 
+/** Format a Date as "YYYY-MM-DD" in a given IANA timezone (falls back to browser local). */
+function dateKeyInTz(d: Date, tz?: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  const day = parts.find((p) => p.type === "day")!.value;
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * If the xKey column looks like ISO dates, build a complete day-by-day spine
+ * and merge the query rows into it, zero-filling any gaps.
+ *
+ * When `from`/`to` are provided (dashboard mode), the spine covers exactly
+ * that range — data outside it is discarded. This ensures starred charts
+ * visually align with the dashboard's date filter regardless of what the
+ * underlying SQL actually fetched.
+ *
+ * When `from`/`to` are omitted (explore mode), the spine runs from the
+ * earliest date in the data through "today" in the project timezone.
+ */
+function fillDateGaps(
+  data: Record<string, unknown>[],
+  xKey: string,
+  yKeys: string[],
+  opts?: { timezone?: string; from?: string; to?: string },
+): Record<string, unknown>[] {
+  if (data.length === 0) return data;
+
+  // Only apply to date-keyed data
+  const firstVal = data[0][xKey];
+  if (typeof firstVal !== "string" || !ISO_DATE_RE.test(firstVal)) return data;
+
+  // Index existing rows by their YYYY-MM-DD key; track earliest date string
+  const byDate = new Map<string, Record<string, unknown>>();
+  let dataMinDate = "";
+  for (const row of data) {
+    const key = String(row[xKey]).slice(0, 10);
+    byDate.set(key, row);
+    if (!dataMinDate || key < dataMinDate) dataMinDate = key;
+  }
+
+  // Determine the spine boundaries
+  const startKey = opts?.from ?? dataMinDate;
+  const endKey = opts?.to ?? dateKeyInTz(new Date(), opts?.timezone);
+
+  const result: Record<string, unknown>[] = [];
+
+  // Walk from startKey → endKey using pure calendar arithmetic
+  const [sy, smo, sd] = startKey.split("-").map(Number);
+  const cursor = new Date(sy, smo - 1, sd);
+  const [ey, emo, ed] = endKey.split("-").map(Number);
+  const end = new Date(ey, emo - 1, ed);
+
+  while (cursor <= end) {
+    const cy = cursor.getFullYear();
+    const cm = String(cursor.getMonth() + 1).padStart(2, "0");
+    const cd = String(cursor.getDate()).padStart(2, "0");
+    const dateKey = `${cy}-${cm}-${cd}`;
+    const existing = byDate.get(dateKey);
+    if (existing) {
+      result.push(existing);
+    } else {
+      const zero: Record<string, unknown> = { [xKey]: dateKey };
+      for (const k of yKeys) zero[k] = 0;
+      result.push(zero);
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return result;
+}
+
 function formatTick(value: unknown): string {
   const s = String(value);
   if (ISO_DATE_RE.test(s)) {
@@ -64,6 +142,11 @@ interface ExplorationChartProps {
   yKeys: string[];
   legend?: LegendEntry[];
   data: Record<string, unknown>[];
+  /** IANA timezone of the project (e.g. "America/New_York"). Used to determine "today" for gap-filling. */
+  timezone?: string;
+  /** When provided, clip the date spine to this range (YYYY-MM-DD). Used by dashboard charts. */
+  from?: string;
+  to?: string;
 }
 
 function getColor(
@@ -88,12 +171,17 @@ export function ExplorationChart({
   yKeys,
   legend,
   data,
+  timezone,
+  from,
+  to,
 }: ExplorationChartProps) {
+  const filledData = fillDateGaps(data, xKey, yKeys, { timezone, from, to });
+
   if (chartType === "bar") {
     return (
       <ResponsiveContainer width="100%" height={280}>
         <BarChart
-          data={data}
+          data={filledData}
           margin={{ top: 4, right: 24, bottom: 0, left: 0 }}
         >
           <CartesianGrid vertical={false} stroke="var(--color-zinc-800)" />
@@ -159,7 +247,7 @@ export function ExplorationChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <AreaChart
-        data={data}
+        data={filledData}
         margin={{ top: 4, right: 24, bottom: 0, left: 0 }}
       >
         <defs>

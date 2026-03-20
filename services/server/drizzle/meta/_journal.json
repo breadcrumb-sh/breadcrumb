@@ -71,6 +71,20 @@
       "when": 1773736158644,
       "tag": "0009_careful_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773991049022,
+      "tag": "0010_silent_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774008942414,
+      "tag": "0011_flashy_mephistopheles",
+      "breakpoints": true
     }
   ]
 }
