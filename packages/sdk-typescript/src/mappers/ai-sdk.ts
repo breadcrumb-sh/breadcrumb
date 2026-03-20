@@ -12,6 +12,15 @@ const LLM_SPAN_NAMES = new Set([
   "ai.generateObject.doStream",
 ]);
 
+// Wrapper spans aggregate tokens/cost from their child .doGenerate/.doStream
+// spans. Including them in rollups would double-count, so we skip token & cost
+// extraction for these outer spans.
+const WRAPPER_SPAN_NAMES = new Set([
+  "ai.generateText",
+  "ai.streamText",
+  "ai.generateObject",
+]);
+
 const TOOL_SPAN_NAMES = new Set([
   "ai.toolCall",
   "ai.toolExecution",
@@ -166,29 +175,36 @@ export function mapAiSdk(span: ReadableSpan): Partial<MappedSpanData> {
   const provider = strAttr(attrs, "ai.model.provider", "gen_ai.system");
   if (provider) result.provider = provider;
 
-  // ── Tokens ────────────────────────────────────────────────────────────────
-  const input_tokens = intAttr(
-    attrs,
-    "ai.usage.inputTokens",
-    "ai.usage.promptTokens",
-    "gen_ai.usage.input_tokens",
-  );
-  if (input_tokens != null) result.input_tokens = input_tokens;
+  // ── Tokens & Cost ────────────────────────────────────────────────────────
+  // Wrapper spans (e.g. ai.generateText) report the sum of their child
+  // .doGenerate/.doStream spans. Extracting tokens/cost here would cause
+  // double-counting in trace-level rollups, so we only extract from the
+  // inner (non-wrapper) spans.
+  const isWrapper = WRAPPER_SPAN_NAMES.has(span.name);
 
-  const output_tokens = intAttr(
-    attrs,
-    "ai.usage.outputTokens",
-    "ai.usage.completionTokens",
-    "gen_ai.usage.output_tokens",
-  );
-  if (output_tokens != null) result.output_tokens = output_tokens;
+  if (!isWrapper) {
+    const input_tokens = intAttr(
+      attrs,
+      "ai.usage.inputTokens",
+      "ai.usage.promptTokens",
+      "gen_ai.usage.input_tokens",
+    );
+    if (input_tokens != null) result.input_tokens = input_tokens;
 
-  // ── Cost ──────────────────────────────────────────────────────────────────
-  const providerMeta = attrs["ai.response.providerMetadata"];
-  if (typeof providerMeta === "string") {
-    const cost = extractCost(providerMeta);
-    if (cost.input_cost_usd != null) result.input_cost_usd = cost.input_cost_usd;
-    if (cost.output_cost_usd != null) result.output_cost_usd = cost.output_cost_usd;
+    const output_tokens = intAttr(
+      attrs,
+      "ai.usage.outputTokens",
+      "ai.usage.completionTokens",
+      "gen_ai.usage.output_tokens",
+    );
+    if (output_tokens != null) result.output_tokens = output_tokens;
+
+    const providerMeta = attrs["ai.response.providerMetadata"];
+    if (typeof providerMeta === "string") {
+      const cost = extractCost(providerMeta);
+      if (cost.input_cost_usd != null) result.input_cost_usd = cost.input_cost_usd;
+      if (cost.output_cost_usd != null) result.output_cost_usd = cost.output_cost_usd;
+    }
   }
 
   // ── Cost from explicit breadcrumb attrs (none here — handled by mapBreadcrumb) ─

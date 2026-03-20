@@ -290,36 +290,36 @@ describe("mapAiSdk — model, provider, tokens", () => {
     ).toBe("anthropic");
   });
 
-  it("maps ai.usage.inputTokens → input_tokens (rounded)", () => {
+  it("maps ai.usage.inputTokens → input_tokens (rounded) on inner spans", () => {
     expect(
-      mapAiSdk(makeSpan({ attributes: { "ai.usage.inputTokens": 100.7 } })).input_tokens,
+      mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.usage.inputTokens": 100.7 } })).input_tokens,
     ).toBe(101);
   });
 
   it("falls back to ai.usage.promptTokens for input_tokens", () => {
     expect(
-      mapAiSdk(makeSpan({ attributes: { "ai.usage.promptTokens": 80 } })).input_tokens,
+      mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.usage.promptTokens": 80 } })).input_tokens,
     ).toBe(80);
   });
 
   it("falls back to gen_ai.usage.input_tokens for input_tokens", () => {
     expect(
-      mapAiSdk(makeSpan({ attributes: { "gen_ai.usage.input_tokens": 60 } })).input_tokens,
+      mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate", attributes: { "gen_ai.usage.input_tokens": 60 } })).input_tokens,
     ).toBe(60);
   });
 
-  it("maps ai.usage.outputTokens → output_tokens (rounded)", () => {
+  it("maps ai.usage.outputTokens → output_tokens (rounded) on inner spans", () => {
     expect(
-      mapAiSdk(makeSpan({ attributes: { "ai.usage.outputTokens": 50.2 } })).output_tokens,
+      mapAiSdk(makeSpan({ name: "ai.streamText.doStream", attributes: { "ai.usage.outputTokens": 50.2 } })).output_tokens,
     ).toBe(50);
   });
 
   it("falls back to ai.usage.completionTokens, then gen_ai.usage.output_tokens for output_tokens", () => {
     expect(
-      mapAiSdk(makeSpan({ attributes: { "ai.usage.completionTokens": 40 } })).output_tokens,
+      mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.usage.completionTokens": 40 } })).output_tokens,
     ).toBe(40);
     expect(
-      mapAiSdk(makeSpan({ attributes: { "gen_ai.usage.output_tokens": 30 } })).output_tokens,
+      mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate", attributes: { "gen_ai.usage.output_tokens": 30 } })).output_tokens,
     ).toBe(30);
   });
 
@@ -332,11 +332,79 @@ describe("mapAiSdk — model, provider, tokens", () => {
   });
 });
 
+// ── Wrapper span token/cost suppression ──────────────────────────────────────
+
+describe("mapAiSdk — wrapper spans suppress tokens & cost to avoid double-counting", () => {
+  const wrapperNames = ["ai.generateText", "ai.streamText", "ai.generateObject"];
+
+  it.each(wrapperNames)(
+    "does not extract tokens from wrapper span %s",
+    (spanName) => {
+      const result = mapAiSdk(
+        makeSpan({
+          name: spanName,
+          attributes: {
+            "ai.usage.inputTokens": 100,
+            "ai.usage.outputTokens": 50,
+          },
+        }),
+      );
+      expect(result.input_tokens).toBeUndefined();
+      expect(result.output_tokens).toBeUndefined();
+    },
+  );
+
+  it.each(wrapperNames)(
+    "does not extract cost from wrapper span %s",
+    (spanName) => {
+      const meta = {
+        openrouter: {
+          usage: { cost: 0.0003, promptTokens: 100, completionTokens: 50 },
+        },
+      };
+      const result = mapAiSdk(
+        makeSpan({
+          name: spanName,
+          attributes: {
+            "ai.response.providerMetadata": JSON.stringify(meta),
+          },
+        }),
+      );
+      expect(result.input_cost_usd).toBeUndefined();
+      expect(result.output_cost_usd).toBeUndefined();
+    },
+  );
+
+  const innerNames = [
+    "ai.generateText.doGenerate",
+    "ai.streamText.doStream",
+    "ai.generateObject.doGenerate",
+    "ai.generateObject.doStream",
+  ];
+
+  it.each(innerNames)(
+    "still extracts tokens from inner span %s",
+    (spanName) => {
+      const result = mapAiSdk(
+        makeSpan({
+          name: spanName,
+          attributes: {
+            "ai.usage.inputTokens": 100,
+            "ai.usage.outputTokens": 50,
+          },
+        }),
+      );
+      expect(result.input_tokens).toBe(100);
+      expect(result.output_tokens).toBe(50);
+    },
+  );
+});
+
 // ── Cost extraction ───────────────────────────────────────────────────────────
 
 describe("mapAiSdk — cost", () => {
   it("returns no cost when ai.response.providerMetadata is absent", () => {
-    const result = mapAiSdk(makeSpan());
+    const result = mapAiSdk(makeSpan({ name: "ai.generateText.doGenerate" }));
     expect(result.input_cost_usd).toBeUndefined();
     expect(result.output_cost_usd).toBeUndefined();
   });
@@ -348,7 +416,7 @@ describe("mapAiSdk — cost", () => {
       },
     };
     const result = mapAiSdk(
-      makeSpan({ attributes: { "ai.response.providerMetadata": JSON.stringify(meta) } }),
+      makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.response.providerMetadata": JSON.stringify(meta) } }),
     );
     // 100/(100+50) * 0.0003 = 0.0002, 50/150 * 0.0003 ≈ 0.0001
     expect(result.input_cost_usd).toBeCloseTo(0.0002, 6);
@@ -360,7 +428,7 @@ describe("mapAiSdk — cost", () => {
       openrouter: { usage: { cost: 0.0005 } },
     };
     const result = mapAiSdk(
-      makeSpan({ attributes: { "ai.response.providerMetadata": JSON.stringify(meta) } }),
+      makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.response.providerMetadata": JSON.stringify(meta) } }),
     );
     expect(result.input_cost_usd).toBe(0.0005);
     expect(result.output_cost_usd).toBeUndefined();
@@ -368,7 +436,7 @@ describe("mapAiSdk — cost", () => {
 
   it("ignores malformed providerMetadata without throwing", () => {
     const result = mapAiSdk(
-      makeSpan({ attributes: { "ai.response.providerMetadata": "not json {{{" } }),
+      makeSpan({ name: "ai.generateText.doGenerate", attributes: { "ai.response.providerMetadata": "not json {{{" } }),
     );
     expect(result.input_cost_usd).toBeUndefined();
   });
