@@ -1,5 +1,4 @@
 import { Brain } from "@phosphor-icons/react/Brain";
-import { Eye } from "@phosphor-icons/react/Eye";
 import { Gear } from "@phosphor-icons/react/Gear";
 import { Key } from "@phosphor-icons/react/Key";
 import { Users } from "@phosphor-icons/react/Users";
@@ -12,16 +11,15 @@ import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
 import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
 import { MembersSection } from "../../../../components/settings/MembersSection";
-import { ObservationsSection } from "../../../../components/settings/ObservationsSection";
 import { useRegisterSubMenu } from "../../../../components/layout/SubMenuContext";
 import { useAuth } from "../../../../hooks/useAuth";
 import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
-type Section = "general" | "api-keys" | "members" | "ai" | "observations" | "danger";
+type Section = "general" | "api-keys" | "members" | "ai" | "danger";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "members", "ai", "observations", "danger"]).optional(),
+  tab: z.enum(["general", "api-keys", "members", "ai", "danger"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -74,11 +72,6 @@ function SettingsPage() {
           },
         ]
       : []),
-    {
-      id: "observations" as Section,
-      label: "Observations",
-      icon: <Eye size={16} />,
-    },
     ...(canDeleteProject
       ? [
           {
@@ -147,9 +140,6 @@ function SettingsPage() {
             />
           )}
           {section === "ai" && <AiProviderSection projectId={projectId} />}
-          {section === "observations" && (
-            <ObservationsSection projectId={projectId} />
-          )}
           {section === "members" && (
             <MembersSection
               projectId={projectId}
