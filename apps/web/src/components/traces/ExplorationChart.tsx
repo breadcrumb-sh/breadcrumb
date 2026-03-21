@@ -165,6 +165,31 @@ function getLabel(
   return entry?.label ?? key;
 }
 
+/**
+ * Coerce y-axis values from strings to numbers.
+ *
+ * ClickHouse's JSONEachRow format returns UInt64 / aggregate results as strings
+ * to avoid JS precision loss. Recharts needs actual numbers for proper axis
+ * scaling — without this, a value of "205" is treated as a categorical label
+ * and the y-axis domain is wrong.
+ */
+function coerceNumericValues(
+  data: Record<string, unknown>[],
+  yKeys: string[],
+): Record<string, unknown>[] {
+  const ySet = new Set(yKeys);
+  return data.map((row) => {
+    const copy = { ...row };
+    for (const key of ySet) {
+      const v = copy[key];
+      if (typeof v === "string" && v !== "" && !isNaN(Number(v))) {
+        copy[key] = Number(v);
+      }
+    }
+    return copy;
+  });
+}
+
 export function ExplorationChart({
   chartType,
   xKey,
@@ -175,7 +200,8 @@ export function ExplorationChart({
   from,
   to,
 }: ExplorationChartProps) {
-  const filledData = fillDateGaps(data, xKey, yKeys, { timezone, from, to });
+  const coerced = coerceNumericValues(data, yKeys);
+  const filledData = fillDateGaps(coerced, xKey, yKeys, { timezone, from, to });
 
   if (chartType === "bar") {
     return (
@@ -194,6 +220,7 @@ export function ExplorationChart({
           />
           <YAxis
             tickCount={4}
+            domain={[0, "auto"]}
             tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -278,6 +305,7 @@ export function ExplorationChart({
         />
         <YAxis
           tickCount={4}
+          domain={[0, "auto"]}
           tick={{ fill: "var(--color-zinc-500)", fontSize: 11 }}
           tickLine={false}
           axisLine={false}
