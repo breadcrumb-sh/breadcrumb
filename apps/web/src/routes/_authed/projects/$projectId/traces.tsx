@@ -46,8 +46,8 @@ export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
 
 const SIDEBAR_ITEMS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <SquaresFourIcon size={16} /> },
-  { id: "observations", label: "Observations", icon: <Eye size={16} /> },
   { id: "raw", label: "Raw Traces", icon: <Table size={16} /> },
+  { id: "observations", label: "Observations", icon: <Eye size={16} /> },
 ];
 
 function TracesPage() {

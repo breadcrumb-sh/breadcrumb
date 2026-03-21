@@ -96,6 +96,27 @@ function TraceDetailPage() {
   const [forceExpandIds, setForceExpandIds] = useState<Set<string> | undefined>();
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const hasSummary = useRef(false);
+
+  // Save the TanStack Router history index on mount so we can jump back
+  // past all intra-page navigations (span clicks, ask param) to the
+  // page the user came from (usually the traces list with its query params).
+  const entryIndexRef = useRef(
+    (router.state.location.state as { __TSR_index?: number }).__TSR_index ?? 0,
+  );
+
+  const goBackToTraces = useCallback(() => {
+    const currentIndex =
+      (router.state.location.state as { __TSR_index?: number }).__TSR_index ?? 0;
+    const stepsBack = currentIndex - entryIndexRef.current + 1;
+    if (stepsBack > 0 && entryIndexRef.current > 0) {
+      window.history.go(-stepsBack);
+    } else {
+      void navigate({
+        to: "/projects/$projectId/traces",
+        params: { projectId },
+      });
+    }
+  }, [router, navigate, projectId]);
   const [cleanView, setCleanView] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem("bc:clean-view");
@@ -238,7 +259,7 @@ function TraceDetailPage() {
         {/* Left: back + name + copy */}
         <div className="flex items-center gap-3 min-w-0">
           <button
-            onClick={() => router.history.back()}
+            onClick={goBackToTraces}
             className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
           >
             <ArrowLeft size={13} />
