@@ -8,9 +8,9 @@ import { Star } from "@phosphor-icons/react/Star";
 import { X } from "@phosphor-icons/react/X";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Streamdown } from "streamdown";
 import { ExplorationChart, VIZ_COLORS } from "../traces/ExplorationChart";
-import { useHighlightedHtml, sdComponents } from "./StreamdownComponents";
+import { useHighlightedHtml } from "../common/Markdown";
+import { Markdown } from "../common/Markdown";
 import { trpc } from "../../lib/trpc";
 import type { ChartSpec, DisplayPart } from "@breadcrumb/server/trpc";
 
@@ -170,7 +170,6 @@ export function PartRenderer({
   streaming,
   isStarred,
   onToggleStar,
-  plugins,
   projectId,
 }: {
   part: DisplayPart;
@@ -178,7 +177,6 @@ export function PartRenderer({
   streaming: boolean;
   isStarred: (sql: string) => boolean;
   onToggleStar: (spec: ChartSpec) => void;
-  plugins: Record<string, unknown>;
   projectId: string;
 }) {
   switch (part.type) {
@@ -193,15 +191,9 @@ export function PartRenderer({
 
     case "text":
       return (
-        <div className="text-sm text-zinc-300 [&_h1]:text-zinc-100 [&_h2]:text-zinc-100 [&_h3]:text-zinc-100 [&_h4]:text-zinc-100 [&_strong]:text-zinc-200">
-          <Streamdown
-            mode={isLast && streaming ? "streaming" : "static"}
-            plugins={plugins}
-            components={sdComponents}
-          >
-            {part.content}
-          </Streamdown>
-        </div>
+        <Markdown streaming={isLast && streaming}>
+          {part.content}
+        </Markdown>
       );
 
     case "chart":

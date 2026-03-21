@@ -1,10 +1,9 @@
+import { ArrowSquareOut } from "@phosphor-icons/react/ArrowSquareOut";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { List } from "@phosphor-icons/react/List";
-import { PaperPlaneTilt } from "@phosphor-icons/react/PaperPlaneTilt";
 import { X } from "@phosphor-icons/react/X";
-import { createCodePlugin } from "@streamdown/code";
 import { skipToken } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { useAuth } from "../../../../hooks/useAuth";
@@ -12,6 +11,7 @@ import { usePageView } from "../../../../hooks/usePageView";
 import { capture } from "../../../../lib/telemetry";
 import { trpc } from "../../../../lib/trpc";
 import { useRegisterSubMenuAction } from "../../../../components/layout/SubMenuContext";
+import { ChatInput } from "../../../../components/explore/ChatInput";
 import { PartRenderer } from "../../../../components/explore/ChatParts";
 import { EmptyState } from "../../../../components/explore/EmptyState";
 import { NoProviderState } from "../../../../components/explore/NoProviderState";
@@ -30,12 +30,6 @@ export const Route = createFileRoute("/_authed/projects/$projectId/explore")({
   validateSearch: searchSchema,
   component: ExplorePage,
 });
-
-const codePlugin = createCodePlugin({
-  themes: ["github-light", "github-dark"],
-});
-
-const plugins = { code: codePlugin };
 
 // ── Stream event → DisplayPart accumulator ──────────────────────────────────
 
@@ -93,6 +87,11 @@ function ExplorePage() {
     { id: exploreId! },
     { enabled: !!exploreId },
   );
+  const linkedTraceId = currentExplore.data?.traceId as string | undefined;
+  const linkedTrace = trpc.traces.get.useQuery(
+    { projectId, traceId: linkedTraceId! },
+    { enabled: !!linkedTraceId },
+  );
   const starred = trpc.explores.listStarred.useQuery({ projectId });
   const generating = trpc.explores.isGenerating.useQuery(
     exploreId ? { exploreId, projectId } : skipToken,
@@ -127,12 +126,14 @@ function ExplorePage() {
   const accRef = useRef<DisplayPart[]>([]);
   const [streamParts, setStreamParts] = useState<DisplayPart[] | null>(null);
   const retryRef = useRef(0);
+  const doneRef = useRef(false);
   const [reconnecting, setReconnecting] = useState(false);
   const streaming = subInput !== null;
 
   // Auto-reconnect to a running generation on mount/navigation
   useEffect(() => {
     if (generating.data?.active && exploreId && !subInput) {
+      doneRef.current = false;
       accRef.current = [];
       setStreamParts([]);
       setSubInput({ exploreId, projectId });
@@ -166,15 +167,22 @@ function ExplorePage() {
       setStreamParts([...accRef.current]);
 
       if (event.type === "done") {
+        // Clear streaming state immediately — don't wait for invalidation.
+        // Deferring cleanup to .then() creates a race where the subscription
+        // can close/error before subInput is cleared, causing infinite retries.
+        doneRef.current = true;
+        setStreamParts(null);
+        setSubInput(null);
+        accRef.current = [];
         if (event.name) utils.explores.list.invalidate();
-        utils.explores.get.invalidate().then(() => {
-          setStreamParts(null);
-          setSubInput(null);
-          accRef.current = [];
-        });
+        utils.explores.get.invalidate();
       }
     },
     onError(err) {
+      // Don't retry if we already received the done event — the subscription
+      // closing after done is expected, not an error.
+      if (doneRef.current) return;
+
       const attempt = retryRef.current;
 
       if (attempt < MAX_RETRIES && subInput) {
@@ -193,10 +201,8 @@ function ExplorePage() {
         });
         setStreamParts([...accRef.current]);
         setReconnecting(false);
-        setTimeout(() => {
-          setSubInput(null);
-          accRef.current = [];
-        }, 0);
+        setSubInput(null);
+        accRef.current = [];
       }
     },
   });
@@ -236,6 +242,7 @@ function ExplorePage() {
 
     // Init accumulator with user message and start subscription
     retryRef.current = 0;
+    doneRef.current = false;
     accRef.current = [{ type: "user", content: prompt }];
     setStreamParts([...accRef.current]);
     setSubInput({ exploreId: activeId, projectId, prompt });
@@ -356,6 +363,16 @@ function ExplorePage() {
             <EmptyState onSend={send} />
           ) : (
             <div className="max-w-3xl w-full mx-auto py-6 space-y-5">
+              {linkedTraceId && (
+                <Link
+                  to="/projects/$projectId/trace/$traceId"
+                  params={{ projectId, traceId: linkedTraceId }}
+                  className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors w-fit"
+                >
+                  <ArrowSquareOut size={11} />
+                  {linkedTrace.data?.name ?? "View trace"}
+                </Link>
+              )}
               {parts.map((part, i) => (
                 <PartRenderer
                   key={i}
@@ -364,7 +381,6 @@ function ExplorePage() {
                   streaming={streaming}
                   isStarred={isStarred}
                   onToggleStar={toggleStar}
-                  plugins={plugins}
                   projectId={projectId}
                 />
               ))}
@@ -382,28 +398,15 @@ function ExplorePage() {
                 Reconnecting...
               </div>
             )}
-            <div className="max-w-3xl mx-auto relative">
-              <textarea
-                value={input}
-                onChange={onInput}
-                onKeyDown={onKeyDown}
-                placeholder="Ask about your traces..."
-                disabled={streaming}
-                rows={1}
-                className="w-full resize-none overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 disabled:opacity-50 transition-colors"
-              />
-              <button
-                onClick={() => send()}
-                disabled={streaming || !input.trim()}
-                className="absolute right-2 bottom-2 p-2 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {streaming ? (
-                  <CircleNotch size={18} className="animate-spin" />
-                ) : (
-                  <PaperPlaneTilt size={18} />
-                )}
-              </button>
-            </div>
+            <ChatInput
+              value={input}
+              onChange={onInput}
+              onKeyDown={onKeyDown}
+              onSend={() => send()}
+              placeholder="Ask about your traces..."
+              streaming={streaming}
+              className="max-w-3xl mx-auto"
+            />
           </div>
         )}
       </div>

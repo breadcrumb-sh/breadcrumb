@@ -22,6 +22,7 @@ const SCRIPTS = [
   "03-sdk-error.ts",
   "04-ai-sdk-simple.ts",
   "05-ai-sdk-complex.ts",
+  "06-sdk-huge-trace.ts",
 ];
 
 const TOTAL = parseInt(process.env["RUNS"] ?? "30", 10);

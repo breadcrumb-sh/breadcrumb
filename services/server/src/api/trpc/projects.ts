@@ -124,6 +124,20 @@ export const projectsRouter = router({
       return org;
     }),
 
+  setAutoAnalyze: authedProcedure
+    .input(
+      z.object({ id: z.string(), autoAnalyze: z.boolean() })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await checkOrgRole(ctx.user.id, ctx.user.role, input.id, ["admin", "owner"]);
+      const [org] = await db
+        .update(organization)
+        .set({ autoAnalyze: input.autoAnalyze })
+        .where(eq(organization.id, input.id))
+        .returning();
+      return org;
+    }),
+
   delete: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {

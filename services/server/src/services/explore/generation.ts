@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { ModelMessage } from "ai";
 import { db } from "../../shared/db/postgres.js";
-import { explores } from "../../shared/db/schema.js";
+import { explores, traceSummaries } from "../../shared/db/schema.js";
 import { getAiModel } from "./ai-provider.js";
 import { streamChartGeneration, type ChartSpec } from "./chart-generator.js";
 import { startGeneration } from "./generation-manager.js";
@@ -24,11 +24,32 @@ export function runGeneration(
       const model = await getAiModel(projectId);
 
       const [explore] = await db
-        .select({ messages: explores.messages, name: explores.name })
+        .select({
+          messages: explores.messages,
+          name: explores.name,
+          traceId: explores.traceId,
+        })
         .from(explores)
         .where(eq(explores.id, exploreId));
 
       const existingParts = (explore?.messages ?? []) as DisplayPart[];
+
+      // Build trace context if this exploration is linked to a trace
+      let traceContext: string | undefined;
+      if (explore?.traceId) {
+        const [summary] = await db
+          .select({ markdown: traceSummaries.markdown })
+          .from(traceSummaries)
+          .where(
+            and(
+              eq(traceSummaries.projectId, projectId),
+              eq(traceSummaries.traceId, explore.traceId),
+            ),
+          );
+        if (summary?.markdown) {
+          traceContext = `This exploration is linked to a specific trace (ID: ${explore.traceId}).\n\nThe trace has been analyzed. Here is the analysis:\n\n${summary.markdown}\n\nThe user may ask follow-up questions about this trace. You can use your SQL tools to query for specific data about this trace using: WHERE t.id = '${explore.traceId}'`;
+        }
+      }
 
       const aiMessages: ModelMessage[] = [];
       for (const part of existingParts) {
@@ -48,6 +69,7 @@ export function runGeneration(
         messages: aiMessages,
         projectId,
         abortSignal: signal,
+        traceContext,
         onChartUpdate: (spec, data) => {
           charts.push({ spec, data });
         },
@@ -101,8 +123,8 @@ export function runGeneration(
           updatedAt: new Date(),
         };
 
-        const isFirstMessage = existingParts.length === 0;
-        if (isFirstMessage) {
+        const isFirstUserMessage = !existingParts.some((p) => p.type === "user");
+        if (isFirstUserMessage) {
           updateData.name =
             prompt.length > 40 ? prompt.slice(0, 37) + "..." : prompt;
         }
@@ -114,7 +136,7 @@ export function runGeneration(
 
         push({
           type: "done",
-          ...(isFirstMessage ? { name: updateData.name as string } : {}),
+          ...(isFirstUserMessage ? { name: updateData.name as string } : {}),
         });
       } else {
         push({ type: "done" });

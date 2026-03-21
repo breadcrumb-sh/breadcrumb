@@ -1,8 +1,13 @@
 import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
 import { Check } from "@phosphor-icons/react/Check";
+import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { Copy } from "@phosphor-icons/react/Copy";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { ChatsCircle } from "@phosphor-icons/react/ChatsCircle";
+import { Sparkle } from "@phosphor-icons/react/Sparkle";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
+import { useAuth } from "../../../../hooks/useAuth";
 import { trpc } from "../../../../lib/trpc";
 import {
   buildTree,
@@ -14,23 +19,25 @@ import {
 } from "../../../../lib/span-utils";
 import { SpanRow } from "../../../../components/trace-detail/SpanRow";
 import { SpanDetail } from "../../../../components/trace-detail/SpanDetail";
-import { TraceChat } from "../../../../components/trace-detail/TraceChat";
+import { TraceSummary } from "../../../../components/trace-detail/TraceSummary";
 
 import { fmtMs } from "../../../../components/trace-detail/helpers";
 import { usePageView } from "../../../../hooks/usePageView";
+
+const searchSchema = z.object({
+  span: z.string().optional(),
+  ask: z.string().optional(),
+});
 
 export const Route = createFileRoute(
   "/_authed/projects/$projectId/trace/$traceId",
 )({
   component: TraceDetailPage,
+  validateSearch: searchSchema,
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-// Clean view: collapse redundant inner spans emitted by frameworks (e.g. AI
-// SDK's doGenerate child that has the same name and type as the outer span).
-// The collapsed span's children are promoted to its parent level so the useful
-// structure (tool calls, nested agents) is preserved.
 function collapseTree(
   nodes: SpanNode[],
   parentType?: string,
@@ -55,15 +62,40 @@ function collapseTree(
   return result;
 }
 
+/** Build a map from span ID → parent span ID for fast ancestor lookups. */
+function buildParentMap(spans: SpanData[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const s of spans) {
+    if (s.parentSpanId) map.set(s.id, s.parentSpanId);
+  }
+  return map;
+}
+
+/** Walk up from spanId to root, collecting all ancestor IDs (including self). */
+function getAncestorIds(spanId: string, parentMap: Map<string, string>): Set<string> {
+  const ids = new Set<string>();
+  let current: string | undefined = spanId;
+  while (current) {
+    ids.add(current);
+    current = parentMap.get(current);
+  }
+  return ids;
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 function TraceDetailPage() {
   usePageView("trace_detail");
   const { projectId, traceId } = Route.useParams();
+  const { span: spanParam, ask: askParam } = Route.useSearch();
   const router = useRouter();
-  const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { isViewer } = useAuth();
+  const utils = trpc.useUtils();
   const [copied, setCopied] = useState(false);
-  const [leftTab, setLeftTab] = useState<"tree" | "chat">("tree");
+  const [forceExpandIds, setForceExpandIds] = useState<Set<string> | undefined>();
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const hasSummary = useRef(false);
   const [cleanView, setCleanView] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem("bc:clean-view");
@@ -84,9 +116,83 @@ function TraceDetailPage() {
   const trace = trpc.traces.get.useQuery({ projectId, traceId });
   const spans = trpc.traces.spans.useQuery({ projectId, traceId });
   const rawTree = spans.data ? buildTree(spans.data) : [];
-  const tree = cleanView ? collapseTree(rawTree) : rawTree;
+  const cleanTree = useMemo(() => collapseTree(rawTree), [rawTree]);
+  const cleanViewHasEffect = flattenTree(rawTree).length !== flattenTree(cleanTree).length;
+  const tree = cleanView ? cleanTree : rawTree;
 
-  // Compute trace-level summary from spans
+  const parentMap = useMemo(
+    () => (spans.data ? buildParentMap(spans.data) : new Map<string, string>()),
+    [spans.data],
+  );
+
+  // Derive selected span from URL (single source of truth)
+  const selectedSpan = useMemo(
+    () => (spanParam && spans.data ? spans.data.find((s) => s.id === spanParam) ?? null : null),
+    [spanParam, spans.data],
+  );
+
+  // Navigate to select/deselect a span — URL drives everything
+  const selectSpan = useCallback(
+    (span: SpanData | null) => {
+      void navigate({
+        search: (prev) => ({ ...prev, span: span?.id }),
+      });
+    },
+    [navigate],
+  );
+
+  // Expand ancestors and scroll into view when spanParam changes
+  useEffect(() => {
+    if (!spanParam || !spans.data) return;
+    const ancestors = getAncestorIds(spanParam, parentMap);
+    setForceExpandIds(ancestors);
+    requestAnimationFrame(() => {
+      const el = treeContainerRef.current?.querySelector(`[data-span-id="${spanParam}"]`);
+      el?.scrollIntoView({ behavior: "instant", block: "nearest" });
+    });
+  }, [spanParam, spans.data, parentMap]);
+
+  // ── Analysis ─────────────────────────────────────────────────────────────
+  const summary = trpc.traces.summary.useQuery(
+    { projectId, traceId },
+    {
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return status === "running" || status === "pending" ? 2000 : false;
+      },
+    },
+  );
+
+  // Track whether a summary exists so we can show "Back to analysis" on span detail
+  hasSummary.current = summary.data?.status === "done" && !!summary.data.markdown;
+
+  const analyzeMut = trpc.traces.analyze.useMutation({
+    onSuccess: () => {
+      utils.traces.summary.invalidate({ projectId, traceId });
+    },
+  });
+
+  // Auto-analyze on first view if the project setting is enabled
+  const project = trpc.projects.get.useQuery({ id: projectId });
+  const autoAnalyzeTriggered = useRef(false);
+
+  useEffect(() => {
+    if (autoAnalyzeTriggered.current) return;
+    if (isViewer) return;
+    if (!project.data?.autoAnalyze) return;
+    if (summary.isLoading) return;
+    if (summary.data) return;
+
+    autoAnalyzeTriggered.current = true;
+    analyzeMut.mutate({ projectId, traceId });
+  }, [project.data?.autoAnalyze, summary.isLoading, summary.data, isViewer, projectId, traceId]);
+
+  const isAnalyzing =
+    analyzeMut.isPending ||
+    summary.data?.status === "running" ||
+    summary.data?.status === "pending";
+
+  // ── Trace stats ──────────────────────────────────────────────────────────
   const totalCost = (spans.data ?? []).reduce(
     (s, sp) => s + sp.inputCostUsd + sp.outputCostUsd,
     0,
@@ -116,10 +222,19 @@ function TraceDetailPage() {
     });
   }
 
+  // When a span link in the summary is clicked, navigate to it (effect handles the rest)
+  const handleSummarySpanClick = useCallback(
+    (spanId: string) => {
+      const span = spans.data?.find((s) => s.id === spanId);
+      if (span) selectSpan(span);
+    },
+    [spans.data, selectSpan],
+  );
+
   return (
-    <div className="flex flex-col h-[calc(100vh-53px-41px)]">
+    <div className="flex flex-col h-[calc(100vh-101px)]">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-8 py-4 shrink-0 flex items-center gap-4">
+      <div className="px-4 sm:px-8 pt-6 pb-2 shrink-0 flex items-center gap-4">
         {/* Left: back + name + copy */}
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -142,51 +257,56 @@ function TraceDetailPage() {
           </button>
         </div>
 
-        {/* Right: stats */}
-        {spans.data && (
-          <div className="ml-auto flex items-center gap-3 text-[11px] text-zinc-500 shrink-0">
-            <span>{spans.data.length} spans</span>
-            {totalTokens > 0 && (
-              <span>{totalTokens.toLocaleString()} tokens</span>
-            )}
-            {totalCost > 0 && <span>{formatCost(totalCost)}</span>}
-            {traceMs > 0 && <span>{fmtMs(traceMs)}</span>}
-          </div>
-        )}
+        {/* Right: stats + analyze */}
+        <div className="ml-auto flex items-center gap-3 shrink-0">
+          {spans.data && (
+            <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+              <span>{spans.data.length} spans</span>
+              {totalTokens > 0 && (
+                <span>{totalTokens.toLocaleString()} tokens</span>
+              )}
+              {totalCost > 0 && <span>{formatCost(totalCost)}</span>}
+              {traceMs > 0 && <span>{fmtMs(traceMs)}</span>}
+            </div>
+          )}
+
+          {!isViewer && spans.data && spans.data.length > 0 && summary.data?.status !== "done" && !isAnalyzing && (
+            <button
+              onClick={() => analyzeMut.mutate({ projectId, traceId })}
+              className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 transition-colors"
+            >
+              <Sparkle size={12} />
+              Analyze
+            </button>
+          )}
+          {isAnalyzing && (
+            <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+              <CircleNotch size={12} className="animate-spin" />
+              Analyzing...
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ── Body ── */}
-      <div className="px-4 sm:px-8 pb-4 pt-2 flex-1 min-h-0 overflow-y-auto sm:overflow-visible">
+      <div className="px-4 sm:px-8 pb-4 pt-2 flex-1 min-h-0 overflow-hidden">
         {spans.isLoading ? (
-          <div className="flex items-center justify-center h-full text-sm text-zinc-600">
+          <div className="flex items-center justify-center h-full text-sm text-zinc-500">
             Loading…
           </div>
         ) : !tree.length ? (
-          <div className="flex items-center justify-center h-full text-sm text-zinc-600">
+          <div className="flex items-center justify-center h-full text-sm text-zinc-500">
             No spans recorded
           </div>
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:h-full sm:overflow-hidden">
-            {/* Span list / Chat */}
-            <div className="flex flex-col rounded-lg border border-zinc-800 sm:w-[420px] sm:shrink-0 sm:overflow-hidden">
-              {/* Header with tab toggle */}
+          <div className="flex flex-col sm:flex-row sm:h-full sm:overflow-hidden rounded-lg border border-zinc-800">
+            {/* Span tree */}
+            <div className="flex flex-col sm:w-[420px] sm:shrink-0 sm:overflow-hidden border-b sm:border-b-0 sm:border-r border-zinc-800">
               <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 shrink-0">
-                <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-md p-0.5 gap-0.5">
-                  {(["tree", "chat"] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setLeftTab(t)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
-                        leftTab === t
-                          ? "bg-zinc-800 text-zinc-100"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      {t === "tree" ? "Tree" : "Chat"}
-                    </button>
-                  ))}
-                </div>
-                {leftTab === "tree" && (
+                <span className="text-[11px] font-medium text-zinc-400">
+                  Spans
+                </span>
+                {cleanViewHasEffect && (
                   <button
                     onClick={toggleCleanView}
                     className={`text-[11px] font-medium px-2 py-1 rounded transition-colors ${
@@ -200,29 +320,81 @@ function TraceDetailPage() {
                 )}
               </div>
 
-              {leftTab === "tree" ? (
-                <div className="flex-1 overflow-y-auto">
-                  {tree.map((node) => (
-                    <SpanRow
-                      key={node.id}
-                      node={node}
-                      depth={0}
-                      selectedId={selectedSpan?.id ?? null}
-                      onSelect={setSelectedSpan}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <TraceChat traceId={traceId} />
-              )}
+              <div ref={treeContainerRef} className="flex-1 overflow-y-auto">
+                {tree.map((node) => (
+                  <SpanRow
+                    key={node.id}
+                    node={node}
+                    depth={0}
+                    selectedId={selectedSpan?.id ?? null}
+                    onSelect={selectSpan}
+                    forceExpandIds={forceExpandIds}
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Span detail */}
-            <div className="rounded-lg border border-zinc-800 sm:flex-1 sm:overflow-hidden bg-zinc-950">
+            {/* Right panel: span detail / summary / empty */}
+            <div className="sm:flex-1 sm:overflow-hidden bg-zinc-950">
               {selectedSpan ? (
-                <SpanDetail span={selectedSpan} />
+                <div className="h-full flex flex-col overflow-hidden">
+                  {hasSummary.current && (
+                    <div className="px-5 py-2 border-b border-zinc-800/60 shrink-0">
+                      <button
+                        onClick={() => selectSpan(null)}
+                        className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                      >
+                        <ArrowLeft size={11} />
+                        Back to analysis
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-hidden">
+                    <SpanDetail
+                      span={selectedSpan}
+                      onAsk={!isViewer && hasSummary.current ? () => {
+                        void navigate({
+                          search: (prev) => ({
+                            ...prev,
+                            span: undefined,
+                            ask: `[Span ${selectedSpan.id}: ${selectedSpan.name}] `,
+                          }),
+                        });
+                      } : undefined}
+                    />
+                  </div>
+                </div>
+              ) : summary.data?.status === "done" && summary.data.markdown ? (
+                <TraceSummary
+                  markdown={summary.data.markdown}
+                  onSpanClick={handleSummarySpanClick}
+                  projectId={projectId}
+                  traceId={traceId}
+                  isViewer={isViewer}
+                  prefillAsk={askParam}
+                  onClearAsk={() => {
+                    void navigate({
+                      search: (prev) => ({ ...prev, ask: undefined }),
+                      replace: true,
+                    });
+                  }}
+                />
+              ) : isAnalyzing ? (
+                <div className="flex flex-col items-center justify-center py-10 sm:py-0 sm:h-full gap-2">
+                  <CircleNotch size={20} className="animate-spin text-zinc-500" />
+                  <span className="text-xs text-zinc-500">Analyzing trace...</span>
+                </div>
+              ) : summary.data?.status === "error" ? (
+                <div className="flex flex-col items-center justify-center py-10 sm:py-0 sm:h-full gap-2 px-6 text-center">
+                  <p className="text-xs text-red-400">Analysis failed</p>
+                  {summary.data.errorMessage && (
+                    <p className="text-xs text-zinc-500 max-w-sm">
+                      {summary.data.errorMessage}
+                    </p>
+                  )}
+                </div>
               ) : (
-                <div className="flex items-center justify-center py-10 sm:py-0 sm:h-full text-xs text-zinc-600">
+                <div className="flex items-center justify-center py-10 sm:py-0 sm:h-full text-xs text-zinc-500">
                   Select a span to view details
                 </div>
               )}

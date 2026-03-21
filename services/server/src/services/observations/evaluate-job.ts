@@ -109,7 +109,7 @@ WORKFLOW:
 1. Query this trace's spans first:
    SELECT * FROM breadcrumb.spans WHERE project_id={projectId:UUID} AND trace_id='${traceId}' ORDER BY start_time
 
-2. Analyse what you see. Look for:
+2. Analyse the application-level AI behavior. Look for:
    - Prompt quality issues (vague instructions, missing context, no output constraints)
    - Repeated or looping tool calls
    - Model refusals or unexpected errors
@@ -117,6 +117,7 @@ WORKFLOW:
    - High or wasteful token usage (bloated system prompts, redundant context)
    - Opportunities to cache repeated prompts or reduce calls
    - Poor reasoning steps or inefficient agent paths
+   Do NOT flag telemetry/instrumentation concerns like how tokens are reported across parent vs child spans, or span hierarchy structure — these are internal SDK details, not application issues.
 
 3. For any issue you find, use run_query to check how many other traces have the same pattern (omit the trace_id filter). Include the recurrence count in the finding description — e.g. "Seen in 7 of the last 20 traces."
 

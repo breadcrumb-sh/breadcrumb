@@ -8,7 +8,9 @@
     "sdk-error": "tsx scripts/03-sdk-error.ts",
     "ai-sdk-simple": "tsx scripts/04-ai-sdk-simple.ts",
     "ai-sdk-complex": "tsx scripts/05-ai-sdk-complex.ts",
+    "sdk-huge-trace": "tsx scripts/06-sdk-huge-trace.ts",
     "run-many": "tsx scripts/run-many.ts",
+    "test": "node --test --import tsx scripts/**/*.test.ts",
     "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\""
   },
   "dependencies": {

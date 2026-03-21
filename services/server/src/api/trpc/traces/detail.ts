@@ -1,11 +1,20 @@
 import { z } from "zod";
-import { router, orgViewerProcedure } from "../../../trpc.js";
+import { eq, and } from "drizzle-orm";
+import { router, orgViewerProcedure, orgMemberProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
+import { db } from "../../../shared/db/postgres.js";
+import { traceSummaries } from "../../../shared/db/schema.js";
 import { toStr } from "../../../services/traces/helpers.js";
+import { analyzeTrace } from "../../../services/traces/analyze.js";
+
+const traceIdInput = z.object({
+  projectId: z.string().uuid(),
+  traceId: z.string().regex(/^[0-9a-f]{32}$/, "trace id must be 32-char hex"),
+});
 
 export const detailRouter = router({
   get: orgViewerProcedure
-    .input(z.object({ projectId: z.string().uuid(), traceId: z.string().regex(/^[0-9a-f]{32}$/, "trace id must be 32-char hex") }))
+    .input(traceIdInput)
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
         query: `
@@ -30,7 +39,7 @@ export const detailRouter = router({
     }),
 
   spans: orgViewerProcedure
-    .input(z.object({ projectId: z.string().uuid(), traceId: z.string().regex(/^[0-9a-f]{32}$/, "trace id must be 32-char hex") }))
+    .input(traceIdInput)
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
         query: `
@@ -69,5 +78,80 @@ export const detailRouter = router({
         output:        toStr(r["output"]),
         metadata:      toStr(r["metadata"]),
       }));
+    }),
+
+  // ── Trace summary (analysis) ───────────────────────────────────────────
+
+  summary: orgViewerProcedure
+    .input(traceIdInput)
+    .query(async ({ input }) => {
+      const [row] = await db
+        .select()
+        .from(traceSummaries)
+        .where(
+          and(
+            eq(traceSummaries.projectId, input.projectId),
+            eq(traceSummaries.traceId, input.traceId),
+          ),
+        );
+      if (!row) return null;
+      return {
+        id: row.id,
+        markdown: row.markdown,
+        status: row.status as "pending" | "running" | "done" | "error",
+        errorMessage: row.errorMessage,
+        updatedAt: row.updatedAt,
+      };
+    }),
+
+  analyze: orgMemberProcedure
+    .input(
+      traceIdInput.extend({
+        force: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      // Check for existing summary
+      const [existing] = await db
+        .select()
+        .from(traceSummaries)
+        .where(
+          and(
+            eq(traceSummaries.projectId, input.projectId),
+            eq(traceSummaries.traceId, input.traceId),
+          ),
+        );
+
+      if (existing && existing.status === "running") {
+        return { id: existing.id, status: "running" as const };
+      }
+      if (existing && existing.status === "done" && !input.force) {
+        return { id: existing.id, status: "done" as const };
+      }
+
+      // Upsert a row in pending/running state
+      const [row] = await db
+        .insert(traceSummaries)
+        .values({
+          projectId: input.projectId,
+          traceId: input.traceId,
+          markdown: "",
+          status: "running",
+        })
+        .onConflictDoUpdate({
+          target: [traceSummaries.projectId, traceSummaries.traceId],
+          set: {
+            status: "running",
+            markdown: "",
+            errorMessage: null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      // Fire and forget — the analysis function updates the row when done
+      analyzeTrace(input.projectId, input.traceId).catch(() => {});
+
+      return { id: row.id, status: "running" as const };
     }),
 });

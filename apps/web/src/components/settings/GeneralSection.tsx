@@ -23,10 +23,17 @@ export function GeneralSection({
       utils.projects.get.invalidate({ id: projectId });
     },
   });
+  const setAutoAnalyzeMut = trpc.projects.setAutoAnalyze.useMutation({
+    onSuccess: () => {
+      utils.projects.list.invalidate();
+      utils.projects.get.invalidate({ id: projectId });
+    },
+  });
 
   const current = project.data?.find((p) => p.id === projectId);
   const [name, setName] = useState(current?.name ?? "");
   const [timezone, setTimezone] = useState(current?.timezone ?? "UTC");
+  const [autoAnalyze, setAutoAnalyze] = useState(current?.autoAnalyze ?? false);
 
   useEffect(() => {
     if (current?.name !== undefined) setName(current.name);
@@ -35,6 +42,10 @@ export function GeneralSection({
   useEffect(() => {
     if (current?.timezone !== undefined) setTimezone(current.timezone);
   }, [current?.timezone]);
+
+  useEffect(() => {
+    if (current?.autoAnalyze !== undefined) setAutoAnalyze(current.autoAnalyze);
+  }, [current?.autoAnalyze]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +56,16 @@ export function GeneralSection({
     if (timezone !== current?.timezone) {
       promises.push(updateTimezone.mutateAsync({ id: projectId, timezone }));
     }
+    if (autoAnalyze !== current?.autoAnalyze) {
+      promises.push(setAutoAnalyzeMut.mutateAsync({ id: projectId, autoAnalyze }));
+    }
     await Promise.all(promises);
   };
 
-  const isDirty = name !== current?.name || timezone !== current?.timezone;
+  const isDirty =
+    name !== current?.name ||
+    timezone !== current?.timezone ||
+    autoAnalyze !== current?.autoAnalyze;
 
   return (
     <section className="space-y-6 max-w-md">
@@ -76,9 +93,27 @@ export function GeneralSection({
             </p>
             <TimezoneSelect value={timezone} onChange={setTimezone} />
           </div>
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoAnalyze}
+                onChange={(e) => setAutoAnalyze(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-zinc-100 accent-zinc-100"
+              />
+              <div>
+                <span className="block text-sm font-medium text-zinc-300">
+                  Auto-analyze traces
+                </span>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Automatically generate an AI summary when viewing a trace for the first time. Requires an AI provider to be configured.
+                </p>
+              </div>
+            </label>
+          </div>
           <button
             type="submit"
-            disabled={!canRename || rename.isPending || updateTimezone.isPending || !isDirty}
+            disabled={!canRename || rename.isPending || updateTimezone.isPending || setAutoAnalyzeMut.isPending || !isDirty}
             className="rounded-md bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50"
           >
             Save

@@ -92,20 +92,25 @@ export function streamChartGeneration({
   messages,
   projectId,
   abortSignal,
+  traceContext,
   onChartUpdate,
 }: {
   model: LanguageModel;
   messages: ModelMessage[];
   projectId: string;
   abortSignal?: AbortSignal;
+  traceContext?: string;
   onChartUpdate?: (spec: ChartSpec, data: Record<string, unknown>[]) => void;
 }) {
   const tzPromise = getProjectTimezone(projectId);
+  const systemPrompt = traceContext
+    ? `${SYSTEM_PROMPT}\n\n${traceContext}`
+    : SYSTEM_PROMPT;
 
   return streamText({
     abortSignal,
     model,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     messages,
     stopWhen: stepCountIs(10),
     tools: {

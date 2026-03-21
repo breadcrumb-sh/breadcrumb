@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProcedure, checkOrgRole } from "../../trpc.js";
 import { env } from "../../env.js";
@@ -51,11 +51,28 @@ export const exploresRouter = router({
       return explore;
     }),
 
+  getByTraceId: orgViewerProcedure
+    .input(z.object({ projectId: z.string(), traceId: z.string() }))
+    .query(async ({ input }) => {
+      const [explore] = await db
+        .select()
+        .from(explores)
+        .where(
+          and(
+            eq(explores.projectId, input.projectId),
+            eq(explores.traceId, input.traceId),
+          ),
+        );
+      return explore ?? null;
+    }),
+
   create: orgMemberProcedure
     .input(
       z.object({
         projectId: z.string(),
         name: z.string().min(1).max(255).optional(),
+        traceId: z.string().optional(),
+        initialMessages: z.array(z.any()).optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -64,6 +81,8 @@ export const exploresRouter = router({
         .values({
           projectId: input.projectId,
           name: input.name ?? "New chat",
+          traceId: input.traceId,
+          ...(input.initialMessages ? { messages: input.initialMessages } : {}),
         })
         .returning();
       return explore;

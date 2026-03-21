@@ -56,7 +56,7 @@ export const listRouter = router({
         WHERE project_id = {projectId: UUID} AND model IN {models: Array(String)}
       )`);                                           params.models = input.models; }
 
-      let searchMode: "ai" | "text" | null = null;
+      let searchMode: "ai" | "text" | null = null as "ai" | "text" | null;
       let aiError: string | null = null;
       if (input.query) {
         try {

@@ -81,6 +81,7 @@ export const organization = pgTable("organization", {
   createdAt: timestamp("created_at").notNull(),
   metadata: text("metadata"),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
+  autoAnalyze: boolean("auto_analyze").notNull().default(false),
 });
 
 export const member = pgTable(
@@ -171,11 +172,15 @@ export const explores = pgTable("explores", {
     .notNull()
     .references(() => organization.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
+  traceId: text("trace_id"),
   messages: jsonb("messages").default([]).notNull(), // AI SDK CoreMessage[]
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 },
-  (t) => [index("explores_project_id_idx").on(t.projectId)],
+  (t) => [
+    index("explores_project_id_idx").on(t.projectId),
+    index("explores_trace_id_idx").on(t.traceId),
+  ],
 );
 
 export const observations = pgTable(
@@ -231,6 +236,26 @@ export const observationFindings = pgTable(
   (t) => [
     index("findings_project_id_idx").on(t.projectId),
     index("findings_observation_id_idx").on(t.observationId),
+  ],
+);
+
+export const traceSummaries = pgTable(
+  "trace_summaries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    traceId: text("trace_id").notNull(),
+    markdown: text("markdown").notNull().default(""),
+    status: varchar("status", { length: 16 }).notNull().default("pending"), // pending | running | done | error
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    unique("trace_summaries_project_trace_unique").on(t.projectId, t.traceId),
+    index("trace_summaries_project_id_idx").on(t.projectId),
   ],
 );
 
