@@ -4,6 +4,7 @@ import { Brain } from "@phosphor-icons/react/Brain";
 import { Check } from "@phosphor-icons/react/Check";
 import { Eye } from "@phosphor-icons/react/Eye";
 import { Gear } from "@phosphor-icons/react/Gear";
+import { Lightbulb } from "@phosphor-icons/react/Lightbulb";
 import { Plus } from "@phosphor-icons/react/Plus";
 import { Trash } from "@phosphor-icons/react/Trash";
 import { X } from "@phosphor-icons/react/X";
@@ -20,18 +21,15 @@ const popupCls =
 
 const routeApi = getRouteApi("/_authed/projects/$projectId/traces");
 
-const IMPACT_STYLES = {
+const IMPACT_CONFIG = {
   high: {
-    badge: "border-red-600/30 bg-red-500/10 text-red-400",
-    bar: "bg-red-500",
+    badge: "border-red-500/20 bg-red-500/10 text-red-400",
   },
   medium: {
-    badge: "border-amber-600/30 bg-amber-500/10 text-amber-400",
-    bar: "bg-amber-500",
+    badge: "border-amber-500/20 bg-amber-500/10 text-amber-400",
   },
   low: {
-    badge: "border-zinc-600 bg-zinc-800/50 text-zinc-400",
-    bar: "bg-zinc-500",
+    badge: "border-zinc-700 bg-zinc-800/60 text-zinc-400",
   },
 } as const;
 
@@ -50,16 +48,20 @@ export function ObservationsSection() {
   const [createOpen, setCreateOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const aiProvider = trpc.aiProviders.get.useQuery({ projectId }, {
-    enabled: authenticated,
-  });
+  const aiProvider = trpc.aiProviders.get.useQuery(
+    { projectId },
+    { enabled: authenticated },
+  );
   const list = trpc.observations.list.useQuery({ projectId });
-  const findings = trpc.observations["findings.listAll"].useQuery({ projectId });
+  const findings = trpc.observations["findings.listAll"].useQuery({
+    projectId,
+  });
   const markViewed = trpc.observations.markViewed.useMutation({
     onSuccess: () => utils.observations.unreadCount.invalidate({ projectId }),
   });
   const dismiss = trpc.observations["findings.dismiss"].useMutation({
-    onSuccess: () => utils.observations["findings.listAll"].invalidate({ projectId }),
+    onSuccess: () =>
+      utils.observations["findings.listAll"].invalidate({ projectId }),
   });
   const create = trpc.observations.create.useMutation({
     onSuccess: () => utils.observations.list.invalidate({ projectId }),
@@ -109,9 +111,12 @@ export function ObservationsSection() {
           <Brain size={22} className="text-zinc-500" />
         </div>
         <div className="space-y-1.5">
-          <h2 className="text-base font-medium text-zinc-200">AI provider not configured</h2>
+          <h2 className="text-base font-medium text-zinc-200">
+            AI provider not configured
+          </h2>
           <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
-            Set up an AI provider in your project settings to enable automatic trace observations.
+            Set up an AI provider in your project settings to enable automatic
+            trace observations.
           </p>
         </div>
         <Link
@@ -129,14 +134,38 @@ export function ObservationsSection() {
   const items = findings.data ?? [];
   const observations = list.data ?? [];
 
+  // Group findings by impact for the summary
+  const highCount = items.filter((f) => f.impact === "high").length;
+  const mediumCount = items.filter((f) => f.impact === "medium").length;
+  const lowCount = items.filter((f) => f.impact === "low").length;
+
   return (
     <>
-      {/* Header bar */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
           <p className="text-xs text-zinc-500">
-            AI monitors new traces against each observation and surfaces issues automatically.
+            AI monitors new traces and surfaces issues automatically.
           </p>
+          {items.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5">
+              {highCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400">
+                  {highCount} high
+                </span>
+              )}
+              {mediumCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border border-amber-500/20 bg-amber-500/10 text-amber-400">
+                  {mediumCount} medium
+                </span>
+              )}
+              {lowCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border border-zinc-700 bg-zinc-800/60 text-zinc-400">
+                  {lowCount} low
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={() => setSheetOpen(true)}
@@ -150,93 +179,23 @@ export function ObservationsSection() {
         </button>
       </div>
 
-      {/* Findings */}
+      {/* Findings list */}
       {items.length > 0 ? (
-        <div className="space-y-3">
-          {items.map((f) => {
-            const styles =
-              IMPACT_STYLES[f.impact as keyof typeof IMPACT_STYLES] ??
-              IMPACT_STYLES.low;
-
-            return (
-              <div
-                key={f.id}
-                className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden"
-              >
-                <div className={`h-0.5 ${styles.bar}`} />
-                <div className="px-5 pt-4 pb-4">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className={`mt-0.5 shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${styles.badge}`}
-                    >
-                      {f.impact}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-zinc-100 prose-finding">
-                        <ReactMarkdown>{f.title}</ReactMarkdown>
-                      </div>
-                      <div className="mt-0.5 text-xs text-zinc-400 prose-finding">
-                        <ReactMarkdown>{f.description}</ReactMarkdown>
-                      </div>
-                      {f.suggestion && (
-                        <div className="mt-2 text-xs text-zinc-500 pl-3 border-l border-zinc-700 italic prose-finding">
-                          <ReactMarkdown>{f.suggestion}</ReactMarkdown>
-                        </div>
-                      )}
-                      <div className="mt-3 flex items-center gap-3">
-                        <span className="text-[10px] text-zinc-600">{f.observationName ?? "Deleted observation"}</span>
-                        <Link
-                          to="/projects/$projectId/trace/$traceId"
-                          params={{ projectId, traceId: f.referenceTraceId }}
-                          className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors"
-                        >
-                          {f.referenceTraceId.slice(0, 16)}…
-                        </Link>
-                        <span className="text-[10px] text-zinc-700">
-                          {new Date(f.createdAt).toLocaleString(undefined, {
-                            month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-                          })}
-                        </span>
-                        <AlertDialog.Root>
-                          <AlertDialog.Trigger className="ml-auto text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
-                            Dismiss
-                          </AlertDialog.Trigger>
-                          <AlertDialog.Portal>
-                            <AlertDialog.Backdrop className={backdropCls} />
-                            <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
-                              <AlertDialog.Popup className={popupCls}>
-                                <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
-                                  Dismiss finding?
-                                </AlertDialog.Title>
-                                <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                                  This finding will be hidden. It won't affect future observations.
-                                </AlertDialog.Description>
-                                <div className="flex justify-end gap-2">
-                                  <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
-                                    Cancel
-                                  </AlertDialog.Close>
-                                  <AlertDialog.Close
-                                    onClick={() => dismiss.mutate({ projectId, id: f.id })}
-                                    className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors"
-                                  >
-                                    Dismiss
-                                  </AlertDialog.Close>
-                                </div>
-                              </AlertDialog.Popup>
-                            </AlertDialog.Viewport>
-                          </AlertDialog.Portal>
-                        </AlertDialog.Root>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-2">
+          {items.map((f) => (
+            <FindingCard
+              key={f.id}
+              finding={f}
+              projectId={projectId}
+              onDismiss={() => dismiss.mutate({ projectId, id: f.id })}
+            />
+          ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-          <Eye size={32} className="text-zinc-700" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-zinc-800 bg-zinc-900">
+            <Eye size={18} className="text-zinc-600" />
+          </div>
           <div>
             <p className="text-sm text-zinc-400">No findings yet</p>
             <p className="text-xs text-zinc-600 mt-1">
@@ -262,7 +221,9 @@ export function ObservationsSection() {
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-zinc-800">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">Manage observations</h2>
+            <h2 className="text-sm font-semibold text-zinc-100">
+              Manage observations
+            </h2>
             <p className="text-xs text-zinc-500 mt-0.5">
               Create and manage what the AI watches for.
             </p>
@@ -293,7 +254,8 @@ export function ObservationsSection() {
                         New observation
                       </Dialog.Title>
                       <Dialog.Description className="mt-0.5 text-sm text-zinc-400">
-                        Define what the AI should watch for across incoming traces.
+                        Define what the AI should watch for across incoming
+                        traces.
                       </Dialog.Description>
                     </div>
                     <Dialog.Close className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
@@ -321,7 +283,11 @@ export function ObservationsSection() {
                 projectId={projectId}
                 onDelete={() => remove.mutate({ projectId, id: obs.id })}
                 onToggle={() =>
-                  setEnabled.mutate({ projectId, id: obs.id, enabled: !obs.enabled })
+                  setEnabled.mutate({
+                    projectId,
+                    id: obs.id,
+                    enabled: !obs.enabled,
+                  })
                 }
               />
             ))}
@@ -338,6 +304,142 @@ export function ObservationsSection() {
         </div>
       </div>
     </>
+  );
+}
+
+/* ── Finding card ──────────────────────────────────────────── */
+
+type FindingData = {
+  id: string;
+  impact: string;
+  observationName: string | null;
+  referenceTraceId: string;
+  title: string;
+  description: string;
+  suggestion?: string | null;
+  dismissed: boolean;
+  createdAt: Date;
+};
+
+function FindingCard({
+  finding: f,
+  projectId,
+  onDismiss,
+}: {
+  finding: FindingData;
+  projectId: string;
+  onDismiss: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const config =
+    IMPACT_CONFIG[f.impact as keyof typeof IMPACT_CONFIG] ?? IMPACT_CONFIG.low;
+
+  const timeLabel = new Date(f.createdAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="group rounded-lg border border-zinc-800/80 bg-zinc-900/50">
+      <div className="px-4 py-4">
+        {/* Top row: impact + meta */}
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={`shrink-0 inline-flex items-center rounded-full border px-2 py-[2px] text-[10px] font-semibold leading-none uppercase tracking-wide ${config.badge}`}
+            >
+              {f.impact}
+            </span>
+            <span className="text-[11px] text-zinc-600 truncate">
+              {f.observationName ?? "Deleted observation"}
+            </span>
+          </div>
+          <span className="text-[11px] text-zinc-600 shrink-0 tabular-nums">
+            {timeLabel}
+          </span>
+        </div>
+
+        {/* Title */}
+        <div className="text-[13px] font-medium text-zinc-100 leading-snug prose-finding">
+          <ReactMarkdown>{f.title}</ReactMarkdown>
+        </div>
+
+        {/* Description — truncated with show more/less */}
+        <div
+          className={`mt-1.5 text-xs text-zinc-400 leading-relaxed prose-finding ${
+            !expanded ? "line-clamp-2" : ""
+          }`}
+        >
+          <ReactMarkdown>{f.description}</ReactMarkdown>
+        </div>
+        {f.description.length > 120 && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            {expanded ? "show less" : "show more"}
+          </button>
+        )}
+
+        {/* Suggested fix — always visible */}
+        {f.suggestion && (
+          <div className="mt-3 flex gap-2 rounded-md bg-zinc-800/40 px-3 py-2.5">
+            <Lightbulb
+              size={14}
+              weight="duotone"
+              className="text-amber-500/70 shrink-0 mt-0.5"
+            />
+            <div className="text-xs text-zinc-400 leading-relaxed prose-finding">
+              <ReactMarkdown>{f.suggestion}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-3 flex items-center justify-between">
+          <Link
+            to="/projects/$projectId/trace/$traceId"
+            params={{ projectId, traceId: f.referenceTraceId }}
+            className="text-[11px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            {f.referenceTraceId.slice(0, 16)}…
+          </Link>
+
+          <AlertDialog.Root>
+            <AlertDialog.Trigger className="text-[11px] text-zinc-600 hover:text-zinc-300 transition-colors opacity-0 group-hover:opacity-100">
+              Dismiss
+            </AlertDialog.Trigger>
+            <AlertDialog.Portal>
+              <AlertDialog.Backdrop className={backdropCls} />
+              <AlertDialog.Viewport className="fixed inset-0 z-50 grid place-items-center px-4">
+                <AlertDialog.Popup className={popupCls}>
+                  <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
+                    Dismiss finding?
+                  </AlertDialog.Title>
+                  <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
+                    This finding will be hidden. It won't affect future
+                    observations.
+                  </AlertDialog.Description>
+                  <div className="flex justify-end gap-2">
+                    <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
+                      Cancel
+                    </AlertDialog.Close>
+                    <AlertDialog.Close
+                      onClick={onDismiss}
+                      className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors"
+                    >
+                      Dismiss
+                    </AlertDialog.Close>
+                  </div>
+                </AlertDialog.Popup>
+              </AlertDialog.Viewport>
+            </AlertDialog.Portal>
+          </AlertDialog.Root>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -377,7 +479,9 @@ function ObservationRow({
     <div className="flex items-start justify-between px-4 py-3 gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-zinc-100 truncate">{obs.name}</p>
+          <p className="text-sm font-medium text-zinc-100 truncate">
+            {obs.name}
+          </p>
           <span
             className={`shrink-0 inline-flex items-center rounded border px-1.5 py-[2px] text-[10px] font-medium leading-none ${
               obs.enabled
@@ -399,7 +503,10 @@ function ObservationRow({
                 </span>
               ))}
               {(obs.traceNames ?? []).length > 3 && (
-                <span className="text-zinc-600"> +{(obs.traceNames ?? []).length - 3} more</span>
+                <span className="text-zinc-600">
+                  {" "}
+                  +{(obs.traceNames ?? []).length - 3} more
+                </span>
               )}
             </p>
           ) : (
@@ -429,7 +536,9 @@ function ObservationRow({
           )}
         </div>
         {obs.heuristics && (
-          <p className="text-xs text-zinc-600 mt-1 line-clamp-1">{obs.heuristics}</p>
+          <p className="text-xs text-zinc-600 mt-1 line-clamp-1">
+            {obs.heuristics}
+          </p>
         )}
       </div>
 
@@ -454,7 +563,8 @@ function ObservationRow({
                   Delete observation?
                 </AlertDialog.Title>
                 <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                  <span className="text-zinc-300">{obs.name}</span> will stop monitoring new traces.
+                  <span className="text-zinc-300">{obs.name}</span> will stop
+                  monitoring new traces.
                 </AlertDialog.Description>
                 <div className="flex justify-end gap-2">
                   <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
@@ -502,7 +612,9 @@ function ObservationForm({
   const availableNames = trpc.traces.names.useQuery({ projectId });
 
   const filtered = (availableNames.data ?? []).filter(
-    (n) => n.toLowerCase().includes(filter.toLowerCase()) && !traceNames.includes(n),
+    (n) =>
+      n.toLowerCase().includes(filter.toLowerCase()) &&
+      !traceNames.includes(n),
   );
 
   const toggle = (n: string) => {
@@ -511,12 +623,16 @@ function ObservationForm({
     );
   };
 
-  const removeTrace = (n: string) => setTraceNames((prev) => prev.filter((x) => x !== n));
+  const removeTrace = (n: string) =>
+    setTraceNames((prev) => prev.filter((x) => x !== n));
 
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
         setFilter("");
       }
@@ -528,7 +644,13 @@ function ObservationForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedLimit = traceLimit ? parseInt(traceLimit, 10) : null;
-    onSubmit({ name, traceNames, samplingRate, traceLimit: parsedLimit, heuristics });
+    onSubmit({
+      name,
+      traceNames,
+      samplingRate,
+      traceLimit: parsedLimit,
+      heuristics,
+    });
   };
 
   return (
@@ -589,16 +711,27 @@ function ObservationForm({
             }}
             className="flex items-center justify-between w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-left transition-colors hover:border-zinc-600 focus:outline-none focus:border-zinc-500"
           >
-            <span className={traceNames.length === 0 ? "text-zinc-500" : "text-zinc-100"}>
+            <span
+              className={
+                traceNames.length === 0 ? "text-zinc-500" : "text-zinc-100"
+              }
+            >
               {traceNames.length === 0
                 ? "Select traces…"
                 : `${traceNames.length} selected`}
             </span>
             <svg
               className={`w-4 h-4 text-zinc-500 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -616,10 +749,14 @@ function ObservationForm({
               </div>
               <ul className="max-h-48 overflow-y-auto py-1">
                 {availableNames.isLoading && (
-                  <li className="px-3 py-2 text-xs text-zinc-500">Loading…</li>
+                  <li className="px-3 py-2 text-xs text-zinc-500">
+                    Loading…
+                  </li>
                 )}
                 {!availableNames.isLoading && filtered.length === 0 && (
-                  <li className="px-3 py-2 text-xs text-zinc-500">No traces found.</li>
+                  <li className="px-3 py-2 text-xs text-zinc-500">
+                    No traces found.
+                  </li>
                 )}
                 {filtered.map((n) => (
                   <li key={n}>
@@ -636,10 +773,16 @@ function ObservationForm({
                         }`}
                       >
                         {traceNames.includes(n) && (
-                          <Check size={10} weight="bold" className="text-zinc-900" />
+                          <Check
+                            size={10}
+                            weight="bold"
+                            className="text-zinc-900"
+                          />
                         )}
                       </span>
-                      <span className="font-mono text-zinc-200 truncate">{n}</span>
+                      <span className="font-mono text-zinc-200 truncate">
+                        {n}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -655,7 +798,9 @@ function ObservationForm({
           <label className="text-sm font-medium text-zinc-300">
             Sampling rate
           </label>
-          <span className="text-sm font-mono text-zinc-400">{samplingRate}%</span>
+          <span className="text-sm font-mono text-zinc-400">
+            {samplingRate}%
+          </span>
         </div>
         <p className="text-xs text-zinc-500 mb-2">
           Percentage of matching traces the AI will analyze.
@@ -682,7 +827,8 @@ function ObservationForm({
           <span className="text-zinc-500 font-normal">(optional)</span>
         </label>
         <p className="text-xs text-zinc-500 mb-1.5">
-          Automatically pause this observation after evaluating this many traces.
+          Automatically pause this observation after evaluating this many
+          traces.
         </p>
         <div className="flex items-center gap-2">
           <input
@@ -704,7 +850,8 @@ function ObservationForm({
           <span className="text-zinc-500 font-normal">(optional)</span>
         </label>
         <p className="text-xs text-zinc-500 mb-1.5">
-          Describe what to look for. Supports markdown. The AI uses this as guidance.
+          Describe what to look for. Supports markdown. The AI uses this as
+          guidance.
         </p>
         <textarea
           value={heuristics}
