@@ -6,8 +6,8 @@ import {
   type Span as OtelSpan,
 } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
-import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import {
+  BasicTracerProvider,
   SimpleSpanProcessor,
   BatchSpanProcessor,
   type SpanProcessor,
@@ -31,7 +31,7 @@ export interface InitOptions {
 
 // Track the active provider so we can clean up on re-init and avoid
 // accumulating process exit handlers.
-let activeProvider: NodeTracerProvider | null = null;
+let activeProvider: BasicTracerProvider | null = null;
 let exitHandlerRegistered = false;
 let contextManagerRegistered = false;
 
@@ -96,7 +96,7 @@ export function init(options: InitOptions): Breadcrumb {
     forceFlush() { return Promise.resolve(); },
   };
 
-  const provider = new NodeTracerProvider({
+  const provider = new BasicTracerProvider({
     spanProcessors: [trackingProcessor, exportProcessor],
   });
   // Intentionally NOT calling provider.register() — we keep this provider

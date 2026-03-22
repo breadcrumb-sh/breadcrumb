@@ -23,11 +23,12 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^1.26.0",
     "@opentelemetry/core": "^1.26.0",
-    "@opentelemetry/sdk-trace-base": "^1.26.0",
-    "@opentelemetry/sdk-trace-node": "^1.26.0"
+    "@opentelemetry/sdk-trace-base": "^1.26.0"
   },
   "devDependencies": {
+    "@opentelemetry/sdk-trace-node": "^1.26.0",
     "tsdown": "^0.21.3",
     "typescript": "^5.7",
     "vitest": "^3"

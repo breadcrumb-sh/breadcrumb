@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from "vitest";
 import { trace as traceApi, context as contextApi, propagation } from "@opentelemetry/api";
-import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { SimpleSpanProcessor, BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import { init, createBreadcrumbSpanProcessor } from "../index.js";
@@ -817,5 +817,24 @@ describe("createBreadcrumbSpanProcessor()", () => {
     expect(lfNames).toContain("ai.generateText");
 
     await sharedProvider.shutdown();
+  });
+});
+
+// ── Bundler compatibility ───────────────────────────────────────────────────
+
+describe("Bundler compatibility", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeAll(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  it("__provider is a BasicTracerProvider, not NodeTracerProvider (no sdk-trace-node dep)", () => {
+    const bc = init({ apiKey: "sk-test", baseUrl: "http://localhost:3100", batching: false });
+    // The SDK should use BasicTracerProvider to avoid pulling in
+    // @opentelemetry/sdk-trace-node and its transitive context-async-hooks dep.
+    expect(bc.__provider).toBeInstanceOf(BasicTracerProvider);
+    expect(bc.__provider).not.toBeInstanceOf(NodeTracerProvider);
   });
 });
