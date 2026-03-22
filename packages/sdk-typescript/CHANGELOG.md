@@ -1,5 +1,12 @@
 # @breadcrumb/sdk
 
+## 0.0.8
+
+### Patch Changes
+
+- 967db01: fix issue where tokens are counted twice on ai-sdk traces
+- eba9429: optional node dependencies
+
 ## 0.0.7
 
 ### Patch Changes
