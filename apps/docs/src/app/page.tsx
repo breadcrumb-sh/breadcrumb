@@ -50,10 +50,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-row items-center gap-8">
-              <a href="https://www.producthunt.com/products/breadcrumb-2?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-breadcrumb-3" target="_blank" rel="noopener noreferrer"><img alt="Breadcrumb - Simple, open-source LLM tracing | Product Hunt" width="180" height="30" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1107414&amp;theme=dark&amp;t=1774508384735"></img></a>
               <Link
                 href="/docs/introduction"
-                className="font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg hidden md:block"
+                className="font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg"
               >
                 Docs
               </Link>
@@ -71,12 +70,14 @@ export default function Home() {
               and built to explore your traces, not just store them.
             </p>
             <div className="flex w-full gap-3 sm:w-auto">
-              <Link
-                href="/docs/introduction"
+              <a
+                href="https://tally.so/r/A7xjRB"
+                target="_blank"
+                rel="noreferrer"
                 className="inline-flex flex-1 shrink-0 items-center justify-center gap-3 whitespace-nowrap bg-fg px-12 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial"
               >
                 Get Started
-              </Link>
+              </a>
               <a
                 href="https://demo.breadcrumb.sh"
                 target="_blank"
