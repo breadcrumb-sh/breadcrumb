@@ -87,7 +87,7 @@ export default function Home() {
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 shrink-0 items-center justify-center gap-3 whitespace-nowrap bg-fg px-12 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap bg-fg px-8 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial sm:px-12"
               >
                 Get Early Access
               </a>
@@ -95,7 +95,7 @@ export default function Home() {
                 href="https://demo.breadcrumb.sh"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex flex-1 shrink-0 items-center justify-center gap-3 whitespace-nowrap border border-current px-14 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap border border-current px-8 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial sm:px-14"
               >
                 Try the Demo
               </a>
@@ -280,12 +280,12 @@ export default function Home() {
             <p className="mb-7 max-w-[340px] text-[13px] leading-[1.75] text-fg-2">
               Install the SDK, add three lines, and see your first trace.
             </p>
-            <div className="flex flex-row gap-4 h-fit">
+            <div className="flex flex-row items-center gap-4 h-fit">
               <a
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="items-center gap-3 bg-fg px-12 py-3 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
+                className="items-center gap-3 bg-fg px-12 py-2.5 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
               >
                 Get Early Access
               </a>
