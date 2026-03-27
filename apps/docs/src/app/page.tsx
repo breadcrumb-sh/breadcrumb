@@ -63,7 +63,7 @@ export default function Home() {
         <section className="border-b border-border">
           <div className="marketing-inner pb-14 pt-14 sm:pb-20 sm:pt-20">
             <h1 className="mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
-              Simple, open-source LLM tracing
+              Open-source LLM tracing for agent visibility
             </h1>
             <p className="mb-8 max-w-[430px] text-[14px] leading-[1.75] text-fg-2 sm:text-[15px]">
               Like Plausible, but for your AI agents. Self-hostable, TypeScript-native,
