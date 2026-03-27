@@ -76,7 +76,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="inline-flex flex-1 shrink-0 items-center justify-center gap-3 whitespace-nowrap bg-fg px-12 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial"
               >
-                Get Started
+                Get Early Access
               </a>
               <a
                 href="https://demo.breadcrumb.sh"
