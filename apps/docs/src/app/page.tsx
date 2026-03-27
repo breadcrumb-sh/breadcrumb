@@ -52,10 +52,23 @@ export default function Home() {
             <div className="flex flex-row items-center gap-8">
               <Link
                 href="/docs/introduction"
-                className="font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg"
+                className="hidden font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg sm:block"
               >
                 Docs
               </Link>
+              <a
+                href="https://www.producthunt.com/products/breadcrumb-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-breadcrumb-3"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1107414&theme=dark&t=1774619256689"
+                  alt="Breadcrumb - Open-source LLM tracing for agent visibility | Product Hunt"
+                  width="250"
+                  height="54"
+                  className="h-8 w-auto sm:h-9"
+                />
+              </a>
             </div>
           </div>
         </nav>
@@ -66,8 +79,8 @@ export default function Home() {
               Open-source LLM tracing for agent visibility
             </h1>
             <p className="mb-8 max-w-[430px] text-[14px] leading-[1.75] text-fg-2 sm:text-[15px]">
-              Like Plausible, but for your AI agents. Self-hostable, TypeScript-native,
-              and built to explore your traces, not just store them.
+              Like Plausible, but for your AI agents. Stop guessing why your agent
+              failed - trace every prompt, response, and token.
             </p>
             <div className="flex w-full gap-3 sm:w-auto">
               <a
@@ -84,7 +97,7 @@ export default function Home() {
                 rel="noreferrer"
                 className="inline-flex flex-1 shrink-0 items-center justify-center gap-3 whitespace-nowrap border border-current px-14 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial"
               >
-                Try demo
+                Try the Demo
               </a>
             </div>
           </div>
@@ -268,12 +281,14 @@ export default function Home() {
               Install the SDK, add three lines, and see your first trace.
             </p>
             <div className="flex flex-row gap-4 h-fit">
-              <Link
-                href="/docs/introduction"
-                className="items-center gap-3 bg-fg px-12 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
+              <a
+                href="https://tally.so/r/A7xjRB"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="items-center gap-3 bg-fg px-12 py-3 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
               >
-                Read the docs
-              </Link>
+                Get Early Access
+              </a>
               <a target="_blank" href="https://railway.com/deploy/breadcrumb?referralCode=9MtPO4&utm_medium=integration&utm_source=template&utm_campaign=generic">
                 <img src="https://railway.com/button.svg"></img>
               </a>

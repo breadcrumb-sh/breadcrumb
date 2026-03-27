@@ -23,12 +23,12 @@ function AuthedLayout() {
         <div className="demo-banner border-b px-4 py-3.5 text-center text-sm text-pretty leading-relaxed">
           You're viewing the Breadcrumb demo.{" "}
           <a
-            href="https://breadcrumb.sh/docs/setup/hosted"
+            href="https://tally.so/r/A7xjRB"
             target="_blank"
             rel="noopener noreferrer"
             className="demo-banner-link underline underline-offset-2 font-medium transition-colors"
           >
-            Sign up for hosted access
+            Get early access
           </a>
         </div>
       )}
