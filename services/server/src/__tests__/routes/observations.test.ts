@@ -60,18 +60,6 @@ vi.mock("../../services/explore/ai-provider.js", () => ({
   getAiModel: vi.fn(),
 }));
 
-vi.mock("../../services/explore/query-writer.js", () => ({
-  writeSearchQuery: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation-manager.js", () => ({
-  getGeneration: vi.fn().mockReturnValue(null),
-  subscribeGeneration: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation.js", () => ({
-  runGeneration: vi.fn(),
-}));
 
 vi.mock("../../shared/lib/sandboxed-query.js", () => ({
   runSandboxedQuery: vi.fn().mockResolvedValue([]),

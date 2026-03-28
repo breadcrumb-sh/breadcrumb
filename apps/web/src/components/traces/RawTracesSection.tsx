@@ -14,7 +14,6 @@ import {
   today,
 } from "../common/DateRangePopover";
 import { MultiselectCombobox } from "../common/MultiselectCombobox";
-import { useToastManager } from "../common/Toasts";
 import { trpc } from "../../lib/trpc";
 import { formatCost } from "../../lib/span-utils";
 
@@ -257,42 +256,7 @@ export function RawTracesSection() {
     { placeholderData: keepPreviousData, refetchInterval: 10_000 },
   );
 
-  const toastManager = useToastManager();
-  const toastManagerRef = useRef(toastManager);
-  toastManagerRef.current = toastManager;
 
-  const searchMode = traces.data?.searchMode ?? null;
-  const aiError = traces.data?.aiError ?? null;
-  const lastToastedQuery = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (searchMode !== "text" || !nlpQuery) return;
-    if (lastToastedQuery.current === nlpQuery) return;
-    lastToastedQuery.current = nlpQuery;
-
-    if (aiError) {
-      toastManagerRef.current.add({
-        title: "AI search failed",
-        description: aiError,
-        data: {
-          linkText: "Check AI settings",
-          linkHref: `/projects/${projectId}/settings?tab=ai`,
-        },
-      });
-    } else {
-      const key = `ai-search-toast-dismissed:${projectId}`;
-      if (localStorage.getItem(key)) return;
-      localStorage.setItem(key, "1");
-      toastManagerRef.current.add({
-        title: "Using basic text search",
-        description: "Configure an AI provider for smarter search.",
-        data: {
-          linkText: "Go to AI settings",
-          linkHref: `/projects/${projectId}/settings?tab=ai`,
-        },
-      });
-    }
-  }, [searchMode, aiError, nlpQuery, projectId]);
 
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });

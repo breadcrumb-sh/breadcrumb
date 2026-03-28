@@ -42,18 +42,6 @@ vi.mock("../../services/explore/ai-provider.js", () => ({
   getAiModel: vi.fn(),
 }));
 
-vi.mock("../../services/explore/query-writer.js", () => ({
-  writeSearchQuery: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation-manager.js", () => ({
-  getGeneration: vi.fn(),
-  subscribeGeneration: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation.js", () => ({
-  runGeneration: vi.fn(),
-}));
 
 const { appRouter } = await import("../../api/trpc/router.js");
 

@@ -2,14 +2,7 @@ import { z } from "zod";
 import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { ROLLUPS_SUBQUERY } from "../../../services/traces/helpers.js";
-import { getAiModel } from "../../../services/explore/ai-provider.js";
-import { writeSearchQuery } from "../../../services/explore/query-writer.js";
-import { cache } from "../../../shared/lib/cache.js";
 import { SANDBOXED_QUERY_SETTINGS } from "../../../shared/lib/sandboxed-query.js";
-import {
-  validateAndRewriteWhereClause,
-  QueryValidationError,
-} from "../../../shared/lib/query-validator.js";
 
 export const listRouter = router({
   list: projectViewerProcedure
@@ -36,16 +29,6 @@ export const listRouter = router({
         limit:     input.limit,
         offset:    input.offset,
       };
-      const applyTextSearchFallback = (searchText: string) => {
-        clauses.push(`t.id IN (
-          SELECT DISTINCT trace_id FROM breadcrumb.spans
-          WHERE project_id = {projectId: UUID}
-            AND (input ilike {searchText: String} OR output ilike {searchText: String} OR name ilike {searchText: String})
-        )`);
-        params.searchText = `%${searchText}%`;
-        searchMode = "text";
-      };
-
       if (input.from)                              { clauses.push(`t.start_time >= {from: Date}`);                       params.from        = input.from; }
       if (input.to)                                { clauses.push(`t.start_time < {to: Date} + INTERVAL 1 DAY`);        params.to          = input.to; }
       if (input.names?.length)                     { clauses.push(`t.name IN {names: Array(String)}`);                  params.names       = input.names; }
@@ -56,51 +39,13 @@ export const listRouter = router({
         WHERE project_id = {projectId: UUID} AND model IN {models: Array(String)}
       )`);                                           params.models = input.models; }
 
-      let searchMode: "ai" | "text" | null = null as "ai" | "text" | null;
-      let aiError: string | null = null;
       if (input.query) {
-        try {
-          const cacheKey = { projectId: input.projectId, query: input.query };
-          const clauseSchema = z.object({ clause: z.string().nullable() });
-
-          // Check cache first (1 hour TTL)
-          let aiResult = await cache.get("qw", cacheKey, clauseSchema);
-          if (!aiResult) {
-            const model = await getAiModel(input.projectId);
-            aiResult = await writeSearchQuery({
-              model,
-              query: input.query,
-              activeFilters: clauses.length > 0 ? clauses : undefined,
-            });
-            await cache.set("qw", cacheKey, aiResult, 60 * 60 * 1000);
-          }
-
-          if (aiResult.clause) {
-            // Validate the AI-generated clause through the query validator
-            // to block disallowed tables, functions, and injection attempts,
-            // while also returning a project-scoped rewritten clause.
-            try {
-              const safeClause = validateAndRewriteWhereClause(
-                aiResult.clause,
-                input.projectId,
-              );
-              clauses.push(safeClause);
-            } catch (validationErr) {
-              // AI produced something unsafe — fall back to text search
-              applyTextSearchFallback(input.query);
-              aiError = validationErr instanceof QueryValidationError
-                ? `AI clause rejected: ${validationErr.message}`
-                : "AI clause validation failed";
-            }
-          } else {
-            applyTextSearchFallback(input.query);
-          }
-          if (!searchMode) searchMode = "ai";
-        } catch (err) {
-          // Fall back to text search on trace input/output
-          applyTextSearchFallback(input.query);
-          aiError = err instanceof Error ? err.message : "Unknown AI provider error";
-        }
+        clauses.push(`t.id IN (
+          SELECT DISTINCT trace_id FROM breadcrumb.spans
+          WHERE project_id = {projectId: UUID}
+            AND (input ilike {searchText: String} OR output ilike {searchText: String} OR name ilike {searchText: String})
+        )`);
+        params.searchText = `%${input.query}%`;
       }
 
       const whereStr = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
@@ -177,8 +122,6 @@ export const listRouter = router({
           costUsd:       Number(r["cost_usd"] ?? 0) / 1_000_000,
           spanCount:     Number(r["span_count"] ?? 0),
         })),
-        searchMode,
-        aiError,
       };
     }),
 });

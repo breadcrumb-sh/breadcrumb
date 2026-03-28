@@ -24,7 +24,6 @@ export const Route = createFileRoute(
 const TABS = [
   { label: "Overview", path: "", exact: true },
   { label: "Traces", path: "/traces", exact: false },
-  { label: "Explore", path: "/explore", exact: false },
   { label: "Settings", path: "/settings", exact: false },
 ] as const;
 
