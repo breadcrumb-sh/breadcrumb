@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CaretUpDown } from "@phosphor-icons/react/CaretUpDown";
 import { Buildings } from "@phosphor-icons/react/Buildings";
@@ -18,6 +18,8 @@ export function OrgSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const navigate = useNavigate();
   const { allowOrgCreation } = useAuth();
 
@@ -25,11 +27,23 @@ export function OrgSwitcher({
     enabled: open,
   });
 
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPopoverPos({ top: rect.bottom + 4, left: rect.left });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+  }, [open, updatePosition]);
+
   useClickOutside(ref, () => setOpen(false));
 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors rounded-md px-1.5 py-1 -mx-1.5"
       >
@@ -40,7 +54,10 @@ export function OrgSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-[100] w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1 motion-preset-fade motion-preset-slide-down-sm motion-duration-150">
+        <div
+          className="fixed z-[100] w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1 motion-preset-fade motion-preset-slide-down-sm motion-duration-150"
+          style={{ top: popoverPos.top, left: popoverPos.left }}
+        >
           {orgs.data?.map((org) => (
             <button
               key={org.id}

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { List } from "@phosphor-icons/react/List";
+import { SidebarSimple } from "@phosphor-icons/react/SidebarSimple";
 import { X } from "@phosphor-icons/react/X";
 import { type ReactNode, useState } from "react";
 import { Logo } from "../common/logo/Logo";
@@ -29,6 +30,16 @@ export function PageShell({
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("sidebar-collapsed", String(next)); } catch {}
+      return next;
+    });
+  };
   const linkTo = logoTo ?? (orgId ? "/org/$orgId" : "/");
   const linkParams = orgId ? { orgId } : {};
 
@@ -48,7 +59,11 @@ export function PageShell({
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden sm:flex w-52 shrink-0 flex-col border-r border-zinc-800/70 bg-zinc-950 z-20">
+      <aside
+        className={`hidden sm:flex shrink-0 flex-col border-r border-zinc-800/70 bg-zinc-950 z-20 transition-[width] duration-200 ease-out overflow-hidden ${
+          collapsed ? "w-0 border-r-0" : "w-52"
+        }`}
+      >
         {sidebarHeader}
         {sidebar}
       </aside>
@@ -69,10 +84,17 @@ export function PageShell({
           >
             <Logo className="size-5" />
           </Link>
+          <button
+            onClick={toggleCollapsed}
+            className="hidden sm:flex p-1 -ml-1 mr-1 text-zinc-400 hover:text-zinc-200 transition-colors"
+            title={collapsed ? "Show sidebar" : "Hide sidebar"}
+          >
+            <SidebarSimple size={18} />
+          </button>
           {header}
         </AppHeader>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

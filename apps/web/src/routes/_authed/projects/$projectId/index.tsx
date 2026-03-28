@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import { z } from "zod";
 import {
   DateRangePopover,
@@ -11,6 +12,7 @@ import { useProjectFilters } from "../../../../hooks/useProjectFilters";
 import { formatCost } from "../../../../lib/span-utils";
 import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
+import { KanbanBoard } from "../../../../components/overview/KanbanBoard";
 
 const searchSchema = z.object({
   from: z.string().optional(),
@@ -54,8 +56,11 @@ function OverviewPage() {
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
 
+  const statsRef = useRef<HTMLDivElement>(null);
+
   return (
-    <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6 page-container-small">
+    <div className="flex flex-col">
+      <div className="px-5 pt-6 pb-0 sm:px-8 sm:pt-8 space-y-6 page-container-small shrink-0">
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <DateRangePopover from={from} to={to} preset={preset} onPreset={(days) => setFilters((p) => ({ ...p, from: presetFrom(days), to: today(), preset: days }))} onCustom={() => setFilters((p) => ({ ...p, preset: undefined }))} onFromChange={(v) => setFilters((p) => ({ ...p, from: v, preset: undefined }))} onToChange={(v) => setFilters((p) => ({ ...p, to: v, preset: undefined }))} />
@@ -65,7 +70,7 @@ function OverviewPage() {
       </div>
 
       {/* ── Stat cards ────────────────────────────────────────── */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
+      <div ref={statsRef} className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
         <StatCell
           label="Traces"
           value={stats.data ? stats.data.traceCount.toLocaleString() : "—"}
@@ -114,7 +119,12 @@ function OverviewPage() {
         />
       </div>
 
-    </main>
+      </div>
+      {/* ── Agent monitoring board ────────────────────────────── */}
+      <div className="pt-6 pb-4" style={{ height: "calc(100vh - 80px)" }}>
+        <KanbanBoard alignRef={statsRef} />
+      </div>
+    </div>
   );
 }
 
