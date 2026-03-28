@@ -176,61 +176,6 @@ export const mcpKeys = pgTable("mcp_keys", {
 });
 
 
-export const observations = pgTable(
-  "observations",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    projectId: text("project_id")
-      .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }).notNull(),
-    traceNames: jsonb("trace_names").$type<string[]>().default([]).notNull(),
-    samplingRate: integer("sampling_rate").notNull().default(100), // 1-100
-    traceLimit: integer("trace_limit"), // optional stop-after-N-traces
-    tracesEvaluated: integer("traces_evaluated").notNull().default(0),
-    heuristics: text("heuristics"),
-    enabled: boolean("enabled").notNull().default(true),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (t) => [index("observations_project_id_idx").on(t.projectId)],
-);
-
-export const observationViews = pgTable("observation_views", {
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => project.id, { onDelete: "cascade" }),
-  lastViewedAt: timestamp("last_viewed_at").notNull(),
-}, (t) => [
-  { name: "observation_views_pkey", columns: [t.userId, t.projectId] },
-]);
-
-export const observationFindings = pgTable(
-  "observation_findings",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    observationId: uuid("observation_id")
-      .references(() => observations.id, { onDelete: "set null" }),
-    projectId: text("project_id")
-      .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
-    referenceTraceId: text("reference_trace_id").notNull(),
-    impact: varchar("impact", { length: 16 }).notNull(), // 'low' | 'medium' | 'high'
-    title: text("title").notNull(),
-    description: text("description").notNull(),
-    suggestion: text("suggestion"),
-    dismissed: boolean("dismissed").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (t) => [
-    index("findings_project_id_idx").on(t.projectId),
-    index("findings_observation_id_idx").on(t.observationId),
-  ],
-);
 
 export const traceSummaries = pgTable(
   "trace_summaries",

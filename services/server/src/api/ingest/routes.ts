@@ -4,8 +4,6 @@ import { clickhouse } from "../../shared/db/clickhouse.js";
 import { ClickHouseBatcher } from "../../shared/db/clickhouse-batcher.js";
 import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "../../services/ingest/helpers.js";
-import { boss } from "../../shared/lib/boss.js";
-import { getObservationsForProject } from "../../services/observations/cache.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { trackTraceIngested } from "../../shared/lib/telemetry.js";
 
@@ -91,7 +89,6 @@ ingestRoutes.post("/traces", async (c) => {
 
   if (t.end_time) {
     trackTraceIngested();
-    void scheduleObservationJobs(projectId, t.id, t.name);
   }
 
   return c.json({ ok: true }, 202);
@@ -148,31 +145,3 @@ ingestRoutes.post("/spans", async (c) => {
   return c.json({ ok: true }, 202);
 });
 
-// ── Background job scheduling ─────────────────────────────────────────────────
-
-async function scheduleObservationJobs(
-  projectId: string,
-  traceId: string,
-  traceName: string,
-) {
-  try {
-    const obs = await getObservationsForProject(projectId);
-    const matching = obs.filter(
-      (o) => o.traceNames.length === 0 || o.traceNames.includes(traceName),
-    );
-    for (const o of matching) {
-      const roll = Math.random() * 100;
-      if (roll >= o.samplingRate) continue;
-      await boss.send(
-        "evaluate-observation",
-        { projectId, traceId, observationId: o.id },
-        {
-          startAfter: 15,
-          singletonKey: `${o.id}:${traceId}`,
-        },
-      );
-    }
-  } catch (err) {
-    log.error({ err, projectId, traceId }, "scheduleObservationJobs error");
-  }
-}

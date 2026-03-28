@@ -128,26 +128,6 @@ export function trackAiProviderConfigured(provider: string) {
   trackEvent("ai_provider_configured", { provider });
 }
 
-export function trackObservationCreated(opts: {
-  sampling_rate: number;
-  has_heuristics: boolean;
-  trace_filter_count: number;
-}) {
-  trackEvent("observation_created", opts);
-}
-
-export function trackObservationToggled(enabled: boolean) {
-  trackEvent("observation_toggled", { enabled });
-}
-
-export function trackFindingDismissed(impact: string) {
-  trackEvent("finding_dismissed", { impact });
-}
-
-export function trackFindingCreated(impact: string) {
-  trackEvent("finding_created", { impact });
-}
-
 export function trackMemberInvited(role: string) {
   trackEvent("member_invited", { role });
 }

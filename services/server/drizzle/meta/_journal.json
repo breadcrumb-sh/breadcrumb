@@ -113,6 +113,13 @@
       "when": 1774697449923,
       "tag": "0015_noisy_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1774698365131,
+      "tag": "0016_slim_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

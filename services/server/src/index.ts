@@ -18,8 +18,6 @@ async function main() {
   await initQueryValidator();
 
   await boss.start();
-  const { registerWorkers } = await import("./services/observations/evaluate-job.js");
-  await registerWorkers();
 
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();

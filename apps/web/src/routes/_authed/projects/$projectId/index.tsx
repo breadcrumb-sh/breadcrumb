@@ -14,7 +14,6 @@ import { ChartCard } from "../../../../components/overview/ChartCard";
 import { TraceQualityChart } from "../../../../components/overview/TraceQualityChart";
 import { TopFailingSpansTable } from "../../../../components/overview/TopFailingSpansTable";
 import { TopSlowestSpansTable } from "../../../../components/overview/TopSlowestSpansTable";
-import { NewFindingsCards } from "../../../../components/overview/NewFindingsCards";
 
 const searchSchema = z.object({
   from: z.string().optional(),
@@ -79,10 +78,6 @@ function OverviewPage() {
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
-  const newFindings = trpc.observations["findings.listNew"].useQuery(
-    { projectId },
-    { refetchInterval: 30_000 },
-  );
 
   return (
     <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6 page-container-small">
@@ -199,13 +194,6 @@ function OverviewPage() {
         to={to}
       />
 
-      {/* ── New observation findings ─────────────────────────── */}
-      {(newFindings.data?.length ?? 0) > 0 && (
-        <NewFindingsCards
-          findings={newFindings.data!}
-          projectId={projectId}
-        />
-      )}
 
       {/* ── Cost charts ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

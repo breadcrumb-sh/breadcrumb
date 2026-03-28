@@ -69,9 +69,6 @@ vi.mock("../../shared/lib/sandboxed-query.js", () => ({
   runSandboxedQuery: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../../services/observations/cache.js", () => ({
-  invalidateObservationsCache: vi.fn(),
-}));
 
 vi.mock("../../shared/lib/encryption.js", () => ({
   encrypt: vi.fn().mockReturnValue("encrypted"),
