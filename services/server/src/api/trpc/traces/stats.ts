@@ -15,6 +15,8 @@ export const statsRouter = router({
           countIf(t.status = 'error')         AS error_count,
           sum(coalesce(r.total_cost_usd, 0))  AS total_cost_usd,
           sum(coalesce(r.total_tokens, 0))    AS total_tokens,
+          sum(coalesce(r.total_input_tokens, 0))    AS input_tokens,
+          sum(coalesce(r.total_output_tokens, 0))   AS output_tokens,
           avgIf(
             toInt64(toUnixTimestamp64Milli(COALESCE(t.end_time, r.max_end_time))) - toInt64(toUnixTimestamp64Milli(t.start_time)),
             isNotNull(COALESCE(t.end_time, r.max_end_time)) AND COALESCE(t.end_time, r.max_end_time) > t.start_time
@@ -36,6 +38,8 @@ export const statsRouter = router({
             trace_id,
             sum(input_cost_usd + output_cost_usd) AS total_cost_usd,
             sum(input_tokens + output_tokens)      AS total_tokens,
+            sum(input_tokens)                      AS total_input_tokens,
+            sum(output_tokens)                     AS total_output_tokens,
             max(max_end_time)                      AS max_end_time
           FROM breadcrumb.trace_rollups
           WHERE project_id = {projectId: UUID}
@@ -68,6 +72,8 @@ export const statsRouter = router({
               countIf(t.status = 'error')         AS error_count,
               sum(coalesce(r.total_cost_usd, 0))  AS total_cost_usd,
               sum(coalesce(r.total_tokens, 0))    AS total_tokens,
+              sum(coalesce(r.total_input_tokens, 0))    AS input_tokens,
+              sum(coalesce(r.total_output_tokens, 0))   AS output_tokens,
               avgIf(
                 toInt64(toUnixTimestamp64Milli(COALESCE(t.end_time, r.max_end_time))) - toInt64(toUnixTimestamp64Milli(t.start_time)),
                 isNotNull(COALESCE(t.end_time, r.max_end_time)) AND COALESCE(t.end_time, r.max_end_time) > t.start_time
@@ -89,6 +95,8 @@ export const statsRouter = router({
                 trace_id,
                 sum(input_cost_usd + output_cost_usd) AS total_cost_usd,
                 sum(input_tokens + output_tokens)      AS total_tokens,
+                sum(input_tokens)                      AS total_input_tokens,
+                sum(output_tokens)                     AS total_output_tokens,
                 max(max_end_time)                      AS max_end_time
               FROM breadcrumb.trace_rollups
               WHERE project_id = {projectId: UUID}
@@ -113,10 +121,12 @@ export const statsRouter = router({
       const errorCount = Number(row["error_count"] ?? 0);
       const totalCostUsd = Number(row["total_cost_usd"] ?? 0) / 1_000_000;
       const totalTokens = Number(row["total_tokens"] ?? 0);
+      const inputTokens = Number(row["input_tokens"] ?? 0);
+      const outputTokens = Number(row["output_tokens"] ?? 0);
       const avgDurationMs = Number(row["avg_duration_ms"] ?? 0);
       const errorRate = traceCount > 0 ? errorCount / traceCount : 0;
 
-      let prev: { traceCount: number; totalCostUsd: number; totalTokens: number; avgDurationMs: number; errorRate: number } | null = null;
+      let prev: { traceCount: number; totalCostUsd: number; totalTokens: number; inputTokens: number; outputTokens: number; avgDurationMs: number; errorRate: number } | null = null;
       if (prevRows) {
         const pr = prevRows[0] ?? {};
         const pTraceCount = Number(pr["trace_count"] ?? 0);
@@ -125,6 +135,8 @@ export const statsRouter = router({
           traceCount: pTraceCount,
           totalCostUsd: Number(pr["total_cost_usd"] ?? 0) / 1_000_000,
           totalTokens: Number(pr["total_tokens"] ?? 0),
+          inputTokens: Number(pr["input_tokens"] ?? 0),
+          outputTokens: Number(pr["output_tokens"] ?? 0),
           avgDurationMs: Number(pr["avg_duration_ms"] ?? 0),
           errorRate: pTraceCount > 0 ? pErrorCount / pTraceCount : 0,
         };
@@ -134,6 +146,8 @@ export const statsRouter = router({
         traceCount,
         totalCostUsd,
         totalTokens,
+        inputTokens,
+        outputTokens,
         avgDurationMs,
         errorCount,
         errorRate,
