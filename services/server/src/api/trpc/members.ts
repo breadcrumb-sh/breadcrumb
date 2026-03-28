@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, authedProcedure, orgViewerProcedure, checkOrgRole } from "../../trpc.js";
+import { router, authedProcedure, orgMemberProcedure, checkOrgRole } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { member, user } from "../../shared/db/schema.js";
 
 export const membersRouter = router({
-  list: orgViewerProcedure
+  list: orgMemberProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ input }) => {
       return db
