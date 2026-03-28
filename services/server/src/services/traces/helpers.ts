@@ -8,7 +8,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../shared/db/postgres.js";
-import { organization } from "../../shared/db/schema.js";
+import { project } from "../../shared/db/schema.js";
 
 // ── toStr ────────────────────────────────────────────────────────────────────
 
@@ -103,11 +103,11 @@ export function buildTraceFilters(input: {
 
 /** Look up the project's configured timezone (defaults to 'UTC'). */
 export async function getProjectTimezone(projectId: string): Promise<string> {
-  const [org] = await db
-    .select({ timezone: organization.timezone })
-    .from(organization)
-    .where(eq(organization.id, projectId));
-  return org?.timezone ?? "UTC";
+  const [p] = await db
+    .select({ timezone: project.timezone })
+    .from(project)
+    .where(eq(project.id, projectId));
+  return p?.timezone ?? "UTC";
 }
 
 /** Shared Zod filter input schema (all optional for backward compat). */

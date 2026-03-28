@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { router, orgViewerProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { buildTraceFilters, filterInput, ROLLUPS_SUBQUERY, getProjectTimezone } from "../../../services/traces/helpers.js";
 
 export const statsRouter = router({
-  stats: orgViewerProcedure
+  stats: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
@@ -141,7 +141,7 @@ export const statsRouter = router({
       };
     }),
 
-  dailyMetrics: orgViewerProcedure
+  dailyMetrics: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
@@ -197,7 +197,7 @@ export const statsRouter = router({
       }));
     }),
 
-  dailyCostByName: orgViewerProcedure
+  dailyCostByName: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);
@@ -246,7 +246,7 @@ export const statsRouter = router({
       }));
     }),
 
-  qualityTimeline: orgViewerProcedure
+  qualityTimeline: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const { whereStr, params } = buildTraceFilters(input);

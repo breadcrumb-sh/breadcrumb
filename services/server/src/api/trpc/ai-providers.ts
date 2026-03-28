@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { router, orgMemberProcedure, orgAdminProcedure } from "../../trpc.js";
+import { router, projectMemberProcedure, projectAdminProcedure } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { aiProviders } from "../../shared/db/schema.js";
 import { encrypt, maskApiKey } from "../../shared/lib/encryption.js";
@@ -9,7 +9,7 @@ import { trackAiProviderConfigured } from "../../shared/lib/telemetry.js";
 const providerEnum = z.enum(["openai", "anthropic", "openrouter", "custom"]);
 
 export const aiProvidersRouter = router({
-  get: orgMemberProcedure
+  get: projectMemberProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const [row] = await db
@@ -26,7 +26,7 @@ export const aiProvidersRouter = router({
       return row ?? null;
     }),
 
-  upsert: orgAdminProcedure
+  upsert: projectAdminProcedure
     .input(
       z
         .object({
@@ -97,7 +97,7 @@ export const aiProvidersRouter = router({
       return row;
     }),
 
-  delete: orgAdminProcedure
+  delete: projectAdminProcedure
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input }) => {
       await db

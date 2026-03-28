@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/postgres.js";
-import { member, organization, user as userTable } from "../../shared/db/schema.js";
+import { member, project } from "../../shared/db/schema.js";
 
 // COALESCE(trace.end_time, rollup.max_end_time):
 // trace.end_time is Nullable — NULL when trace.end() was never called.
@@ -9,23 +9,12 @@ import { member, organization, user as userTable } from "../../shared/db/schema.
 export const EFFECTIVE_END = `COALESCE(t.end_time, r.max_end_time)`;
 
 export async function getUserProjectIds(userId: string): Promise<string[]> {
-  const [u] = await db
-    .select({ role: userTable.role })
-    .from(userTable)
-    .where(eq(userTable.id, userId))
-    .limit(1);
-
-  // Admins can see all projects
-  if (u?.role === "admin") {
-    const orgs = await db.select({ id: organization.id }).from(organization);
-    return orgs.map((o) => o.id);
-  }
-
   const rows = await db
-    .select({ orgId: member.organizationId })
+    .select({ projectId: project.id })
     .from(member)
+    .innerJoin(project, eq(project.organizationId, member.organizationId))
     .where(eq(member.userId, userId));
-  return rows.map((r) => r.orgId);
+  return rows.map((r) => r.projectId);
 }
 
 /**

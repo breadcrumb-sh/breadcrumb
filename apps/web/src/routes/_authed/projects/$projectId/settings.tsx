@@ -1,7 +1,6 @@
 import { Brain } from "@phosphor-icons/react/Brain";
 import { Gear } from "@phosphor-icons/react/Gear";
 import { Key } from "@phosphor-icons/react/Key";
-import { Users } from "@phosphor-icons/react/Users";
 import { Warning } from "@phosphor-icons/react/Warning";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
@@ -10,16 +9,15 @@ import { AiProviderSection } from "../../../../components/settings/AiProviderSec
 import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
 import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
-import { MembersSection } from "../../../../components/settings/MembersSection";
 import { useRegisterSubMenu } from "../../../../components/layout/SubMenuContext";
-import { useAuth } from "../../../../hooks/useAuth";
+import { useOrgRole } from "../../../../hooks/useOrgRole";
 import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
-type Section = "general" | "api-keys" | "members" | "ai" | "danger";
+type Section = "general" | "api-keys" | "ai" | "danger";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "members", "ai", "danger"]).optional(),
+  tab: z.enum(["general", "api-keys", "ai", "danger"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -30,29 +28,16 @@ export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
 function SettingsPage() {
   usePageView("settings");
   const { projectId } = Route.useParams();
-  const { user, isAdmin: isGlobalAdmin } = useAuth();
-
-  // Determine the current user's org-level role for this project.
-  const members = trpc.members.list.useQuery({ organizationId: projectId });
-  const myOrgRole = members.data?.find((m) => m.userId === user?.id)?.role;
-  const isOrgOwner = myOrgRole === "owner";
-  const isOrgAdmin = myOrgRole === "admin" || isOrgOwner;
-
-  // General: only admins/owners can rename — members don't see it at all
-  const canSeeGeneral = isGlobalAdmin || isOrgAdmin;
-  // API Keys: all members can view, but only admin/owner can create/delete
-  const canManageApiKeys = isGlobalAdmin || isOrgAdmin;
-  // Members: all members
-  const canManageMembers = isGlobalAdmin || isOrgAdmin;
-  // Danger: global admin only
-  const canDeleteProject = isGlobalAdmin;
+  const project = trpc.projects.get.useQuery({ projectId });
+  const orgId = project.data?.organizationId ?? "";
+  const { isAdmin, isOwner } = useOrgRole(orgId);
 
   const visibleSections: {
     id: Section;
     label: string;
     icon: React.ReactNode;
   }[] = [
-    ...(canSeeGeneral
+    ...(isAdmin
       ? [
           {
             id: "general" as Section,
@@ -62,8 +47,7 @@ function SettingsPage() {
         ]
       : []),
     { id: "api-keys" as Section, label: "API Keys", icon: <Key size={16} /> },
-    { id: "members" as Section, label: "Members", icon: <Users size={16} /> },
-    ...(isGlobalAdmin || isOrgAdmin
+    ...(isAdmin
       ? [
           {
             id: "ai" as Section,
@@ -72,7 +56,7 @@ function SettingsPage() {
           },
         ]
       : []),
-    ...(canDeleteProject
+    ...(isOwner
       ? [
           {
             id: "danger" as Section,
@@ -85,7 +69,7 @@ function SettingsPage() {
 
   const { tab } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const defaultSection: Section = canSeeGeneral ? "general" : "api-keys";
+  const defaultSection: Section = isAdmin ? "general" : "api-keys";
   const section: Section =
     tab && visibleSections.some((s) => s.id === tab) ? tab : defaultSection;
 
@@ -130,25 +114,18 @@ function SettingsPage() {
           {section === "general" && (
             <GeneralSection
               projectId={projectId}
-              canRename={isGlobalAdmin || isOrgAdmin}
+              canRename={isAdmin}
             />
           )}
           {section === "api-keys" && (
             <ApiKeysSection
               projectId={projectId}
-              canManage={canManageApiKeys}
+              canManage={isAdmin}
             />
           )}
           {section === "ai" && <AiProviderSection projectId={projectId} />}
-          {section === "members" && (
-            <MembersSection
-              projectId={projectId}
-              canManage={canManageMembers}
-              myOrgRole={myOrgRole}
-            />
-          )}
           {section === "danger" && (
-            <DangerSection projectId={projectId} canDelete={canDeleteProject} />
+            <DangerSection projectId={projectId} canDelete={isOwner} />
           )}
         </div>
       </div>

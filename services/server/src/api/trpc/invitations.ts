@@ -112,7 +112,7 @@ export const invitationsRouter = router({
         .from(invitation)
         .where(eq(invitation.id, input.invitationId));
       if (!inv) throw new TRPCError({ code: "NOT_FOUND" });
-      await checkOrgRole(ctx.user.id, ctx.user.role, inv.organizationId, [
+      await checkOrgRole(ctx.user.id, inv.organizationId, [
         "owner",
         "admin",
       ]);

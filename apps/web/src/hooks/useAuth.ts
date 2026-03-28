@@ -3,13 +3,9 @@ import { trpc } from "../lib/trpc";
 
 export function useAuth() {
   const { data: session, isPending } = authClient.useSession();
-  const { data: config } = trpc.config.publicViewing.useQuery();
+  const { data: config } = trpc.config.instance.useQuery();
 
   const user = session?.user ?? null;
-  // Better Auth returns additionalFields on the user object
-  const role = (user as { role?: string } | null)?.role ?? "user";
-
-  const isViewer = !user && !!config?.enabled;
 
   return {
     user,
@@ -18,8 +14,8 @@ export function useAuth() {
     login: (email: string, password: string) =>
       authClient.signIn.email({ email, password }),
     logout: () => authClient.signOut(),
-    role,
-    isAdmin: role === "admin",
-    isViewer,
+    allowOrgCreation: config?.allowOrgCreation ?? true,
+    allowOpenSignup: config?.allowOpenSignup ?? false,
+    isDemo: config?.isDemo ?? false,
   };
 }

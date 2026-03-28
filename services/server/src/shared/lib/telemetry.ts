@@ -2,7 +2,7 @@ import { PostHog } from "posthog-node";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db/postgres.js";
-import { instanceSettings, user, organization } from "../db/schema.js";
+import { instanceSettings, user, project } from "../db/schema.js";
 import { env } from "../../env.js";
 import { createLogger } from "./logger.js";
 
@@ -81,7 +81,7 @@ export async function getUserCount(): Promise<number> {
 
 export async function getProjectCount(): Promise<number> {
   try {
-    const [row] = await db.select({ count: sql<number>`count(*)` }).from(organization);
+    const [row] = await db.select({ count: sql<number>`count(*)` }).from(project);
     return Number(row.count);
   } catch {
     return 0;

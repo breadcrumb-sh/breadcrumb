@@ -2,9 +2,8 @@ import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/postgres.js";
-import { user as userTable } from "../db/schema.js";
 import { env } from "../../env.js";
-import { checkSignupAllowed } from "./signup-guard.js";
+import { checkSignupAllowed, autoJoinOpenSignupOrgs } from "./signup-guard.js";
 import { createLogger } from "../lib/logger.js";
 import { trackUserSignedUp } from "../lib/telemetry.js";
 
@@ -55,15 +54,6 @@ export const auth = betterAuth({
       },
     }),
   ],
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "user",
-        input: false,
-      },
-    },
-  },
   databaseHooks: {
     session: {
       create: {
@@ -80,27 +70,18 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           await checkSignupAllowed(user.email);
-          // First user to sign up becomes admin — checked before creation
-          // so the role is set correctly when the session is established.
-          const existing = await db
-            .select({ id: userTable.id })
-            .from(userTable)
-            .limit(1);
-          if (existing.length === 0) {
-            return { data: { ...user, role: "admin" } };
-          }
         },
         after: async (user) => {
           const data = user as Record<string, unknown>;
           log.info(
-            {
-              userId: data.id,
-              email: data.email,
-              isAdmin: data.role === "admin",
-            },
+            { userId: data.id, email: data.email },
             "user created",
           );
           void trackUserSignedUp();
+          // Auto-join open signup orgs as viewer
+          if (typeof data.id === "string") {
+            void autoJoinOpenSignupOrgs(data.id);
+          }
         },
       },
       update: {

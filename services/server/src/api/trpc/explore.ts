@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { eq, desc, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, procedure, authedProcedure, orgMemberProcedure, orgViewerProcedure, checkOrgRole } from "../../trpc.js";
-import { env } from "../../env.js";
+import { router, authedProcedure, projectMemberProcedure, projectViewerProcedure, checkOrgRole } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
 import { getProjectTimezone } from "../../services/traces/helpers.js";
-import { explores, starredCharts } from "../../shared/db/schema.js";
+import { explores, starredCharts, project } from "../../shared/db/schema.js";
 import { legendEntrySchema } from "../../services/explore/types.js";
 import {
   getGeneration,
@@ -15,8 +14,18 @@ import {
 import { runGeneration } from "../../services/explore/generation.js";
 import { trackExploreMessageSent, trackExploreChartStarred } from "../../shared/lib/telemetry.js";
 
+/** Resolve a project's orgId from its projectId for manual role checks. */
+async function getOrgIdForProject(projectId: string): Promise<string> {
+  const [p] = await db
+    .select({ organizationId: project.organizationId })
+    .from(project)
+    .where(eq(project.id, projectId));
+  if (!p) throw new TRPCError({ code: "NOT_FOUND" });
+  return p.organizationId;
+}
+
 export const exploresRouter = router({
-  list: orgViewerProcedure
+  list: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -30,7 +39,7 @@ export const exploresRouter = router({
         .orderBy(desc(explores.updatedAt));
     }),
 
-  get: procedure
+  get: authedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const [explore] = await db
@@ -38,20 +47,17 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return null;
-      if (ctx.user) {
-        await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
-          "viewer",
-          "member",
-          "admin",
-          "owner",
-        ]);
-      } else if (!env.allowPublicViewing) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
+      const orgId = await getOrgIdForProject(explore.projectId);
+      await checkOrgRole(ctx.user.id, orgId, [
+        "viewer",
+        "member",
+        "admin",
+        "owner",
+      ]);
       return explore;
     }),
 
-  getByTraceId: orgViewerProcedure
+  getByTraceId: projectViewerProcedure
     .input(z.object({ projectId: z.string(), traceId: z.string() }))
     .query(async ({ input }) => {
       const [explore] = await db
@@ -66,7 +72,7 @@ export const exploresRouter = router({
       return explore ?? null;
     }),
 
-  create: orgMemberProcedure
+  create: projectMemberProcedure
     .input(
       z.object({
         projectId: z.string(),
@@ -96,7 +102,8 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return;
-      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+      const orgId = await getOrgIdForProject(explore.projectId);
+      await checkOrgRole(ctx.user.id, orgId, [
         "member",
         "admin",
         "owner",
@@ -112,7 +119,8 @@ export const exploresRouter = router({
         .from(explores)
         .where(eq(explores.id, input.id));
       if (!explore) return;
-      await checkOrgRole(ctx.user.id, ctx.user.role, explore.projectId, [
+      const orgId = await getOrgIdForProject(explore.projectId);
+      await checkOrgRole(ctx.user.id, orgId, [
         "member",
         "admin",
         "owner",
@@ -123,7 +131,7 @@ export const exploresRouter = router({
         .where(eq(explores.id, input.id));
     }),
 
-  starChart: orgMemberProcedure
+  starChart: projectMemberProcedure
     .input(
       z.object({
         exploreId: z.string(),
@@ -164,7 +172,8 @@ export const exploresRouter = router({
         .from(starredCharts)
         .where(eq(starredCharts.id, input.id));
       if (!chart) return;
-      await checkOrgRole(ctx.user.id, ctx.user.role, chart.projectId, [
+      const orgId = await getOrgIdForProject(chart.projectId);
+      await checkOrgRole(ctx.user.id, orgId, [
         "member",
         "admin",
         "owner",
@@ -174,7 +183,7 @@ export const exploresRouter = router({
         .where(eq(starredCharts.id, input.id));
     }),
 
-  listStarred: orgViewerProcedure
+  listStarred: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -196,14 +205,14 @@ export const exploresRouter = router({
         .orderBy(desc(starredCharts.createdAt));
     }),
 
-  isGenerating: orgMemberProcedure
+  isGenerating: projectMemberProcedure
     .input(z.object({ exploreId: z.string(), projectId: z.string() }))
     .query(async ({ input }) => {
       const gen = getGeneration(input.exploreId);
       return { active: !!gen && !gen.done };
     }),
 
-  chat: orgMemberProcedure
+  chat: projectMemberProcedure
     .input(
       z.object({
         exploreId: z.string(),
@@ -241,7 +250,7 @@ export const exploresRouter = router({
       yield* subscribeGeneration(input.exploreId, abortSignal);
     }),
 
-  requery: orgViewerProcedure
+  requery: projectViewerProcedure
     .input(
       z.object({
         projectId: z.string(),

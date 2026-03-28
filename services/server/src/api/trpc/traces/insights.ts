@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { router, orgViewerProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { filterInput } from "../../../services/traces/helpers.js";
 
 export const insightsRouter = router({
-  spanSample: orgViewerProcedure
+  spanSample: projectViewerProcedure
     .input(z.object({
       projectId:  z.string().uuid(),
       traceName:  z.string(),
@@ -70,7 +70,7 @@ export const insightsRouter = router({
       };
     }),
 
-  loopbackRate: orgViewerProcedure
+  loopbackRate: projectViewerProcedure
     .input(z.object({
       projectId: z.string().uuid(),
       traceName: z.string(),
@@ -222,7 +222,7 @@ export const insightsRouter = router({
       return { totalTraces, spans };
     }),
 
-  topFailingSpans: orgViewerProcedure
+  topFailingSpans: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const clauses: string[] = [`s.project_id = {projectId: UUID}`];
@@ -264,7 +264,7 @@ export const insightsRouter = router({
       }));
     }),
 
-  topSlowestSpans: orgViewerProcedure
+  topSlowestSpans: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid(), ...filterInput }))
     .query(async ({ input }) => {
       const clauses: string[] = [`s.project_id = {projectId: UUID}`];
@@ -310,7 +310,7 @@ export const insightsRouter = router({
       }));
     }),
 
-  modelBreakdown: orgViewerProcedure
+  modelBreakdown: projectViewerProcedure
     .input(
       z.object({
         projectId: z.string().uuid(),

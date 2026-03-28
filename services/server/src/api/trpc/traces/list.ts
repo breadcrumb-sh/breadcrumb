@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, orgViewerProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { ROLLUPS_SUBQUERY } from "../../../services/traces/helpers.js";
 import { getAiModel } from "../../../services/explore/ai-provider.js";
@@ -12,7 +12,7 @@ import {
 } from "../../../shared/lib/query-validator.js";
 
 export const listRouter = router({
-  list: orgViewerProcedure
+  list: projectViewerProcedure
     .input(
       z.object({
         projectId:   z.string().uuid(),

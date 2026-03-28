@@ -90,7 +90,7 @@ function TraceDetailPage() {
   const { span: spanParam, ask: askParam } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { isViewer } = useAuth();
+  const isViewer = false; // All users are authenticated; org role check is server-side
   const utils = trpc.useUtils();
   const [copied, setCopied] = useState(false);
   const [forceExpandIds, setForceExpandIds] = useState<Set<string> | undefined>();
@@ -194,7 +194,7 @@ function TraceDetailPage() {
   });
 
   // Auto-analyze on first view if the project setting is enabled
-  const project = trpc.projects.get.useQuery({ id: projectId });
+  const project = trpc.projects.get.useQuery({ projectId });
   const autoAnalyzeTriggered = useRef(false);
 
   useEffect(() => {

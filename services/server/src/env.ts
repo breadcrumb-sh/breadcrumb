@@ -14,7 +14,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3100),
   ENCRYPTION_KEY: z.string().min(1, "ENCRYPTION_KEY is required"),
   NODE_ENV: z.string().default("development"),
-  ALLOW_PUBLIC_VIEWING: z.string().default("false"),
+  ALLOW_OPEN_SIGNUP: z.string().default(""),
+  ALLOW_ORG_CREATION: z.string().default("true"),
   IS_BREADCRUMB_DEMO: z.string().default("false"),
   DISABLE_TELEMETRY: z.string().default("false"),
 });
@@ -44,7 +45,10 @@ export const env = {
   port: p.PORT,
   encryptionKey: p.ENCRYPTION_KEY,
   nodeEnv: p.NODE_ENV,
-  allowPublicViewing: p.ALLOW_PUBLIC_VIEWING === "true",
+  allowOpenSignupOrgIds: p.ALLOW_OPEN_SIGNUP
+    ? p.ALLOW_OPEN_SIGNUP.split(",").map((s) => s.trim()).filter(Boolean)
+    : [],
+  allowOrgCreation: p.ALLOW_ORG_CREATION === "true",
   isBreadcrumbDemo: p.IS_BREADCRUMB_DEMO === "true",
   disableTelemetry: p.DISABLE_TELEMETRY === "true",
 };

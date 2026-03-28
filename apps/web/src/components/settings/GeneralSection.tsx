@@ -10,27 +10,24 @@ export function GeneralSection({
   canRename: boolean;
 }) {
   const utils = trpc.useUtils();
-  const project = trpc.projects.list.useQuery();
+  const project = trpc.projects.get.useQuery({ projectId });
   const rename = trpc.projects.rename.useMutation({
     onSuccess: () => {
-      utils.projects.list.invalidate();
-      utils.projects.get.invalidate({ id: projectId });
+      utils.projects.get.invalidate({ projectId });
     },
   });
   const updateTimezone = trpc.projects.updateTimezone.useMutation({
     onSuccess: () => {
-      utils.projects.list.invalidate();
-      utils.projects.get.invalidate({ id: projectId });
+      utils.projects.get.invalidate({ projectId });
     },
   });
   const setAutoAnalyzeMut = trpc.projects.setAutoAnalyze.useMutation({
     onSuccess: () => {
-      utils.projects.list.invalidate();
-      utils.projects.get.invalidate({ id: projectId });
+      utils.projects.get.invalidate({ projectId });
     },
   });
 
-  const current = project.data?.find((p) => p.id === projectId);
+  const current = project.data;
   const [name, setName] = useState(current?.name ?? "");
   const [timezone, setTimezone] = useState(current?.timezone ?? "UTC");
   const [autoAnalyze, setAutoAnalyze] = useState(current?.autoAnalyze ?? false);
@@ -51,13 +48,13 @@ export function GeneralSection({
     e.preventDefault();
     const promises: Promise<unknown>[] = [];
     if (name !== current?.name) {
-      promises.push(rename.mutateAsync({ id: projectId, name }));
+      promises.push(rename.mutateAsync({ projectId, name }));
     }
     if (timezone !== current?.timezone) {
-      promises.push(updateTimezone.mutateAsync({ id: projectId, timezone }));
+      promises.push(updateTimezone.mutateAsync({ projectId, timezone }));
     }
     if (autoAnalyze !== current?.autoAnalyze) {
-      promises.push(setAutoAnalyzeMut.mutateAsync({ id: projectId, autoAnalyze }));
+      promises.push(setAutoAnalyzeMut.mutateAsync({ projectId, autoAnalyze }));
     }
     await Promise.all(promises);
   };

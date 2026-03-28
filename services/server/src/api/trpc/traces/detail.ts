@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import { router, orgViewerProcedure, orgMemberProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure, projectMemberProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { db } from "../../../shared/db/postgres.js";
 import { traceSummaries } from "../../../shared/db/schema.js";
@@ -13,7 +13,7 @@ const traceIdInput = z.object({
 });
 
 export const detailRouter = router({
-  get: orgViewerProcedure
+  get: projectViewerProcedure
     .input(traceIdInput)
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
@@ -38,7 +38,7 @@ export const detailRouter = router({
       };
     }),
 
-  spans: orgViewerProcedure
+  spans: projectViewerProcedure
     .input(traceIdInput)
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
@@ -82,7 +82,7 @@ export const detailRouter = router({
 
   // ── Trace summary (analysis) ───────────────────────────────────────────
 
-  summary: orgViewerProcedure
+  summary: projectViewerProcedure
     .input(traceIdInput)
     .query(async ({ input }) => {
       const [row] = await db
@@ -104,7 +104,7 @@ export const detailRouter = router({
       };
     }),
 
-  analyze: orgMemberProcedure
+  analyze: projectMemberProcedure
     .input(
       traceIdInput.extend({
         force: z.boolean().optional(),
