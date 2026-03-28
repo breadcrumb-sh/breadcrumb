@@ -9,6 +9,7 @@ vi.mock("../../shared/lib/sandboxed-query.js", () => ({
 
 const mockLimit = vi.fn();
 const mockOrderBy = vi.fn();
+const mockInnerJoin = vi.fn();
 
 let chain: any;
 const mockWhere = vi.fn();
@@ -20,6 +21,7 @@ vi.mock("../../shared/db/postgres.js", () => {
     where: mockWhere,
     limit: mockLimit,
     orderBy: mockOrderBy,
+    innerJoin: mockInnerJoin,
   };
   return { db: chain };
 });
@@ -31,8 +33,9 @@ vi.mock("../../shared/db/clickhouse.js", () => ({
 
 vi.mock("../../env.js", () => ({
   env: {
-    allowPublicViewing: false,
     encryptionKey: "a".repeat(64),
+    allowOpenSignupOrgIds: [],
+    allowOrgCreation: true,
   },
 }));
 
@@ -49,6 +52,7 @@ beforeEach(() => {
   mockWhere.mockReset();
   mockLimit.mockReset();
   mockOrderBy.mockReset();
+  mockInnerJoin.mockReset();
 });
 
 // ── truncateResult unit tests ────────────────────────────────────────────────
@@ -68,7 +72,6 @@ describe("truncateResult", () => {
   });
 
   it("truncates very long JSON output", () => {
-    // Create rows with long string values to exceed 8000 chars
     const rows = Array.from({ length: 10 }, (_, i) => ({
       id: i,
       content: "x".repeat(1000),
@@ -81,35 +84,25 @@ describe("truncateResult", () => {
 // ── getUserProjectIds ────────────────────────────────────────────────────────
 
 describe("getUserProjectIds", () => {
-  it("returns all org IDs for admin users", async () => {
-    // user lookup: .where().limit() → where returns chain, limit returns data
-    mockWhere.mockReturnValueOnce(chain);
-    mockLimit.mockResolvedValueOnce([{ role: "admin" }]);
-    // org list: select().from(organization) — no where, just returns from from()
-    // Actually: db.select({id}).from(organization) — from() returns chain (which is awaitable?)
-    // The code does: const orgs = await db.select({id}).from(organization)
-    // from() returns chain. chain is not thenable by default.
-    // We need to make from() return something that resolves.
-    // Actually, looking at the code again:
-    //   const orgs = await db.select({ id: organization.id }).from(organization);
-    // This awaits chain directly. We need chain to be thenable for this.
-    // Instead, let's mock where to handle it — but there's no .where() call here.
-    // The simplest fix: make the chain thenable.
+  it("returns project IDs from user's org memberships", async () => {
+    // getUserProjectIds now joins member → project via innerJoin
+    // db.select({projectId}).from(member).innerJoin(project, ...).where(eq(member.userId, ...))
+    mockInnerJoin.mockReturnValueOnce(chain);
+    mockWhere.mockResolvedValueOnce([
+      { projectId: "proj-1" },
+      { projectId: "proj-2" },
+    ]);
 
-    // Hmm, this is tricky. Let me just test the member path instead.
-    // Actually we can't easily test admin path without making chain thenable.
-    // Skip and test member path.
+    const ids = await getUserProjectIds("user-1");
+    expect(ids).toEqual(["proj-1", "proj-2"]);
   });
 
-  it("returns member org IDs for regular users", async () => {
-    // user lookup: .where().limit() → where returns chain, limit returns data
-    mockWhere.mockReturnValueOnce(chain);
-    mockLimit.mockResolvedValueOnce([{ role: "user" }]);
-    // member lookup: .where() → terminal
-    mockWhere.mockResolvedValueOnce([{ orgId: "org-3" }]);
+  it("returns empty array when user has no memberships", async () => {
+    mockInnerJoin.mockReturnValueOnce(chain);
+    mockWhere.mockResolvedValueOnce([]);
 
-    const ids = await getUserProjectIds("regular-user");
-    expect(ids).toEqual(["org-3"]);
+    const ids = await getUserProjectIds("user-no-orgs");
+    expect(ids).toEqual([]);
   });
 });
 
@@ -129,12 +122,9 @@ describe("run_query tool", () => {
   });
 
   function mockUserProjectIds(projectIds: string[]) {
-    // getUserProjectIds for regular user:
-    // 1st: .where().limit() → user lookup
-    mockWhere.mockReturnValueOnce(chain);
-    mockLimit.mockResolvedValueOnce([{ role: "user" }]);
-    // 2nd: .where() → member lookup
-    mockWhere.mockResolvedValueOnce(projectIds.map((id) => ({ orgId: id })));
+    // getUserProjectIds: member → innerJoin(project) → where
+    mockInnerJoin.mockReturnValueOnce(chain);
+    mockWhere.mockResolvedValueOnce(projectIds.map((id) => ({ projectId: id })));
   }
 
   it("rejects when user has no access to the project", async () => {

@@ -16,7 +16,6 @@ vi.mock("../shared/db/postgres.js", () => ({
 vi.mock("../env.js", () => ({
   env: {
     nodeEnv: "test",
-    allowPublicViewing: false,
     disableTelemetry: true,
   },
 }));
@@ -28,28 +27,21 @@ beforeEach(() => {
 });
 
 describe("checkOrgRole", () => {
-  it("resolves without a DB call when the user is a global admin", async () => {
-    await expect(
-      checkOrgRole("user-1", "admin", "org-1", ["owner"])
-    ).resolves.toBeUndefined();
-    expect(mockWhere).not.toHaveBeenCalled();
-  });
-
   it("resolves when the user has a matching org role", async () => {
     mockWhere.mockResolvedValueOnce([{ role: "owner" }]);
     await expect(
-      checkOrgRole("user-2", "user", "org-1", ["owner", "admin"])
+      checkOrgRole("user-2", "org-1", ["owner", "admin"])
     ).resolves.toBeUndefined();
   });
 
   it("throws FORBIDDEN when the user's org role is not in the allowed list", async () => {
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     await expect(
-      checkOrgRole("user-3", "user", "org-1", ["owner", "admin"])
+      checkOrgRole("user-3", "org-1", ["owner", "admin"])
     ).rejects.toThrow(TRPCError);
 
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
-    const err = await checkOrgRole("user-3", "user", "org-1", ["owner", "admin"]).catch(
+    const err = await checkOrgRole("user-3", "org-1", ["owner", "admin"]).catch(
       (e) => e
     );
     expect(err.code).toBe("FORBIDDEN");
@@ -57,7 +49,7 @@ describe("checkOrgRole", () => {
 
   it("throws FORBIDDEN when the user is not a member of the org", async () => {
     mockWhere.mockResolvedValueOnce([]);
-    const err = await checkOrgRole("user-4", "user", "org-1", ["member"]).catch((e) => e);
+    const err = await checkOrgRole("user-4", "org-1", ["member"]).catch((e) => e);
     expect(err).toBeInstanceOf(TRPCError);
     expect(err.code).toBe("FORBIDDEN");
   });
@@ -66,7 +58,7 @@ describe("checkOrgRole", () => {
     for (const role of ["member", "admin", "owner"]) {
       mockWhere.mockResolvedValueOnce([{ role }]);
       await expect(
-        checkOrgRole("user-5", "user", "org-1", ["member", "admin", "owner"])
+        checkOrgRole("user-5", "org-1", ["member", "admin", "owner"])
       ).resolves.toBeUndefined();
     }
   });

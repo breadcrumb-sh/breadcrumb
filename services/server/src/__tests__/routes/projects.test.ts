@@ -1,14 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mock external dependencies ───────────────────────────────────────────────
-//
-// The DB chain mock is tricky: some chains end at .where() (like checkOrgRole),
-// while others chain .where().orderBy() or .where().returning().
-// We solve this by making mockWhere return chain by default, and setting the
-// terminal mocks (mockOrderBy, mockReturning, etc.) to return data.
-// For chains that end at .where(), we use mockWhere.mockResolvedValueOnce()
-// which makes the returned promise resolve directly.
-// For chains that continue, we use mockWhere.mockReturnValueOnce(chain).
 
 const mockOrderBy = vi.fn();
 const mockLimit = vi.fn();
@@ -16,8 +8,8 @@ const mockReturning = vi.fn();
 const mockInnerJoin = vi.fn();
 const mockLeftJoin = vi.fn();
 const mockOnConflictDoUpdate = vi.fn();
+const mockOnConflictDoNothing = vi.fn();
 
-// Build chain lazily so mockWhere reference works
 let chain: any;
 const mockWhere = vi.fn();
 
@@ -37,6 +29,7 @@ vi.mock("../../shared/db/postgres.js", () => {
     set: () => chain,
     delete: () => chain,
     onConflictDoUpdate: mockOnConflictDoUpdate,
+    onConflictDoNothing: mockOnConflictDoNothing,
     execute: vi.fn().mockResolvedValue([]),
   };
   return { db: chain };
@@ -50,9 +43,10 @@ vi.mock("../../shared/db/clickhouse.js", () => ({
 }));
 
 const mockEnv = {
-  allowPublicViewing: false,
   encryptionKey: "a".repeat(64),
   appBaseUrl: "http://localhost:3000",
+  allowOpenSignupOrgIds: [] as string[],
+  allowOrgCreation: true,
 };
 
 vi.mock("../../env.js", () => ({
@@ -107,128 +101,177 @@ beforeEach(() => {
   mockReturning.mockReset();
   mockLeftJoin.mockReset();
   mockOnConflictDoUpdate.mockReset();
+  mockOnConflictDoNothing.mockReset();
   mockCommand.mockReset().mockResolvedValue(undefined);
-  mockEnv.allowPublicViewing = false;
+  mockEnv.allowOrgCreation = true;
 });
 
 // ── Helper contexts ──────────────────────────────────────────────────────────
 
-const adminCtx = {
-  user: { id: "admin-1", email: "admin@test.com", name: "Admin", role: "admin" },
-  session: { id: "sess-admin", userId: "admin-1" },
-};
-
 const userCtx = {
-  user: { id: "user-1", email: "user@test.com", name: "User", role: "user" },
+  user: { id: "user-1", email: "user@test.com", name: "User" },
   session: { id: "sess-1", userId: "user-1" },
 };
 
 const unauthCtx = { user: null, session: null };
 
-// ── projects.list ────────────────────────────────────────────────────────────
+const ORG_ID = "org-1";
 
-describe("projects.list", () => {
+// ── organizations.list ──────────────────────────────────────────────────────
+
+describe("organizations.list", () => {
   it("returns orgs for authenticated member", async () => {
     const orgs = [{ id: "org-1", name: "Org 1" }];
-    // 1st where: member lookup → terminal (checkOrgRole is not called for list,
-    // but the member query .where() is terminal)
+    // member lookup: where() terminal
     mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
-    // 2nd where: .where(inArray(...)).orderBy(...) → where returns chain
+    // org query: where().orderBy()
     mockWhere.mockReturnValueOnce(chain);
     mockOrderBy.mockResolvedValueOnce(orgs);
 
     const caller = appRouter.createCaller(userCtx);
-    const result = await caller.projects.list();
+    const result = await caller.organizations.list();
     expect(result).toEqual(orgs);
   });
 
-  it("returns all orgs when public viewing enabled and no user", async () => {
-    mockEnv.allowPublicViewing = true;
-    const orgs = [{ id: "org-1", name: "Org 1" }, { id: "org-2", name: "Org 2" }];
-    // db.select().from(organization).orderBy(...)
-    mockOrderBy.mockResolvedValueOnce(orgs);
-
+  it("throws UNAUTHORIZED when not authenticated", async () => {
     const caller = appRouter.createCaller(unauthCtx);
-    const result = await caller.projects.list();
-    expect(result).toEqual(orgs);
-  });
-
-  it("throws UNAUTHORIZED when no user and public viewing disabled", async () => {
-    mockEnv.allowPublicViewing = false;
-    const caller = appRouter.createCaller(unauthCtx);
-    await expect(caller.projects.list()).rejects.toThrow("UNAUTHORIZED");
-  });
-
-  it("admin sees all orgs", async () => {
-    const orgs = [{ id: "org-1" }, { id: "org-2" }];
-    mockOrderBy.mockResolvedValueOnce(orgs);
-
-    const caller = appRouter.createCaller(adminCtx);
-    const result = await caller.projects.list();
-    expect(result).toEqual(orgs);
+    await expect(caller.organizations.list()).rejects.toThrow("UNAUTHORIZED");
   });
 });
 
-// ── projects.create ──────────────────────────────────────────────────────────
+// ── organizations.create ────────────────────────────────────────────────────
+
+describe("organizations.create", () => {
+  it("any authenticated user can create an org", async () => {
+    const org = { id: "new-org", name: "My Org", slug: "my-org-abc12345" };
+    // insert().values().returning()
+    mockReturning.mockResolvedValueOnce([org]);
+    // member insert — no returning needed
+
+    const caller = appRouter.createCaller(userCtx);
+    const result = await caller.organizations.create({ name: "My Org" });
+    expect(result).toEqual(org);
+  });
+
+  it("rejects when org creation is disabled", async () => {
+    mockEnv.allowOrgCreation = false;
+    const caller = appRouter.createCaller(userCtx);
+    await expect(
+      caller.organizations.create({ name: "My Org" })
+    ).rejects.toThrow("Organization creation is disabled");
+  });
+});
+
+// ── projects.list ───────────────────────────────────────────────────────────
+
+describe("projects.list", () => {
+  it("returns projects for org member", async () => {
+    const projects = [{ id: "proj-1", name: "Project 1", organizationId: ORG_ID }];
+    // checkOrgRole: where() terminal
+    mockWhere.mockResolvedValueOnce([{ role: "member" }]);
+    // project query: where().orderBy()
+    mockWhere.mockReturnValueOnce(chain);
+    mockOrderBy.mockResolvedValueOnce(projects);
+
+    const caller = appRouter.createCaller(userCtx);
+    const result = await caller.projects.list({ organizationId: ORG_ID });
+    expect(result).toEqual(projects);
+  });
+
+  it("throws UNAUTHORIZED when not authenticated", async () => {
+    const caller = appRouter.createCaller(unauthCtx);
+    await expect(
+      caller.projects.list({ organizationId: ORG_ID })
+    ).rejects.toThrow("UNAUTHORIZED");
+  });
+});
+
+// ── projects.create ─────────────────────────────────────────────────────────
 
 describe("projects.create", () => {
-  it("requires admin role", async () => {
-    const caller = appRouter.createCaller(userCtx);
-    await expect(caller.projects.create({ name: "Test" })).rejects.toThrow("FORBIDDEN");
-  });
-
-  it("generates slug with random suffix and returns the new org", async () => {
-    const org = { id: "new-org", name: "My Project", slug: "my-project-abc12345" };
-    // First insert().values().returning()
-    mockReturning.mockResolvedValueOnce([org]);
-    // Second insert (member) — insert().values() is chain, no returning needed
-
-    const caller = appRouter.createCaller(adminCtx);
-    const result = await caller.projects.create({ name: "My Project" });
-    expect(result).toEqual(org);
-    expect(mockReturning).toHaveBeenCalled();
-  });
-});
-
-// ── projects.rename ──────────────────────────────────────────────────────────
-
-describe("projects.rename", () => {
-  it("requires owner role (via checkOrgRole)", async () => {
-    // checkOrgRole: where() is terminal → user has member role (not owner)
+  it("requires org admin role", async () => {
+    // checkOrgRole: user is only member
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
 
     const caller = appRouter.createCaller(userCtx);
     await expect(
-      caller.projects.rename({ id: "org-1", name: "New Name" })
+      caller.projects.create({ organizationId: ORG_ID, name: "Test" })
     ).rejects.toThrow("FORBIDDEN");
   });
 
-  it("succeeds for owner", async () => {
-    // checkOrgRole: where() is terminal → user is owner
-    mockWhere.mockResolvedValueOnce([{ role: "owner" }]);
-    // update().set().where().returning() → where returns chain
-    mockWhere.mockReturnValueOnce(chain);
-    mockReturning.mockResolvedValueOnce([{ id: "org-1", name: "New Name" }]);
+  it("creates project for org admin", async () => {
+    const proj = { id: "new-proj", name: "My Project", organizationId: ORG_ID };
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+    // insert().values().returning()
+    mockReturning.mockResolvedValueOnce([proj]);
 
     const caller = appRouter.createCaller(userCtx);
-    const result = await caller.projects.rename({ id: "org-1", name: "New Name" });
-    expect(result).toEqual({ id: "org-1", name: "New Name" });
+    const result = await caller.projects.create({
+      organizationId: ORG_ID,
+      name: "My Project",
+    });
+    expect(result).toEqual(proj);
   });
 });
 
-// ── projects.delete ──────────────────────────────────────────────────────────
+// ── projects.rename ─────────────────────────────────────────────────────────
+
+describe("projects.rename", () => {
+  it("requires admin role via project→org resolution", async () => {
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
+    // checkOrgRole: user is member (not admin)
+    mockWhere.mockResolvedValueOnce([{ role: "member" }]);
+
+    const caller = appRouter.createCaller(userCtx);
+    await expect(
+      caller.projects.rename({ projectId: "proj-1", name: "New Name" })
+    ).rejects.toThrow("FORBIDDEN");
+  });
+
+  it("succeeds for admin", async () => {
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+    // update().set().where().returning()
+    mockWhere.mockReturnValueOnce(chain);
+    mockReturning.mockResolvedValueOnce([{ id: "proj-1", name: "New Name" }]);
+
+    const caller = appRouter.createCaller(userCtx);
+    const result = await caller.projects.rename({ projectId: "proj-1", name: "New Name" });
+    expect(result).toEqual({ id: "proj-1", name: "New Name" });
+  });
+});
+
+// ── projects.delete ─────────────────────────────────────────────────────────
 
 describe("projects.delete", () => {
+  it("requires owner role", async () => {
+    // select project.organizationId
+    mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
+    // checkOrgRole: user is admin (not owner)
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+
+    const caller = appRouter.createCaller(userCtx);
+    await expect(
+      caller.projects.delete({ projectId: "proj-1" })
+    ).rejects.toThrow("FORBIDDEN");
+  });
+
   it("calls ClickHouse DELETE for traces, spans, and rollups", async () => {
-    // delete().where() for the postgres org delete — where is terminal
+    // select project.organizationId
+    mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
+    // checkOrgRole: owner
+    mockWhere.mockResolvedValueOnce([{ role: "owner" }]);
+    // delete().where() for postgres
     mockWhere.mockResolvedValueOnce(undefined);
 
-    const caller = appRouter.createCaller(adminCtx);
-    await caller.projects.delete({ id: "org-to-delete" });
+    const caller = appRouter.createCaller(userCtx);
+    await caller.projects.delete({ projectId: "proj-1" });
 
-    // Should have called clickhouse.command 3 times (traces, spans, rollups)
     expect(mockCommand).toHaveBeenCalledTimes(3);
-
     const queries = mockCommand.mock.calls.map((c: any[]) => c[0].query);
     expect(queries).toEqual(
       expect.arrayContaining([
@@ -237,10 +280,5 @@ describe("projects.delete", () => {
         expect.stringContaining("breadcrumb.trace_rollups"),
       ])
     );
-  });
-
-  it("requires admin role", async () => {
-    const caller = appRouter.createCaller(userCtx);
-    await expect(caller.projects.delete({ id: "org-1" })).rejects.toThrow("FORBIDDEN");
   });
 });

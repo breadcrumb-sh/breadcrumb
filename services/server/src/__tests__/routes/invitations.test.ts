@@ -38,14 +38,13 @@ vi.mock("../../shared/db/clickhouse.js", () => ({
   readonlyClickhouse: { query: vi.fn() },
 }));
 
-const mockEnv = {
-  allowPublicViewing: false,
-  encryptionKey: "a".repeat(64),
-  appBaseUrl: "http://localhost:3000",
-};
-
 vi.mock("../../env.js", () => ({
-  env: mockEnv,
+  env: {
+    encryptionKey: "a".repeat(64),
+    appBaseUrl: "http://localhost:3000",
+    allowOpenSignupOrgIds: [],
+    allowOrgCreation: true,
+  },
 }));
 
 vi.mock("../../shared/lib/cache.js", () => ({
@@ -101,12 +100,12 @@ beforeEach(() => {
 // ── Helper contexts ──────────────────────────────────────────────────────────
 
 const adminCtx = {
-  user: { id: "admin-1", email: "admin@test.com", name: "Admin", role: "admin" },
+  user: { id: "admin-1", email: "admin@test.com", name: "Admin" },
   session: { id: "sess-admin", userId: "admin-1" },
 };
 
 const userCtx = {
-  user: { id: "user-1", email: "user@test.com", name: "User", role: "user" },
+  user: { id: "user-1", email: "user@test.com", name: "User" },
   session: { id: "sess-1", userId: "user-1" },
 };
 
@@ -116,12 +115,13 @@ const ORG_ID = "org-1";
 
 describe("invitations.create", () => {
   it("rejects if user is already a member", async () => {
-    // orgAdminProcedure: global admin bypasses checkOrgRole
     const caller = appRouter.createCaller(adminCtx);
 
-    // 1st where: find user by email → terminal
+    // checkOrgRole: admin role in org
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+    // find user by email → terminal
     mockWhere.mockResolvedValueOnce([{ id: "existing-user" }]);
-    // 2nd where: find member by userId + orgId → terminal
+    // find member by userId + orgId → terminal
     mockWhere.mockResolvedValueOnce([{ id: "member-1" }]);
 
     await expect(
@@ -135,9 +135,11 @@ describe("invitations.create", () => {
   it("rejects if pending non-expired invitation exists", async () => {
     const caller = appRouter.createCaller(adminCtx);
 
-    // 1st where: user lookup — no user found → terminal
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+    // user lookup — no user → terminal
     mockWhere.mockResolvedValueOnce([]);
-    // 2nd where: existing pending invitation found → terminal
+    // existing pending invitation → terminal
     mockWhere.mockResolvedValueOnce([{ id: "inv-existing" }]);
 
     await expect(
@@ -148,7 +150,7 @@ describe("invitations.create", () => {
     ).rejects.toThrow("pending invitation already exists");
   });
 
-  it("allows creation if only expired invitation exists (no pending match)", async () => {
+  it("allows creation when no conflicts", async () => {
     const inv = {
       id: "inv-new",
       organizationId: ORG_ID,
@@ -161,9 +163,11 @@ describe("invitations.create", () => {
 
     const caller = appRouter.createCaller(adminCtx);
 
-    // 1st where: user lookup — no user found → terminal
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
+    // user lookup — none → terminal
     mockWhere.mockResolvedValueOnce([]);
-    // 2nd where: existing pending invitation — none → terminal
+    // pending invitation — none → terminal
     mockWhere.mockResolvedValueOnce([]);
     // insert().values().returning()
     mockReturning.mockResolvedValueOnce([inv]);
@@ -189,6 +193,8 @@ describe("invitations.create", () => {
 
     const caller = appRouter.createCaller(adminCtx);
 
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
     // No existing user → terminal
     mockWhere.mockResolvedValueOnce([]);
     // No existing invitation → terminal
@@ -231,9 +237,9 @@ describe("invitations.list", () => {
 
 describe("invitations.delete", () => {
   it("requires admin/owner role", async () => {
-    // 1st where: fetch invitation to get its orgId → terminal
+    // fetch invitation → terminal
     mockWhere.mockResolvedValueOnce([{ id: "inv-1", organizationId: ORG_ID }]);
-    // 2nd where: checkOrgRole — user is only a member → terminal
+    // checkOrgRole — user is only a member → terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
 
     const caller = appRouter.createCaller(userCtx);
@@ -242,12 +248,13 @@ describe("invitations.delete", () => {
     ).rejects.toThrow("FORBIDDEN");
   });
 
-  it("succeeds for global admin", async () => {
-    // Global admin bypasses checkOrgRole
+  it("succeeds for org admin", async () => {
     const caller = appRouter.createCaller(adminCtx);
 
-    // 1st where: fetch invitation → terminal
+    // fetch invitation → terminal
     mockWhere.mockResolvedValueOnce([{ id: "inv-1", organizationId: ORG_ID }]);
+    // checkOrgRole: admin
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
     // delete().where() → terminal
     mockWhere.mockResolvedValueOnce(undefined);
 
