@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, authedProcedure } from "../../trpc.js";
+import { router, authedProcedure, memberInAnyOrgProcedure } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { mcpKeys } from "../../shared/db/schema.js";
 import {
@@ -25,7 +25,7 @@ export const mcpKeysRouter = router({
       .orderBy(mcpKeys.createdAt);
   }),
 
-  create: authedProcedure
+  create: memberInAnyOrgProcedure
     .input(z.object({ name: z.string().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
       const rawKey = generateMcpKey();
@@ -48,7 +48,7 @@ export const mcpKeysRouter = router({
       return { ...key, rawKey };
     }),
 
-  delete: authedProcedure
+  delete: memberInAnyOrgProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const [key] = await db

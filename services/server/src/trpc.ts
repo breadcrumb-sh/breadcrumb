@@ -42,6 +42,21 @@ export const authedProcedure = t.procedure.use(({ ctx, next }) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
+/** Requires the caller to have at least member role in any org (not viewer-only). */
+export const memberInAnyOrgProcedure = authedProcedure.use(async ({ ctx, next }) => {
+  const rows = await db
+    .select({ role: member.role })
+    .from(member)
+    .where(eq(member.userId, ctx.user.id));
+  const hasMemberRole = rows.some(
+    (m) => m.role === "member" || m.role === "admin" || m.role === "owner",
+  );
+  if (!hasMemberRole) {
+    throw new TRPCError({ code: "FORBIDDEN" });
+  }
+  return next({ ctx });
+});
+
 // ── Org-scoped middleware ─────────────────────────────────────────────────────
 // These expect the input to contain `organizationId`.
 // They resolve the org ID, check membership, and put `organizationId` on ctx.

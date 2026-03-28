@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import {
   router,
   authedProcedure,
-  orgMemberProcedure,
+  orgViewerProcedure,
   orgAdminProcedure,
   checkOrgRole,
 } from "../../trpc.js";
@@ -86,7 +86,7 @@ export const invitationsRouter = router({
       };
     }),
 
-  list: orgMemberProcedure
+  list: orgViewerProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ input }) => {
       const invitations = await db

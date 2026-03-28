@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {
   router,
-  orgMemberProcedure,
+  orgViewerProcedure,
   orgAdminProcedure,
   projectViewerProcedure,
   projectAdminProcedure,
@@ -16,7 +16,7 @@ import { clickhouse } from "../../shared/db/clickhouse.js";
 import { trackProjectCreated } from "../../shared/lib/telemetry.js";
 
 export const projectsRouter = router({
-  list: orgMemberProcedure
+  list: orgViewerProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ input }) => {
       return db
