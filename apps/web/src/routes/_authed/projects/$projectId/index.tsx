@@ -12,7 +12,6 @@ import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
 import { ChartCard } from "../../../../components/overview/ChartCard";
 import { TraceQualityChart } from "../../../../components/overview/TraceQualityChart";
-import { StarredChartCard } from "../../../../components/overview/StarredChartCard";
 import { TopFailingSpansTable } from "../../../../components/overview/TopFailingSpansTable";
 import { TopSlowestSpansTable } from "../../../../components/overview/TopSlowestSpansTable";
 import { NewFindingsCards } from "../../../../components/overview/NewFindingsCards";
@@ -80,7 +79,6 @@ function OverviewPage() {
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
-  const starredCharts = trpc.explores.listStarred.useQuery({ projectId });
   const newFindings = trpc.observations["findings.listNew"].useQuery(
     { projectId },
     { refetchInterval: 30_000 },
@@ -260,23 +258,6 @@ function OverviewPage() {
         />
       </div>
 
-      {/* ── Starred Charts ──────────────────────────────────────── */}
-      {starredCharts.data && starredCharts.data.length > 0 && (
-        <div className="space-y-4">
-          <p className="text-xs font-medium text-zinc-500">Explorations</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {starredCharts.data.map((chart) => (
-              <StarredChartCard
-                key={chart.id}
-                chart={chart}
-                projectId={projectId}
-                from={from}
-                to={to}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

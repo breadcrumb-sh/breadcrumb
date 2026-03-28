@@ -26,7 +26,6 @@ import { usePageView } from "../../../../hooks/usePageView";
 
 const searchSchema = z.object({
   span: z.string().optional(),
-  ask: z.string().optional(),
 });
 
 export const Route = createFileRoute(
@@ -87,7 +86,7 @@ function getAncestorIds(spanId: string, parentMap: Map<string, string>): Set<str
 function TraceDetailPage() {
   usePageView("trace_detail");
   const { projectId, traceId } = Route.useParams();
-  const { span: spanParam, ask: askParam } = Route.useSearch();
+  const { span: spanParam } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate({ from: Route.fullPath });
   const isViewer = false; // All users are authenticated; org role check is server-side
@@ -373,15 +372,6 @@ function TraceDetailPage() {
                   <div className="flex-1 overflow-hidden">
                     <SpanDetail
                       span={selectedSpan}
-                      onAsk={!isViewer && hasSummary.current ? () => {
-                        void navigate({
-                          search: (prev) => ({
-                            ...prev,
-                            span: undefined,
-                            ask: `[Span ${selectedSpan.id}: ${selectedSpan.name}] `,
-                          }),
-                        });
-                      } : undefined}
                     />
                   </div>
                 </div>
@@ -389,16 +379,6 @@ function TraceDetailPage() {
                 <TraceSummary
                   markdown={summary.data.markdown}
                   onSpanClick={handleSummarySpanClick}
-                  projectId={projectId}
-                  traceId={traceId}
-                  isViewer={isViewer}
-                  prefillAsk={askParam}
-                  onClearAsk={() => {
-                    void navigate({
-                      search: (prev) => ({ ...prev, ask: undefined }),
-                      replace: true,
-                    });
-                  }}
                 />
               ) : isAnalyzing ? (
                 <div className="flex flex-col items-center justify-center py-10 sm:py-0 sm:h-full gap-2">

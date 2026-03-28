@@ -22,7 +22,6 @@ import { Route as AuthedProjectsProjectIdIndexRouteImport } from './routes/_auth
 import { Route as AuthedOrgOrgIdIndexRouteImport } from './routes/_authed/org/$orgId/index'
 import { Route as AuthedProjectsProjectIdTracesRouteImport } from './routes/_authed/projects/$projectId/traces'
 import { Route as AuthedProjectsProjectIdSettingsRouteImport } from './routes/_authed/projects/$projectId/settings'
-import { Route as AuthedProjectsProjectIdExploreRouteImport } from './routes/_authed/projects/$projectId/explore'
 import { Route as AuthedOrgOrgIdSettingsRouteImport } from './routes/_authed/org/$orgId/settings'
 import { Route as AuthedOrgOrgIdNewRouteImport } from './routes/_authed/org/$orgId/new'
 import { Route as AuthedProjectsProjectIdTraceTraceIdRouteImport } from './routes/_authed/projects/$projectId/trace.$traceId'
@@ -94,12 +93,6 @@ const AuthedProjectsProjectIdSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthedProjectsProjectIdRoute,
   } as any)
-const AuthedProjectsProjectIdExploreRoute =
-  AuthedProjectsProjectIdExploreRouteImport.update({
-    id: '/explore',
-    path: '/explore',
-    getParentRoute: () => AuthedProjectsProjectIdRoute,
-  } as any)
 const AuthedOrgOrgIdSettingsRoute = AuthedOrgOrgIdSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -128,7 +121,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
   '/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
-  '/projects/$projectId/explore': typeof AuthedProjectsProjectIdExploreRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
   '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/org/$orgId/': typeof AuthedOrgOrgIdIndexRoute
@@ -144,7 +136,6 @@ export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
-  '/projects/$projectId/explore': typeof AuthedProjectsProjectIdExploreRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
   '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/org/$orgId': typeof AuthedOrgOrgIdIndexRoute
@@ -164,7 +155,6 @@ export interface FileRoutesById {
   '/_authed/projects/$projectId': typeof AuthedProjectsProjectIdRouteWithChildren
   '/_authed/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/_authed/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
-  '/_authed/projects/$projectId/explore': typeof AuthedProjectsProjectIdExploreRoute
   '/_authed/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
   '/_authed/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/_authed/org/$orgId/': typeof AuthedOrgOrgIdIndexRoute
@@ -184,7 +174,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/org/$orgId/new'
     | '/org/$orgId/settings'
-    | '/projects/$projectId/explore'
     | '/projects/$projectId/settings'
     | '/projects/$projectId/traces'
     | '/org/$orgId/'
@@ -200,7 +189,6 @@ export interface FileRouteTypes {
     | '/'
     | '/org/$orgId/new'
     | '/org/$orgId/settings'
-    | '/projects/$projectId/explore'
     | '/projects/$projectId/settings'
     | '/projects/$projectId/traces'
     | '/org/$orgId'
@@ -219,7 +207,6 @@ export interface FileRouteTypes {
     | '/_authed/projects/$projectId'
     | '/_authed/org/$orgId/new'
     | '/_authed/org/$orgId/settings'
-    | '/_authed/projects/$projectId/explore'
     | '/_authed/projects/$projectId/settings'
     | '/_authed/projects/$projectId/traces'
     | '/_authed/org/$orgId/'
@@ -327,13 +314,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectsProjectIdSettingsRouteImport
       parentRoute: typeof AuthedProjectsProjectIdRoute
     }
-    '/_authed/projects/$projectId/explore': {
-      id: '/_authed/projects/$projectId/explore'
-      path: '/explore'
-      fullPath: '/projects/$projectId/explore'
-      preLoaderRoute: typeof AuthedProjectsProjectIdExploreRouteImport
-      parentRoute: typeof AuthedProjectsProjectIdRoute
-    }
     '/_authed/org/$orgId/settings': {
       id: '/_authed/org/$orgId/settings'
       path: '/settings'
@@ -375,7 +355,6 @@ const AuthedOrgOrgIdRouteWithChildren = AuthedOrgOrgIdRoute._addFileChildren(
 )
 
 interface AuthedProjectsProjectIdRouteChildren {
-  AuthedProjectsProjectIdExploreRoute: typeof AuthedProjectsProjectIdExploreRoute
   AuthedProjectsProjectIdSettingsRoute: typeof AuthedProjectsProjectIdSettingsRoute
   AuthedProjectsProjectIdTracesRoute: typeof AuthedProjectsProjectIdTracesRoute
   AuthedProjectsProjectIdIndexRoute: typeof AuthedProjectsProjectIdIndexRoute
@@ -384,7 +363,6 @@ interface AuthedProjectsProjectIdRouteChildren {
 
 const AuthedProjectsProjectIdRouteChildren: AuthedProjectsProjectIdRouteChildren =
   {
-    AuthedProjectsProjectIdExploreRoute: AuthedProjectsProjectIdExploreRoute,
     AuthedProjectsProjectIdSettingsRoute: AuthedProjectsProjectIdSettingsRoute,
     AuthedProjectsProjectIdTracesRoute: AuthedProjectsProjectIdTracesRoute,
     AuthedProjectsProjectIdIndexRoute: AuthedProjectsProjectIdIndexRoute,

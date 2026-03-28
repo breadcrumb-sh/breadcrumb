@@ -7,7 +7,6 @@ import { useSubMenu } from "./SubMenuContext";
 const TABS = [
   { label: "Overview", path: "" },
   { label: "Traces", path: "/traces" },
-  { label: "Explore", path: "/explore" },
   { label: "Settings", path: "/settings" },
 ] as const;
 

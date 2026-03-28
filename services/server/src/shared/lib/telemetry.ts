@@ -148,14 +148,6 @@ export function trackFindingCreated(impact: string) {
   trackEvent("finding_created", { impact });
 }
 
-export function trackExploreMessageSent() {
-  trackEvent("explore_message_sent");
-}
-
-export function trackExploreChartStarred() {
-  trackEvent("explore_chart_starred");
-}
-
 export function trackMemberInvited(role: string) {
   trackEvent("member_invited", { role });
 }
