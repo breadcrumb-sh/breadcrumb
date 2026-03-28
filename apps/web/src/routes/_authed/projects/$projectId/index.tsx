@@ -12,7 +12,7 @@ import { useProjectFilters } from "../../../../hooks/useProjectFilters";
 import { formatCost } from "../../../../lib/span-utils";
 import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
-import { KanbanBoard } from "../../../../components/overview/KanbanBoard";
+import { KanbanBoard } from "../../../../components/monitor/KanbanBoard";
 
 const searchSchema = z.object({
   from: z.string().optional(),
@@ -121,8 +121,8 @@ function OverviewPage() {
 
       </div>
       {/* ── Agent monitoring board ────────────────────────────── */}
-      <div className="pt-6 pb-4" style={{ height: "calc(100vh - 80px)" }}>
-        <KanbanBoard alignRef={statsRef} />
+      <div className="pt-12 pb-4" style={{ height: "calc(100vh - 80px)" }}>
+        <KanbanBoard projectId={projectId} alignRef={statsRef} />
       </div>
     </div>
   );

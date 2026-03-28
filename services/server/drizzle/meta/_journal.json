@@ -120,6 +120,20 @@
       "when": 1774698365131,
       "tag": "0016_slim_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1774733291610,
+      "tag": "0017_curved_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774733754526,
+      "tag": "0018_ambitious_abomination",
+      "breakpoints": true
     }
   ]
 }

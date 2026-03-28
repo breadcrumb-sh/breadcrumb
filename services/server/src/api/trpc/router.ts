@@ -8,6 +8,7 @@ import { membersRouter } from "./members.js";
 import { invitationsRouter } from "./invitations.js";
 import { aiProvidersRouter } from "./ai-providers.js";
 import { configRouter } from "./config.js";
+import { monitorRouter } from "./monitor.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -20,6 +21,7 @@ export const appRouter = router({
   members: membersRouter,
   invitations: invitationsRouter,
   aiProviders: aiProvidersRouter,
+  monitor: monitorRouter,
 });
 
 export type AppRouter = typeof appRouter;

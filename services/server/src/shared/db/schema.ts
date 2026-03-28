@@ -177,6 +177,25 @@ export const mcpKeys = pgTable("mcp_keys", {
 
 
 
+// ── Monitor items (agent kanban) ────────────────────────────────────
+
+export const monitorItems = pgTable(
+  "monitor_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    status: varchar("status", { length: 32 }).notNull().default("queue"), // queue | investigating | review | done
+    dismissed: boolean("dismissed").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("monitor_items_project_id_idx").on(t.projectId)],
+);
+
 export const traceSummaries = pgTable(
   "trace_summaries",
   {
