@@ -3,8 +3,7 @@ import superjson from "superjson";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "./shared/db/postgres.js";
-import { member } from "./shared/db/schema.js";
-import { env } from "./env.js";
+import { member, project } from "./shared/db/schema.js";
 import { trackSlowTrpcRequest, trackEvent } from "./shared/lib/telemetry.js";
 
 export type TRPCContext = {
@@ -12,7 +11,6 @@ export type TRPCContext = {
     id: string;
     email: string;
     name: string;
-    role: string;
   } | null;
   session: { id: string; userId: string } | null;
 };
@@ -44,38 +42,19 @@ export const authedProcedure = t.procedure.use(({ ctx, next }) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
-export const adminProcedure = authedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-  return next({ ctx });
-});
-
 // ── Org-scoped middleware ─────────────────────────────────────────────────────
-// These expect the input to contain `projectId` (or `organizationId`).
+// These expect the input to contain `organizationId`.
 // They resolve the org ID, check membership, and put `organizationId` on ctx.
 
 const orgIdInput = z.object({
-  projectId: z.string().optional(),
-  organizationId: z.string().optional(),
+  organizationId: z.string(),
 });
-
-function resolveOrgId(input: z.infer<typeof orgIdInput>): string {
-  const orgId = input.projectId ?? input.organizationId;
-  if (!orgId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "projectId or organizationId is required",
-    });
-  }
-  return orgId;
-}
 
 export async function checkOrgRole(
   userId: string,
-  globalRole: string,
   organizationId: string,
   roles: string[],
 ): Promise<void> {
-  if (globalRole === "admin") return;
   const [m] = await db
     .select({ role: member.role })
     .from(member)
@@ -87,50 +66,80 @@ export async function checkOrgRole(
   }
 }
 
-/** Requires the caller to be any member of the org (or global admin). */
+/** Requires the caller to be any member of the org. */
 export const orgMemberProcedure = authedProcedure
   .input(orgIdInput)
   .use(async ({ ctx, input, next }) => {
-    const organizationId = resolveOrgId(input);
-    await checkOrgRole(ctx.user.id, ctx.user.role, organizationId, [
+    await checkOrgRole(ctx.user.id, input.organizationId, [
       "member",
       "admin",
       "owner",
     ]);
-    return next({ ctx: { ...ctx, organizationId } });
+    return next({ ctx: { ...ctx, organizationId: input.organizationId } });
   });
 
-/** Requires the caller to be an admin or owner of the org (or global admin). */
+/** Requires the caller to be an admin or owner of the org. */
 export const orgAdminProcedure = authedProcedure
   .input(orgIdInput)
   .use(async ({ ctx, input, next }) => {
-    const organizationId = resolveOrgId(input);
-    await checkOrgRole(ctx.user.id, ctx.user.role, organizationId, [
+    await checkOrgRole(ctx.user.id, input.organizationId, [
       "admin",
       "owner",
     ]);
-    return next({ ctx: { ...ctx, organizationId } });
+    return next({ ctx: { ...ctx, organizationId: input.organizationId } });
   });
 
-/**
- * Read-only org access. When ALLOW_PUBLIC_VIEWING is enabled, unauthenticated
- * users are treated as implicit viewers. Otherwise requires org membership.
- */
-export const orgViewerProcedure = procedure
+/** Requires the caller to be at least a viewer of the org. */
+export const orgViewerProcedure = authedProcedure
   .input(orgIdInput)
   .use(async ({ ctx, input, next }) => {
-    const organizationId = resolveOrgId(input);
-    if (!ctx.user) {
-      if (env.allowPublicViewing) {
-        return next({ ctx: { ...ctx, organizationId } });
-      }
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    await checkOrgRole(ctx.user.id, ctx.user.role, organizationId, [
+    await checkOrgRole(ctx.user.id, input.organizationId, [
       "viewer",
       "member",
       "admin",
       "owner",
     ]);
-    return next({ ctx: { ...ctx, organizationId } });
+    return next({ ctx: { ...ctx, organizationId: input.organizationId } });
+  });
+
+// ── Project-scoped middleware ─────────────────────────────────────────────────
+// These expect the input to contain `projectId`.
+// They resolve the project's org, check membership, and put both IDs on ctx.
+
+const projectIdInput = z.object({ projectId: z.string() });
+
+async function resolveProject(projectId: string): Promise<{ organizationId: string }> {
+  const [p] = await db
+    .select({ organizationId: project.organizationId })
+    .from(project)
+    .where(eq(project.id, projectId));
+  if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+  return p;
+}
+
+/** Requires the caller to be any member of the project's org. */
+export const projectMemberProcedure = authedProcedure
+  .input(projectIdInput)
+  .use(async ({ ctx, input, next }) => {
+    const { organizationId } = await resolveProject(input.projectId);
+    await checkOrgRole(ctx.user.id, organizationId, ["member", "admin", "owner"]);
+    return next({ ctx: { ...ctx, organizationId, projectId: input.projectId } });
+  });
+
+/** Requires the caller to be an admin or owner of the project's org. */
+export const projectAdminProcedure = authedProcedure
+  .input(projectIdInput)
+  .use(async ({ ctx, input, next }) => {
+    const { organizationId } = await resolveProject(input.projectId);
+    await checkOrgRole(ctx.user.id, organizationId, ["admin", "owner"]);
+    return next({ ctx: { ...ctx, organizationId, projectId: input.projectId } });
+  });
+
+/** Requires the caller to be at least a viewer of the project's org. */
+export const projectViewerProcedure = authedProcedure
+  .input(projectIdInput)
+  .use(async ({ ctx, input, next }) => {
+    const { organizationId } = await resolveProject(input.projectId);
+    await checkOrgRole(ctx.user.id, organizationId, ["viewer", "member", "admin", "owner"]);
+    return next({ ctx: { ...ctx, organizationId, projectId: input.projectId } });
   });

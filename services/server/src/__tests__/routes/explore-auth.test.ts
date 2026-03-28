@@ -33,8 +33,9 @@ vi.mock("../../shared/db/clickhouse.js", () => ({
 
 vi.mock("../../env.js", () => ({
   env: {
-    allowPublicViewing: false,
     encryptionKey: "a".repeat(64),
+    allowOpenSignupOrgIds: [],
+    allowOrgCreation: true,
   },
 }));
 
@@ -81,17 +82,17 @@ beforeEach(() => {
 describe("explores.chat — project ownership check", () => {
   it("silently returns when explore belongs to a different project", async () => {
     const authedCaller = appRouter.createCaller({
-      user: { id: "user-1", email: "u@test.com", name: "User", role: "user" },
+      user: { id: "user-1", email: "u@test.com", name: "User" },
       session: { id: "sess-1", userId: "user-1" },
     });
 
-    // 1st where call: orgMemberProcedure middleware checks membership
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
+    // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
-    // 2nd where call: chat handler fetches the explore (belongs to project-A)
+    // chat handler fetches the explore (belongs to project-A)
     mockWhere.mockResolvedValueOnce([{ projectId: "project-A" }]);
 
-    // Call chat with project-B but an explore that belongs to project-A.
-    // The subscription should silently return (no events yielded).
     const iterable = await authedCaller.explores.chat({
       exploreId: "explore-1",
       projectId: "project-B",
@@ -109,12 +110,7 @@ describe("explores.chat — project ownership check", () => {
 // ── explore.get auth check ───────────────────────────────────────────────────
 
 describe("explores.get — auth check", () => {
-  it("throws UNAUTHORIZED for unauthenticated user when public viewing is off", async () => {
-    // Mock: an explore exists
-    mockWhere.mockResolvedValueOnce([
-      { id: "explore-1", projectId: "proj-1", name: "Test" },
-    ]);
-
+  it("throws UNAUTHORIZED for unauthenticated user", async () => {
     const unauthCaller = appRouter.createCaller({
       user: null,
       session: null,
@@ -133,13 +129,15 @@ describe("explores.get — auth check", () => {
       updatedAt: new Date(),
     };
 
-    // First where call: fetch the explore
+    // fetch the explore
     mockWhere.mockResolvedValueOnce([explore]);
-    // Second where call: checkOrgRole membership lookup
+    // getOrgIdForProject: resolveProject where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
+    // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "viewer" }]);
 
     const authedCaller = appRouter.createCaller({
-      user: { id: "user-1", email: "u@test.com", name: "User", role: "user" },
+      user: { id: "user-1", email: "u@test.com", name: "User" },
       session: { id: "sess-1", userId: "user-1" },
     });
 
@@ -150,12 +148,12 @@ describe("explores.get — auth check", () => {
   it("returns null when explore does not exist", async () => {
     mockWhere.mockResolvedValueOnce([]);
 
-    const unauthCaller = appRouter.createCaller({
-      user: null,
-      session: null,
+    const authedCaller = appRouter.createCaller({
+      user: { id: "user-1", email: "u@test.com", name: "User" },
+      session: { id: "sess-1", userId: "user-1" },
     });
 
-    const result = await unauthCaller.explores.get({ id: "nonexistent" });
+    const result = await authedCaller.explores.get({ id: "nonexistent" });
     expect(result).toBeNull();
   });
 });

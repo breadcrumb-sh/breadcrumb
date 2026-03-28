@@ -5,6 +5,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 //   2nd call: db.select().from(invitation).where().limit(1) — checks for invitation
 const mockDbLimit = vi.fn();
 
+vi.mock("../env.js", () => ({
+  env: {
+    allowOpenSignupOrgIds: [],
+  },
+}));
+
 vi.mock("../shared/db/postgres.js", () => {
   const chain: any = {
     select: () => chain,

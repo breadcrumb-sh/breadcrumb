@@ -11,11 +11,11 @@ import { trpc } from "../../lib/trpc";
 import { backdropCls, popupCls } from "./dialog-styles";
 
 export function MembersSection({
-  projectId,
+  organizationId,
   canManage,
   myOrgRole,
 }: {
-  projectId: string;
+  organizationId: string;
   canManage: boolean;
   myOrgRole: string | undefined;
 }) {
@@ -29,21 +29,21 @@ export function MembersSection({
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
-  const members = trpc.members.list.useQuery({ organizationId: projectId });
+  const members = trpc.members.list.useQuery({ organizationId });
   const invitations = trpc.invitations.list.useQuery({
-    organizationId: projectId,
+    organizationId,
   });
   const createInvitation = trpc.invitations.create.useMutation({
     onSuccess: () =>
-      utils.invitations.list.invalidate({ organizationId: projectId }),
+      utils.invitations.list.invalidate({ organizationId }),
   });
   const deleteInvitation = trpc.invitations.delete.useMutation({
     onSuccess: () =>
-      utils.invitations.list.invalidate({ organizationId: projectId }),
+      utils.invitations.list.invalidate({ organizationId }),
   });
   const removeMember = trpc.members.remove.useMutation({
     onSuccess: () =>
-      utils.members.list.invalidate({ organizationId: projectId }),
+      utils.members.list.invalidate({ organizationId }),
   });
 
   const handleInviteOpenChange = (next: boolean) => {
@@ -62,7 +62,7 @@ export function MembersSection({
     setInviteError(null);
     try {
       const result = await createInvitation.mutateAsync({
-        organizationId: projectId,
+        organizationId,
         email: inviteEmail,
         role: inviteRole,
       });

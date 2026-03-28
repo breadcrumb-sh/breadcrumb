@@ -8,21 +8,24 @@ const mockCacheGet = vi.fn().mockResolvedValue(null);
 const mockCacheSet = vi.fn().mockResolvedValue(undefined);
 const mockGetAiModel = vi.fn().mockResolvedValue({ id: "model" });
 const mockWriteSearchQuery = vi.fn();
+const mockWhere = vi.fn();
 
 vi.mock("../../shared/db/clickhouse.js", () => ({
   clickhouse: { query: vi.fn(), insert: vi.fn() },
   readonlyClickhouse: { query: mockReadonlyQuery },
 }));
 
-vi.mock("../../shared/db/postgres.js", () => ({
-  db: {
-    select: vi.fn(),
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-    orderBy: vi.fn(),
-  },
-}));
+vi.mock("../../shared/db/postgres.js", () => {
+  const chain: any = {
+    select: () => chain,
+    from: () => chain,
+    where: mockWhere,
+    limit: vi.fn().mockResolvedValue([]),
+    orderBy: vi.fn().mockResolvedValue([]),
+    innerJoin: () => chain,
+  };
+  return { db: chain };
+});
 
 vi.mock("../../shared/lib/cache.js", () => ({
   cache: {
@@ -41,8 +44,9 @@ vi.mock("../../services/explore/query-writer.js", () => ({
 
 vi.mock("../../env.js", () => ({
   env: {
-    allowPublicViewing: false,
     encryptionKey: "a".repeat(64),
+    allowOpenSignupOrgIds: [],
+    allowOrgCreation: true,
   },
 }));
 
@@ -59,6 +63,7 @@ beforeEach(() => {
   mockCacheSet.mockClear();
   mockGetAiModel.mockClear();
   mockWriteSearchQuery.mockClear();
+  mockWhere.mockReset();
   mockWriteSearchQuery.mockResolvedValue({
     clause: "EXISTS (SELECT 1 FROM spans s WHERE s.name = 'x')",
   });
@@ -71,10 +76,14 @@ describe("traces.list security hardening", () => {
         id: "admin-user",
         email: "admin@example.com",
         name: "Admin",
-        role: "admin",
       },
       session: null,
     });
+
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
+    // checkOrgRole: where() terminal
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
 
     await caller.list({
       projectId: "00000000-0000-0000-0000-000000000001",
@@ -106,10 +115,14 @@ describe("traces.list security hardening", () => {
         id: "admin-user",
         email: "admin@example.com",
         name: "Admin",
-        role: "admin",
       },
       session: null,
     });
+
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
+    // checkOrgRole: where() terminal
+    mockWhere.mockResolvedValueOnce([{ role: "admin" }]);
 
     const result = await caller.list({
       projectId: "00000000-0000-0000-0000-000000000001",

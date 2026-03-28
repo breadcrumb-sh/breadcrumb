@@ -39,9 +39,10 @@ vi.mock("../../shared/db/clickhouse.js", () => ({
 }));
 
 const mockEnv = {
-  allowPublicViewing: false,
   encryptionKey: "a".repeat(64),
   appBaseUrl: "http://localhost:3000",
+  allowOpenSignupOrgIds: [] as string[],
+  allowOrgCreation: true,
 };
 
 vi.mock("../../env.js", () => ({
@@ -98,13 +99,13 @@ beforeEach(() => {
   mockLeftJoin.mockReset();
   mockOnConflictDoUpdate.mockReset();
   mockInvalidate.mockReset();
-  mockEnv.allowPublicViewing = false;
+  // reset env
 });
 
 // ── Helper contexts ──────────────────────────────────────────────────────────
 
 const memberCtx = {
-  user: { id: "user-1", email: "user@test.com", name: "User", role: "user" },
+  user: { id: "user-1", email: "user@test.com", name: "User" },
   session: { id: "sess-1", userId: "user-1" },
 };
 
@@ -116,8 +117,10 @@ const OBS_ID = "00000000-0000-0000-0000-000000000001";
 // ── observations.list ────────────────────────────────────────────────────────
 
 describe("observations.list", () => {
-  it("returns observations for project (orgViewerProcedure)", async () => {
+  it("returns observations for project (projectViewerProcedure)", async () => {
     const obs = [{ id: OBS_ID, name: "Obs 1", projectId: PROJECT_ID }];
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // observations query: .where().orderBy() → where returns chain
@@ -142,6 +145,8 @@ describe("observations.list", () => {
 describe("observations.create", () => {
   it("inserts observation and invalidates cache", async () => {
     const newObs = { id: OBS_ID, name: "New Obs", projectId: PROJECT_ID };
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // insert().values().returning()
@@ -162,6 +167,8 @@ describe("observations.create", () => {
 describe("observations.setEnabled", () => {
   it("updates enabled flag, scoped by projectId AND id", async () => {
     const updated = { id: OBS_ID, enabled: false, projectId: PROJECT_ID };
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // update().set().where().returning() → where returns chain
@@ -183,6 +190,8 @@ describe("observations.setEnabled", () => {
 
 describe("observations.delete", () => {
   it("deletes observation and invalidates cache", async () => {
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // delete().where() terminal
@@ -202,6 +211,8 @@ describe("observations['findings.listAll']", () => {
       { id: "f-1", impact: "high", title: "Critical issue", dismissed: false },
       { id: "f-2", impact: "medium", title: "Warning", dismissed: false },
     ];
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // select().from().leftJoin().where().orderBy()
@@ -223,6 +234,8 @@ describe("observations['findings.listAll']", () => {
 describe("observations['findings.dismiss']", () => {
   it("sets dismissed=true, scoped by projectId AND id", async () => {
     const dismissed = { id: OBS_ID, dismissed: true, projectId: PROJECT_ID };
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // update().set().where().returning() → where returns chain
@@ -242,6 +255,8 @@ describe("observations['findings.dismiss']", () => {
 
 describe("observations.markViewed", () => {
   it("upserts observation view record", async () => {
+    // resolveProject: where() terminal
+    mockWhere.mockResolvedValueOnce([{ organizationId: "org-1" }]);
     // checkOrgRole: where() terminal
     mockWhere.mockResolvedValueOnce([{ role: "member" }]);
     // insert().values().onConflictDoUpdate()
@@ -256,13 +271,10 @@ describe("observations.markViewed", () => {
 // ── observations.unreadCount ─────────────────────────────────────────────────
 
 describe("observations.unreadCount", () => {
-  it("returns 0 for unauthenticated viewer when public viewing is on", async () => {
-    mockEnv.allowPublicViewing = true;
-
+  it("throws UNAUTHORIZED for unauthenticated user", async () => {
     const caller = appRouter.createCaller(unauthCtx);
-    const result = await caller.observations.unreadCount({
-      projectId: PROJECT_ID,
-    });
-    expect(result).toBe(0);
+    await expect(
+      caller.observations.unreadCount({ projectId: PROJECT_ID })
+    ).rejects.toThrow("UNAUTHORIZED");
   });
 });

@@ -57,7 +57,7 @@ export const mcpKeysRouter = router({
         .where(eq(mcpKeys.id, input.id));
 
       if (!key) throw new TRPCError({ code: "NOT_FOUND" });
-      if (key.userId !== ctx.user.id && ctx.user.role !== "admin") {
+      if (key.userId !== ctx.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 

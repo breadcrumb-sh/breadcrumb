@@ -31,7 +31,7 @@ export const membersRouter = router({
         .from(member)
         .where(eq(member.id, input.memberId));
       if (!m) throw new TRPCError({ code: "NOT_FOUND" });
-      await checkOrgRole(ctx.user.id, ctx.user.role, m.organizationId, [
+      await checkOrgRole(ctx.user.id, m.organizationId, [
         "owner",
         "admin",
       ]);

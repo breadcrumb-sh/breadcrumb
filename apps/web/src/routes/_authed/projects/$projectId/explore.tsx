@@ -76,7 +76,8 @@ function ExplorePage() {
   const { projectId } = Route.useParams();
   const navigate = Route.useNavigate();
   const exploreId = Route.useSearch().id;
-  const { isViewer, authenticated } = useAuth();
+  const { authenticated } = useAuth();
+  const isViewer = false; // All users are authenticated; org role check is server-side
 
   const utils = trpc.useUtils();
   const aiProvider = trpc.aiProviders.get.useQuery({ projectId }, {

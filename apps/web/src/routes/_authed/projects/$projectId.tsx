@@ -8,13 +8,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "../../../components/common/logo/Logo";
 import { FeedbackButton } from "../../../components/layout/FeedbackButton";
 import { MobileNav } from "../../../components/layout/MobileNav";
+import { OrgSwitcher } from "../../../components/layout/OrgSwitcher";
+import { ProjectSwitcher } from "../../../components/layout/ProjectSwitcher";
 import { SubMenuProvider } from "../../../components/layout/SubMenuContext";
 import { UserMenu } from "../../../components/layout/UserMenu";
 import { ErrorBoundary } from "../../../components/common/ErrorBoundary";
-import { useAuth } from "../../../hooks/useAuth";
 import { trpc } from "../../../lib/trpc";
 
-export const Route = createFileRoute("/_authed/projects/$projectId")({
+export const Route = createFileRoute(
+  "/_authed/projects/$projectId",
+)({
   component: ProjectLayout,
 });
 
@@ -39,18 +42,19 @@ function AnimatedTabs({
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const [hasInitialized, setHasInitialized] = useState(false);
 
+  const base = `/projects/${projectId}`;
+
   const getActiveLabel = useCallback(() => {
     for (const { label, path, exact } of tabs) {
-      const href = `/projects/${projectId}${path}`;
+      const href = `${base}${path}`;
       const isActive = exact
         ? pathname === href
         : pathname.startsWith(href) ||
-          (label === "Traces" &&
-            pathname.startsWith(`/projects/${projectId}/trace/`));
+          (label === "Traces" && pathname.startsWith(`${base}/trace/`));
       if (isActive) return label;
     }
     return null;
-  }, [tabs, projectId, pathname]);
+  }, [tabs, base, pathname]);
 
   useEffect(() => {
     const activeLabel = getActiveLabel();
@@ -67,7 +71,6 @@ function AnimatedTabs({
       width: tabRect.width,
     });
 
-    // Enable transition only after first measurement
     requestAnimationFrame(() => setHasInitialized(true));
   }, [getActiveLabel]);
 
@@ -76,13 +79,13 @@ function AnimatedTabs({
       ref={navRef}
       className="relative pt-1 flex items-end gap-1 -mb-px max-w-[1500px] px-4 sm:px-8 mx-auto"
     >
-      {tabs.map(({ label, path, exact }) => {
-        const href = `/projects/${projectId}${path}`;
-        const isActive = exact
-          ? pathname === href
-          : pathname.startsWith(href) ||
-            (label === "Traces" &&
-              pathname.startsWith(`/projects/${projectId}/trace/`));
+      {tabs.map(({ label, path }) => {
+        const href = `${base}${path}`;
+        const isActive =
+          path === ""
+            ? pathname === href
+            : pathname.startsWith(href) ||
+              (label === "Traces" && pathname.startsWith(`${base}/trace/`));
 
         return (
           <Link
@@ -102,7 +105,6 @@ function AnimatedTabs({
         );
       })}
 
-      {/* Animated underline indicator */}
       <div
         className="absolute bottom-0 h-[2px] bg-zinc-100"
         style={{
@@ -120,23 +122,23 @@ function AnimatedTabs({
 function ProjectLayout() {
   const { projectId } = Route.useParams();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const project = trpc.projects.get.useQuery({ id: projectId });
-  const { isViewer } = useAuth();
-
-  const visibleTabs = isViewer
-    ? TABS.filter((t) => t.label !== "Settings")
-    : TABS;
+  const project = trpc.projects.get.useQuery({ projectId });
+  const orgId = project.data?.organizationId;
+  const org = trpc.organizations.get.useQuery(
+    { id: orgId! },
+    { enabled: !!orgId },
+  );
 
   return (
     <SubMenuProvider>
       <div>
         <div className="sticky top-0 z-20 bg-zinc-950">
           <header className="px-5 sm:px-8 border-b border-zinc-800/70 sm:border-b-0">
-            {/* Nav row */}
             <div className="flex items-center justify-between h-14">
               <div className="flex items-center text-sm min-w-0">
                 <Link
-                  to="/"
+                  to={orgId ? "/org/$orgId" : "/"}
+                  params={orgId ? { orgId } : {}}
                   className="flex items-center hover:opacity-80 transition-opacity shrink-0"
                 >
                   <Logo className="size-5" />
@@ -144,10 +146,18 @@ function ProjectLayout() {
                 <span className="text-zinc-700 select-none shrink-0 mx-1.5">
                   /
                 </span>
-                <span className="font-medium text-zinc-400 truncate max-w-[100px] sm:max-w-none">
-                  {project.data?.name ?? "…"}
+                <OrgSwitcher
+                  currentOrgId={orgId}
+                  currentOrgName={org.data?.name}
+                />
+                <span className="text-zinc-700 select-none shrink-0 mx-1.5">
+                  /
                 </span>
-                {/* Mobile tab nav — inline after project name */}
+                <ProjectSwitcher
+                  orgId={orgId ?? ""}
+                  currentProjectId={projectId}
+                  currentProjectName={project.data?.name}
+                />
                 <div className="sm:hidden contents">
                   <MobileNav projectId={projectId} />
                 </div>
@@ -160,10 +170,9 @@ function ProjectLayout() {
             </div>
           </header>
 
-          {/* Tab row — hidden on mobile */}
           <div className="border-b border-zinc-800/70 hidden sm:block">
             <AnimatedTabs
-              tabs={visibleTabs}
+              tabs={TABS}
               projectId={projectId}
               pathname={pathname}
             />

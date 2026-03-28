@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
-import { trpc } from "../lib/trpc";
+import { useAuth } from "../hooks/useAuth";
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
@@ -8,18 +8,17 @@ export const Route = createFileRoute("/_authed")({
 
 function AuthedLayout() {
   const { data: session, isPending } = authClient.useSession();
-  const { data: config, isLoading: configLoading } =
-    trpc.config.publicViewing.useQuery();
+  const { isDemo } = useAuth();
 
-  if (isPending || configLoading) return null;
+  if (isPending) return null;
 
-  if (!session && !config?.enabled) {
+  if (!session) {
     return <Navigate to="/login" />;
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {config?.isDemo && (
+      {isDemo && (
         <div className="demo-banner border-b px-4 py-3.5 text-center text-sm text-pretty leading-relaxed">
           You're viewing the Breadcrumb demo.{" "}
           <a

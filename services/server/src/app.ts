@@ -15,7 +15,7 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { buildMcpServer } from "./api/mcp/server.js";
 
 export type AppVariables = {
-  user: { id: string; email: string; name: string; role: string } | null;
+  user: { id: string; email: string; name: string } | null;
   session: { id: string; userId: string } | null;
   projectId: string;
   userId: string;

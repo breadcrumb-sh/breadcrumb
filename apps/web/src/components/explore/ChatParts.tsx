@@ -30,7 +30,7 @@ export function ChartPart({
   projectId: string;
 }) {
   const [showSql, setShowSql] = useState(false);
-  const project = trpc.projects.get.useQuery({ id: projectId });
+  const project = trpc.projects.get.useQuery({ projectId });
   const timezone = project.data?.timezone ?? undefined;
 
   return (

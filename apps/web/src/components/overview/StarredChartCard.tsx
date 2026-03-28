@@ -47,7 +47,7 @@ export function StarredChartCard({
   const menuRef = useRef<HTMLDivElement>(null);
 
   // React Query deduplicates — the parent layout already fetches this
-  const project = trpc.projects.get.useQuery({ id: projectId });
+  const project = trpc.projects.get.useQuery({ projectId });
   const timezone = project.data?.timezone ?? undefined;
 
   const removeStar = trpc.explores.unstarChart.useMutation({

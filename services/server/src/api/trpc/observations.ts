@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq, and, desc, sql, gt } from "drizzle-orm";
-import { router, orgMemberProcedure, orgViewerProcedure } from "../../trpc.js";
+import { router, projectMemberProcedure, projectViewerProcedure } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
 import { observations, observationFindings, observationViews } from "../../shared/db/schema.js";
 import { invalidateObservationsCache } from "../../services/observations/cache.js";
@@ -9,7 +9,7 @@ import { trackObservationCreated, trackObservationToggled, trackFindingDismissed
 const IMPACT_ORDER = sql`CASE ${observationFindings.impact} WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END`;
 
 export const observationsRouter = router({
-  list: orgViewerProcedure
+  list: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -19,7 +19,7 @@ export const observationsRouter = router({
         .orderBy(observations.createdAt);
     }),
 
-  create: orgMemberProcedure
+  create: projectMemberProcedure
     .input(
       z.object({
         projectId: z.string(),
@@ -52,7 +52,7 @@ export const observationsRouter = router({
       return row;
     }),
 
-  setEnabled: orgMemberProcedure
+  setEnabled: projectMemberProcedure
     .input(z.object({ projectId: z.string(), id: z.string().uuid(), enabled: z.boolean() }))
     .mutation(async ({ input }) => {
       const [row] = await db
@@ -70,7 +70,7 @@ export const observationsRouter = router({
       return row;
     }),
 
-  delete: orgMemberProcedure
+  delete: projectMemberProcedure
     .input(z.object({ projectId: z.string(), id: z.string().uuid() }))
     .mutation(async ({ input }) => {
       await db
@@ -84,7 +84,7 @@ export const observationsRouter = router({
       invalidateObservationsCache(input.projectId);
     }),
 
-  "findings.listAll": orgViewerProcedure
+  "findings.listAll": projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -111,7 +111,7 @@ export const observationsRouter = router({
         .orderBy(IMPACT_ORDER, desc(observationFindings.createdAt));
     }),
 
-  "findings.listByTrace": orgViewerProcedure
+  "findings.listByTrace": projectViewerProcedure
     .input(z.object({ projectId: z.string(), traceId: z.string() }))
     .query(async ({ input }) => {
       return db
@@ -139,7 +139,7 @@ export const observationsRouter = router({
         .orderBy(IMPACT_ORDER, desc(observationFindings.createdAt));
     }),
 
-  "findings.list": orgViewerProcedure
+  "findings.list": projectViewerProcedure
     .input(z.object({ projectId: z.string(), observationId: z.string().uuid() }))
     .query(async ({ input }) => {
       return db
@@ -154,7 +154,7 @@ export const observationsRouter = router({
         .orderBy(desc(observationFindings.createdAt));
     }),
 
-  "findings.dismiss": orgMemberProcedure
+  "findings.dismiss": projectMemberProcedure
     .input(z.object({ projectId: z.string(), id: z.string().uuid() }))
     .mutation(async ({ input }) => {
       const [row] = await db
@@ -171,7 +171,7 @@ export const observationsRouter = router({
       return row;
     }),
 
-  markViewed: orgMemberProcedure
+  markViewed: projectMemberProcedure
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       await db
@@ -183,7 +183,7 @@ export const observationsRouter = router({
         });
     }),
 
-  unreadCount: orgViewerProcedure
+  unreadCount: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input, ctx }) => {
       if (!ctx.user) return 0;
@@ -214,7 +214,7 @@ export const observationsRouter = router({
       return result?.count ?? 0;
     }),
 
-  "findings.listNew": orgViewerProcedure
+  "findings.listNew": projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input, ctx }) => {
       if (!ctx.user) return [];
@@ -253,7 +253,7 @@ export const observationsRouter = router({
         .limit(3);
     }),
 
-  queueStats: orgViewerProcedure
+  queueStats: projectViewerProcedure
     .input(z.object({ projectId: z.string(), observationId: z.string().uuid().optional() }))
     .query(async ({ input }) => {
       const rows = input.observationId

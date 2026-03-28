@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { router, orgViewerProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
 import { getProjectTimezone } from "../../../services/traces/helpers.js";
 
 export const metadataRouter = router({
-  environments: orgViewerProcedure
+  environments: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
@@ -27,7 +27,7 @@ export const metadataRouter = router({
       return rows.map((r) => String(r["env"]));
     }),
 
-  models: orgViewerProcedure
+  models: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
@@ -47,7 +47,7 @@ export const metadataRouter = router({
       return rows.map((r) => String(r["model"]));
     }),
 
-  names: orgViewerProcedure
+  names: projectViewerProcedure
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ input }) => {
       const result = await readonlyClickhouse.query({
@@ -71,7 +71,7 @@ export const metadataRouter = router({
       return rows.map((r) => String(r["name"]));
     }),
 
-  dailyCount: orgViewerProcedure
+  dailyCount: projectViewerProcedure
     .input(
       z.object({
         projectId: z.string().uuid(),

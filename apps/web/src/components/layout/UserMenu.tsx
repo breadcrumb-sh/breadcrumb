@@ -14,20 +14,12 @@ import { useTheme } from "../../hooks/useTheme";
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user, isViewer } = useAuth();
+  const { user } = useAuth();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
-  if (isViewer) {
-    return (
-      <button
-        onClick={toggle}
-        aria-label="Toggle theme"
-        className="flex items-center justify-center size-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-      >
-        {theme === "dark" ? <Sun size={16} weight="bold" /> : <Moon size={16} weight="bold" />}
-      </button>
-    );
+  if (!user) {
+    return null;
   }
 
   const closeMenu = useCallback(() => setOpen(false), []);

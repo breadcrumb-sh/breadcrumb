@@ -28,7 +28,6 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  role: text("role").notNull().default("user"),
 });
 
 export const session = pgTable("session", {
@@ -80,8 +79,6 @@ export const organization = pgTable("organization", {
   logo: text("logo"),
   createdAt: timestamp("created_at").notNull(),
   metadata: text("metadata"),
-  timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-  autoAnalyze: boolean("auto_analyze").notNull().default(false),
 });
 
 export const member = pgTable(
@@ -114,13 +111,27 @@ export const invitation = pgTable("invitation", {
     .references(() => user.id, { onDelete: "cascade" }),
 });
 
+// ── Projects (child of organization) ────────────────────────────────
+
+export const project = pgTable("project", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  slug: text("slug").unique(),
+  timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
+  autoAnalyze: boolean("auto_analyze").notNull().default(false),
+  createdAt: timestamp("created_at").notNull(),
+});
+
 // ── Application tables ───────────────────────────────────────────────
 
 export const apiKeys = pgTable("api_keys", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: text("project_id")
     .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => project.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   keyHash: varchar("key_hash", { length: 64 }).notNull().unique(),
   keyPrefix: varchar("key_prefix", { length: 16 }).notNull(),
@@ -132,7 +143,7 @@ export const aiProviders = pgTable("ai_providers", {
   projectId: text("project_id")
     .notNull()
     .unique()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => project.id, { onDelete: "cascade" }),
   provider: varchar("provider", { length: 32 }).notNull(),
   encryptedApiKey: text("encrypted_api_key").notNull(),
   apiKeyMask: varchar("api_key_mask", { length: 64 }).notNull(),
@@ -170,7 +181,7 @@ export const explores = pgTable("explores", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: text("project_id")
     .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => project.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   traceId: text("trace_id"),
   messages: jsonb("messages").default([]).notNull(), // AI SDK CoreMessage[]
@@ -189,7 +200,7 @@ export const observations = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: text("project_id")
       .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
+      .references(() => project.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     traceNames: jsonb("trace_names").$type<string[]>().default([]).notNull(),
     samplingRate: integer("sampling_rate").notNull().default(100), // 1-100
@@ -209,7 +220,7 @@ export const observationViews = pgTable("observation_views", {
     .references(() => user.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => project.id, { onDelete: "cascade" }),
   lastViewedAt: timestamp("last_viewed_at").notNull(),
 }, (t) => [
   { name: "observation_views_pkey", columns: [t.userId, t.projectId] },
@@ -223,7 +234,7 @@ export const observationFindings = pgTable(
       .references(() => observations.id, { onDelete: "set null" }),
     projectId: text("project_id")
       .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
+      .references(() => project.id, { onDelete: "cascade" }),
     referenceTraceId: text("reference_trace_id").notNull(),
     impact: varchar("impact", { length: 16 }).notNull(), // 'low' | 'medium' | 'high'
     title: text("title").notNull(),
@@ -245,7 +256,7 @@ export const traceSummaries = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: text("project_id")
       .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
+      .references(() => project.id, { onDelete: "cascade" }),
     traceId: text("trace_id").notNull(),
     markdown: text("markdown").notNull().default(""),
     status: varchar("status", { length: 16 }).notNull().default("pending"), // pending | running | done | error
@@ -266,7 +277,7 @@ export const starredCharts = pgTable("starred_charts", {
     .references(() => explores.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
-    .references(() => organization.id, { onDelete: "cascade" }),
+    .references(() => project.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 255 }),
   chartType: varchar("chart_type", { length: 32 }),
   sql: text("sql"),

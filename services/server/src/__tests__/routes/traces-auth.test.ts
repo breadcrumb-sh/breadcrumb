@@ -25,8 +25,9 @@ vi.mock("../../shared/db/postgres.js", () => {
 
 vi.mock("../../env.js", () => ({
   env: {
-    allowPublicViewing: false,
     encryptionKey: "a".repeat(64),
+    allowOpenSignupOrgIds: [],
+    allowOrgCreation: true,
   },
 }));
 

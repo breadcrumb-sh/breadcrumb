@@ -1,4 +1,5 @@
 import { router, procedure } from "../../trpc.js";
+import { organizationsRouter } from "./organizations.js";
 import { projectsRouter } from "./projects.js";
 import { apiKeysRouter } from "./api-keys.js";
 import { mcpKeysRouter } from "./mcp-keys.js";
@@ -13,6 +14,7 @@ import { observationsRouter } from "./observations.js";
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
   config: configRouter,
+  organizations: organizationsRouter,
   projects: projectsRouter,
   apiKeys: apiKeysRouter,
   mcpKeys: mcpKeysRouter,
