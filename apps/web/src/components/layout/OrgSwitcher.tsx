@@ -31,7 +31,7 @@ export function OrgSwitcher({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors rounded-md px-1.5 py-1 -mx-1.5"
+        className="flex items-center gap-1 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors rounded-md px-1.5 py-1 -mx-1.5"
       >
         <span className="truncate max-w-[120px] sm:max-w-[180px]">
           {currentOrgName ?? "Select org"}
@@ -40,7 +40,7 @@ export function OrgSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1">
+        <div className="absolute left-0 top-full mt-1 z-[100] w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1 motion-preset-fade motion-preset-slide-down-sm motion-duration-150">
           {orgs.data?.map((org) => (
             <button
               key={org.id}

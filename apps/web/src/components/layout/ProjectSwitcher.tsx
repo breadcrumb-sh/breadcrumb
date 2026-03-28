@@ -42,7 +42,7 @@ export function ProjectSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1">
+        <div className="absolute left-0 top-full mt-1 z-[100] w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1 motion-preset-fade motion-preset-slide-down-sm motion-duration-150">
           {projects.data?.map((project) => (
             <button
               key={project.id}

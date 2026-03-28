@@ -252,7 +252,7 @@ function TraceDetailPage() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-101px)]">
+    <div className="flex flex-col h-[calc(100vh-48px)]">
       {/* ── Header ── */}
       <div className="px-4 sm:px-8 pt-6 pb-2 shrink-0 flex items-center gap-4">
         {/* Left: back + name + copy */}

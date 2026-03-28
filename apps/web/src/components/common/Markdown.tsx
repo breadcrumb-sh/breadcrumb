@@ -63,7 +63,7 @@ export function MermaidDiagram({ code }: { code: string }) {
         try {
           const result = renderMermaidSVG(code, {
             ...MERMAID_THEMES[theme],
-            font: "Geist, system-ui, sans-serif",
+            font: "Inter, system-ui, sans-serif",
             transparent: true,
             padding: 24,
           });

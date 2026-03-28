@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@plugin "tailwindcss-motion";
 
 @theme {
   /* ── Fonts ────────────────────────────────────────────── */
-  --font-sans: "Geist", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 
   /* ── Chart palette ─────────────────────────────────────── */
@@ -68,8 +69,8 @@
   --color-viz-9:  #eda44d;
   --color-viz-10: #e6bb3f;
 
-  --color-zinc-950: #f7f7f7;
-  --color-zinc-900: #f0f0f0;
+  --color-zinc-950: #fafafa;
+  --color-zinc-900: #ffffff;
   --color-zinc-800: #dedede;
   --color-zinc-700: #c5c5c6;
   --color-zinc-600: #909091;
@@ -102,7 +103,7 @@ body {
   margin: 0;
   min-height: 100%;
   background-color: var(--color-zinc-950);
-  font-family: "Geist", system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-gutter: stable;

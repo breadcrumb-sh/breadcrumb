@@ -1,18 +1,18 @@
 import {
   createFileRoute,
-  Link,
   Outlet,
+  useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Logo } from "../../../components/common/logo/Logo";
-import { FeedbackButton } from "../../../components/layout/FeedbackButton";
-import { MobileNav } from "../../../components/layout/MobileNav";
-import { OrgSwitcher } from "../../../components/layout/OrgSwitcher";
-import { ProjectSwitcher } from "../../../components/layout/ProjectSwitcher";
-import { SubMenuProvider } from "../../../components/layout/SubMenuContext";
-import { UserMenu } from "../../../components/layout/UserMenu";
+import { ChartBar } from "@phosphor-icons/react/ChartBar";
+import { Gear } from "@phosphor-icons/react/Gear";
+import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
+import { useCallback, useMemo } from "react";
 import { ErrorBoundary } from "../../../components/common/ErrorBoundary";
+import { PageShell } from "../../../components/layout/PageShell";
+import { ProjectSwitcher } from "../../../components/layout/ProjectSwitcher";
+import { SidebarNav, type NavEntry } from "../../../components/layout/SidebarNav";
+import { useOrgRole } from "../../../hooks/useOrgRole";
 import { trpc } from "../../../lib/trpc";
 
 export const Route = createFileRoute(
@@ -21,168 +21,134 @@ export const Route = createFileRoute(
   component: ProjectLayout,
 });
 
-const TABS = [
-  { label: "Overview", path: "", exact: true },
-  { label: "Traces", path: "/traces", exact: false },
-  { label: "Settings", path: "/settings", exact: false },
-] as const;
+// ── Nav helpers ─────────────────────────────────────────────────────────────
 
-function AnimatedTabs({
-  tabs,
-  projectId,
-  pathname,
-}: {
-  tabs: readonly (typeof TABS)[number][];
-  projectId: string;
-  pathname: string;
-}) {
-  const navRef = useRef<HTMLElement>(null);
-  const tabRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-  const [hasInitialized, setHasInitialized] = useState(false);
-
-  const base = `/projects/${projectId}`;
-
-  const getActiveLabel = useCallback(() => {
-    for (const { label, path, exact } of tabs) {
-      const href = `${base}${path}`;
-      const isActive = exact
-        ? pathname === href
-        : pathname.startsWith(href) ||
-          (label === "Traces" && pathname.startsWith(`${base}/trace/`));
-      if (isActive) return label;
-    }
-    return null;
-  }, [tabs, base, pathname]);
-
-  useEffect(() => {
-    const activeLabel = getActiveLabel();
-    if (!activeLabel || !navRef.current) return;
-
-    const tabEl = tabRefs.current.get(activeLabel);
-    if (!tabEl) return;
-
-    const navRect = navRef.current.getBoundingClientRect();
-    const tabRect = tabEl.getBoundingClientRect();
-
-    setIndicator({
-      left: tabRect.left - navRect.left,
-      width: tabRect.width,
-    });
-
-    requestAnimationFrame(() => setHasInitialized(true));
-  }, [getActiveLabel]);
-
-  return (
-    <nav
-      ref={navRef}
-      className="relative pt-1 flex items-end gap-1 -mb-px max-w-[1500px] px-4 sm:px-8 mx-auto"
-    >
-      {tabs.map(({ label, path }) => {
-        const href = `${base}${path}`;
-        const isActive =
-          path === ""
-            ? pathname === href
-            : pathname.startsWith(href) ||
-              (label === "Traces" && pathname.startsWith(`${base}/trace/`));
-
-        return (
-          <Link
-            key={label}
-            ref={(el: HTMLAnchorElement | null) => {
-              if (el) tabRefs.current.set(label, el);
-              else tabRefs.current.delete(label);
-            }}
-            to={`/projects/$projectId${path}`}
-            params={{ projectId }}
-            className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 border-transparent ${
-              isActive ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            {label}
-          </Link>
-        );
-      })}
-
-      <div
-        className="absolute bottom-0 h-[2px] bg-zinc-100"
-        style={{
-          left: indicator.left,
-          width: indicator.width,
-          transition: hasInitialized
-            ? "left 0.15s cubic-bezier(0.4, 0, 0.2, 1), width 0.15s cubic-bezier(0.4, 0, 0.2, 1)"
-            : "none",
-        }}
-      />
-    </nav>
-  );
+function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
+  return [
+    {
+      kind: "leaf",
+      label: "Overview",
+      icon: SquaresFour,
+      id: "overview",
+    },
+    {
+      kind: "group",
+      label: "Traces",
+      icon: ChartBar,
+      children: [
+        { label: "Reliability", id: "traces:reliability" },
+        { label: "Cost", id: "traces:cost" },
+        { label: "Latency", id: "traces:latency" },
+        { label: "Raw Traces", id: "traces:raw" },
+      ],
+    },
+    {
+      kind: "group",
+      label: "Settings",
+      icon: Gear,
+      children: [
+        ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
+        { label: "API Keys", id: "settings:api-keys" },
+        ...(isAdmin ? [{ label: "AI Provider", id: "settings:ai" }] : []),
+        ...(isOwner ? [{ label: "Danger", id: "settings:danger" }] : []),
+      ],
+    },
+  ];
 }
+
+/** Map nav item id → route navigation params. */
+function navIdToRoute(projectId: string) {
+  return (id: string) => {
+    const routes: Record<string, { to: string; search?: Record<string, string> }> = {
+      "overview": { to: "/projects/$projectId" },
+      "traces:reliability": { to: "/projects/$projectId/traces", search: { tab: "reliability" } },
+      "traces:cost": { to: "/projects/$projectId/traces", search: { tab: "cost" } },
+      "traces:latency": { to: "/projects/$projectId/traces", search: { tab: "latency" } },
+      "traces:raw": { to: "/projects/$projectId/traces", search: { tab: "raw" } },
+      "settings:general": { to: "/projects/$projectId/settings", search: { tab: "general" } },
+      "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
+      "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
+      "settings:danger": { to: "/projects/$projectId/settings", search: { tab: "danger" } },
+    };
+    return routes[id] ?? { to: "/projects/$projectId" };
+  };
+}
+
+/** Determine active nav id from current URL. */
+function getActiveId(pathname: string, base: string, tab?: string): string {
+  const rel = pathname.slice(base.length) || "";
+  if (rel.startsWith("/settings")) {
+    return `settings:${tab ?? "general"}`;
+  }
+  if (rel.startsWith("/traces") || rel.startsWith("/trace/")) {
+    return `traces:${tab ?? "reliability"}`;
+  }
+  return "overview";
+}
+
+/** Which groups should start expanded based on current URL. */
+function getDefaultOpen(pathname: string, base: string): string[] {
+  const rel = pathname.slice(base.length) || "";
+  const open: string[] = [];
+  if (rel.startsWith("/traces") || rel.startsWith("/trace/")) open.push("Traces");
+  if (rel.startsWith("/settings")) open.push("Settings");
+  return open;
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const project = trpc.projects.get.useQuery({ projectId });
+  const search = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
+  const navigate = useNavigate();
+
+  const project = trpc.projects.get.useQuery({ projectId }, { placeholderData: (prev) => prev });
   const orgId = project.data?.organizationId;
   const org = trpc.organizations.get.useQuery(
     { id: orgId! },
-    { enabled: !!orgId },
+    { enabled: !!orgId, placeholderData: (prev) => prev },
+  );
+  const { isAdmin, isOwner } = useOrgRole(orgId ?? "");
+
+  const base = `/projects/${projectId}`;
+  const tab = typeof search.tab === "string" ? search.tab : undefined;
+  const activeId = getActiveId(pathname, base, tab);
+  const navItems = useMemo(() => buildNavItems(isAdmin, isOwner), [isAdmin, isOwner]);
+  const defaultOpen = useMemo(() => getDefaultOpen(pathname, base), [pathname, base]);
+
+  const resolver = useMemo(() => navIdToRoute(projectId), [projectId]);
+  const handleSelect = useCallback(
+    (id: string) => {
+      const r = resolver(id);
+      navigate({ to: r.to as any, params: { projectId }, search: r.search ?? {} } as any);
+    },
+    [navigate, projectId, resolver],
   );
 
   return (
-    <SubMenuProvider>
-      <div>
-        <div className="sticky top-0 z-20 bg-zinc-950">
-          <header className="px-5 sm:px-8 border-b border-zinc-800/70 sm:border-b-0">
-            <div className="flex items-center justify-between h-14">
-              <div className="flex items-center text-sm min-w-0">
-                <Link
-                  to={orgId ? "/org/$orgId" : "/"}
-                  params={orgId ? { orgId } : {}}
-                  className="flex items-center hover:opacity-80 transition-opacity shrink-0"
-                >
-                  <Logo className="size-5" />
-                </Link>
-                <span className="text-zinc-700 select-none shrink-0 mx-1.5">
-                  /
-                </span>
-                <OrgSwitcher
-                  currentOrgId={orgId}
-                  currentOrgName={org.data?.name}
-                />
-                <span className="text-zinc-700 select-none shrink-0 mx-1.5">
-                  /
-                </span>
-                <ProjectSwitcher
-                  orgId={orgId ?? ""}
-                  currentProjectId={projectId}
-                  currentProjectName={project.data?.name}
-                />
-                <div className="sm:hidden contents">
-                  <MobileNav projectId={projectId} />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <FeedbackButton />
-                <UserMenu />
-              </div>
-            </div>
-          </header>
-
-          <div className="border-b border-zinc-800/70 hidden sm:block">
-            <AnimatedTabs
-              tabs={TABS}
-              projectId={projectId}
-              pathname={pathname}
-            />
-          </div>
-        </div>
-        <div className="page-container">
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-        </div>
-      </div>
-    </SubMenuProvider>
+    <PageShell
+      orgId={orgId}
+      orgName={org.data?.name}
+      sidebar={
+        <SidebarNav
+          items={navItems}
+          activeId={activeId}
+          onSelect={handleSelect}
+          defaultOpen={defaultOpen}
+        />
+      }
+      header={
+        <ProjectSwitcher
+          orgId={orgId ?? ""}
+          currentProjectId={projectId}
+          currentProjectName={project.data?.name}
+        />
+      }
+    >
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
+    </PageShell>
   );
 }

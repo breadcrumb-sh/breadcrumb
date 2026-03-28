@@ -14,6 +14,7 @@ import {
   today,
 } from "../common/DateRangePopover";
 import { MultiselectCombobox } from "../common/MultiselectCombobox";
+import { useProjectFilters } from "../../hooks/useProjectFilters";
 import { trpc } from "../../lib/trpc";
 import { formatCost } from "../../lib/span-utils";
 
@@ -161,43 +162,17 @@ export function RawTracesSection() {
   const { projectId } = route.useParams();
   const navigate = route.useNavigate();
   const search = route.useSearch();
+  const [filters, setFilters] = useProjectFilters(projectId);
 
-  const from = search.from ?? presetFrom(30);
-  const to = search.to ?? today();
-  const preset = search.preset ?? 30;
-  const selectedNames = search.names ?? EMPTY_STRINGS;
-  const selectedModels = search.models ?? EMPTY_STRINGS;
-  const selectedStatuses = search.statuses ?? EMPTY_STATUSES;
-  const selectedEnvs = search.env ?? EMPTY_STRINGS;
+  const from = filters.from ?? presetFrom(30);
+  const to = filters.to ?? today();
+  const preset = filters.preset ?? 30;
+  const selectedNames = filters.names ?? EMPTY_STRINGS;
+  const selectedModels = filters.models ?? EMPTY_STRINGS;
+  const selectedEnvs = filters.env ?? EMPTY_STRINGS;
   const nlpQuery = search.q ?? "";
 
   const [draft, setDraft] = useState(nlpQuery);
-
-  const applyPreset = (days: 7 | 30 | 90) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        from: presetFrom(days),
-        to: today(),
-        preset: days,
-      }),
-    });
-  const handleFromChange = (v: string) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        from: v,
-        preset: undefined,
-      }),
-    });
-  const handleToChange = (v: string) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        to: v,
-        preset: undefined,
-      }),
-    });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,10 +219,6 @@ export function RawTracesSection() {
       to,
       names: selectedNames.length > 0 ? selectedNames : undefined,
       models: selectedModels.length > 0 ? selectedModels : undefined,
-      statuses:
-        selectedStatuses.length > 0
-          ? (selectedStatuses as ("ok" | "error")[])
-          : undefined,
       environments: selectedEnvs.length > 0 ? selectedEnvs : undefined,
       query: nlpQuery || undefined,
       sortBy,
@@ -265,7 +236,6 @@ export function RawTracesSection() {
   const hasFilters =
     selectedNames.length > 0 ||
     selectedModels.length > 0 ||
-    selectedStatuses.length > 0 ||
     selectedEnvs.length > 0 ||
     !!nlpQuery;
 
@@ -306,79 +276,10 @@ export function RawTracesSection() {
             ))}
         </form>
 
-        <div className="h-4 w-px bg-zinc-800" />
-
-        <DateRangePopover
-          from={from}
-          to={to}
-          preset={preset}
-          onPreset={applyPreset}
-          onCustom={() =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                preset: undefined,
-              }),
-            })
-          }
-          onFromChange={handleFromChange}
-          onToChange={handleToChange}
-        />
-
-        <div className="h-4 w-px bg-zinc-800" />
-
-        <MultiselectCombobox
-          options={nameList.data ?? []}
-          selected={selectedNames}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                names: v.length ? v : undefined,
-              }),
-            })
-          }
-          placeholder="All traces"
-        />
-
-        <MultiselectCombobox
-          options={modelList.data ?? []}
-          selected={selectedModels}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                models: v.length ? v : undefined,
-              }),
-            })
-          }
-          placeholder="All models"
-        />
-
-        <MultiselectCombobox
-          options={["ok", "error"]}
-          selected={selectedStatuses}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                statuses: v.length ? (v as ("ok" | "error")[]) : undefined,
-              }),
-            })
-          }
-          placeholder="All statuses"
-        />
-
-        <MultiselectCombobox
-          options={envList.data ?? []}
-          selected={selectedEnvs}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({ ...prev, env: v.length ? v : undefined }),
-            })
-          }
-          placeholder="All environments"
-        />
+        <DateRangePopover from={from} to={to} preset={preset} onPreset={(days) => setFilters((p) => ({ ...p, from: presetFrom(days), to: today(), preset: days }))} onCustom={() => setFilters((p) => ({ ...p, preset: undefined }))} onFromChange={(v) => setFilters((p) => ({ ...p, from: v, preset: undefined }))} onToChange={(v) => setFilters((p) => ({ ...p, to: v, preset: undefined }))} />
+        <MultiselectCombobox options={nameList.data ?? []} selected={selectedNames} onChange={(v) => setFilters((p) => ({ ...p, names: v.length ? v : undefined }))} placeholder="All traces" />
+        <MultiselectCombobox options={modelList.data ?? []} selected={selectedModels} onChange={(v) => setFilters((p) => ({ ...p, models: v.length ? v : undefined }))} placeholder="All models" />
+        <MultiselectCombobox options={envList.data ?? []} selected={selectedEnvs} onChange={(v) => setFilters((p) => ({ ...p, env: v.length ? v : undefined }))} placeholder="All environments" />
       </div>
 
       {/* ── Trace table ───────────────────────────────────────── */}
