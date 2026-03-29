@@ -11,7 +11,8 @@
     "sdk-huge-trace": "tsx scripts/06-sdk-huge-trace.ts",
     "run-many": "tsx scripts/run-many.ts",
     "test": "node --test --import tsx scripts/**/*.test.ts",
-    "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\""
+    "dev": "concurrently \"tsx watch app/server.ts\" \"vite app\"",
+    "dev:docs-qa": "tsx watch app/docs-qa-server.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",

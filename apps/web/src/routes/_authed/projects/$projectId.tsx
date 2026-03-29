@@ -37,8 +37,7 @@ function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
       icon: ChartBar,
       children: [
         { label: "Reliability", id: "traces:reliability" },
-        { label: "Cost", id: "traces:cost" },
-        { label: "Latency", id: "traces:latency" },
+        { label: "Performance", id: "traces:performance" },
         { label: "Raw Traces", id: "traces:raw" },
       ],
     },
@@ -50,6 +49,7 @@ function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
         ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
         { label: "API Keys", id: "settings:api-keys" },
         ...(isAdmin ? [{ label: "AI Provider", id: "settings:ai" }] : []),
+        { label: "Agent Memory", id: "settings:memory" },
         ...(isOwner ? [{ label: "Danger", id: "settings:danger" }] : []),
       ],
     },
@@ -62,12 +62,12 @@ function navIdToRoute(projectId: string) {
     const routes: Record<string, { to: string; search?: Record<string, string> }> = {
       "overview": { to: "/projects/$projectId" },
       "traces:reliability": { to: "/projects/$projectId/traces", search: { tab: "reliability" } },
-      "traces:cost": { to: "/projects/$projectId/traces", search: { tab: "cost" } },
-      "traces:latency": { to: "/projects/$projectId/traces", search: { tab: "latency" } },
+      "traces:performance": { to: "/projects/$projectId/traces", search: { tab: "performance" } },
       "traces:raw": { to: "/projects/$projectId/traces", search: { tab: "raw" } },
       "settings:general": { to: "/projects/$projectId/settings", search: { tab: "general" } },
       "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
       "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
+      "settings:memory": { to: "/projects/$projectId/settings", search: { tab: "memory" } },
       "settings:danger": { to: "/projects/$projectId/settings", search: { tab: "danger" } },
     };
     return routes[id] ?? { to: "/projects/$projectId" };

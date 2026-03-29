@@ -11,8 +11,9 @@
     <!-- Theme: must run synchronously before first paint to avoid flicker -->
     <script>
       (function () {
-        if (localStorage.getItem('theme') === 'light')
-          document.documentElement.classList.add('light');
+        var t = localStorage.getItem('theme');
+        var isLight = t === 'light' || (!t && window.matchMedia('(prefers-color-scheme: light)').matches);
+        if (isLight) document.documentElement.classList.add('light');
       })();
     </script>
   </head>

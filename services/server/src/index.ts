@@ -19,8 +19,14 @@ async function main() {
 
   await boss.start();
 
+  const { registerMonitorJobs } = await import("./services/monitor/jobs.js");
+  await registerMonitorJobs();
+
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
+
+  const { initBreadcrumb } = await import("./shared/lib/breadcrumb.js");
+  await initBreadcrumb();
 
   await initTelemetry();
   void trackServerStarted();

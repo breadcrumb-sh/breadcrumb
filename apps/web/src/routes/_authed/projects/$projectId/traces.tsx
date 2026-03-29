@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { CostSection } from "../../../../components/traces/CostSection";
-import { LatencySection } from "../../../../components/traces/LatencySection";
 import { McpCallout } from "../../../../components/traces/McpCallout";
 import { RawTracesSection } from "../../../../components/traces/RawTracesSection";
 import { ReliabilitySection } from "../../../../components/traces/ReliabilitySection";
 import { usePageView } from "../../../../hooks/usePageView";
 
 const searchSchema = z.object({
-  tab: z.enum(["reliability", "raw", "cost", "latency"]).optional(),
+  tab: z.enum(["reliability", "raw", "performance"]).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
@@ -47,8 +46,7 @@ function TracesPage() {
       <McpCallout />
       {section === "reliability" && <ReliabilitySection />}
       {section === "raw" && <RawTracesSection />}
-      {section === "cost" && <CostSection />}
-      {section === "latency" && <LatencySection />}
+      {section === "performance" && <CostSection />}
     </div>
   );
 }

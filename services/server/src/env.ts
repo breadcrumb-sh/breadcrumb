@@ -18,6 +18,8 @@ const envSchema = z.object({
   ALLOW_ORG_CREATION: z.string().default("true"),
   IS_BREADCRUMB_DEMO: z.string().default("false"),
   DISABLE_TELEMETRY: z.string().default("false"),
+  BREADCRUMB_API_KEY: z.string().optional(),
+  BREADCRUMB_BASE_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -51,4 +53,6 @@ export const env = {
   allowOrgCreation: p.ALLOW_ORG_CREATION === "true",
   isBreadcrumbDemo: p.IS_BREADCRUMB_DEMO === "true",
   disableTelemetry: p.DISABLE_TELEMETRY === "true",
+  breadcrumbApiKey: p.BREADCRUMB_API_KEY,
+  breadcrumbBaseUrl: p.BREADCRUMB_BASE_URL,
 };

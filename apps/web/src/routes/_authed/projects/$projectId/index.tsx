@@ -21,6 +21,7 @@ const searchSchema = z.object({
   names: z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
   env: z.array(z.string()).optional(),
+  item: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/")({
@@ -33,6 +34,8 @@ const EMPTY_STRINGS: string[] = [];
 function OverviewPage() {
   usePageView("overview");
   const { projectId } = Route.useParams();
+  const { item: selectedItemId } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [filters, setFilters] = useProjectFilters(projectId);
 
   const from = filters.from ?? presetFrom(30);
@@ -60,7 +63,7 @@ function OverviewPage() {
 
   return (
     <div className="flex flex-col">
-      <div className="px-5 pt-6 pb-0 sm:px-8 sm:pt-8 space-y-6 page-container-small shrink-0">
+      <div className="px-5 pt-6 pb-0 sm:px-8 sm:pt-8 space-y-6 w-full page-container-small shrink-0">
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <DateRangePopover from={from} to={to} preset={preset} onPreset={(days) => setFilters((p) => ({ ...p, from: presetFrom(days), to: today(), preset: days }))} onCustom={() => setFilters((p) => ({ ...p, preset: undefined }))} onFromChange={(v) => setFilters((p) => ({ ...p, from: v, preset: undefined }))} onToChange={(v) => setFilters((p) => ({ ...p, to: v, preset: undefined }))} />
@@ -119,10 +122,17 @@ function OverviewPage() {
         />
       </div>
 
+      <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">You have <span className="text-foreground">42 new traces</span> since you last visited.<br/>I've created <span className="text-foreground">2 new items</span> for me to monitor and completed <span className="text-foreground">3 items</span> for you to look at!</p>
+
       </div>
       {/* ── Agent monitoring board ────────────────────────────── */}
-      <div className="pt-12 pb-4" style={{ height: "calc(100vh - 80px)" }}>
-        <KanbanBoard projectId={projectId} alignRef={statsRef} />
+      <div className="pt-6 pb-4" style={{ height: "calc(100vh - 80px)" }}>
+        <KanbanBoard
+          projectId={projectId}
+          alignRef={statsRef}
+          selectedItemId={selectedItemId}
+          onSelectItem={(id) => navigate({ search: (prev) => ({ ...prev, item: id ?? undefined }), replace: true })}
+        />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { usePageView } from "../../hooks/usePageView";
 import { trpc } from "../../lib/trpc";
 import { AppHeader } from "../../components/layout/AppHeader";
+import { useTheme, type ThemePreference } from "../../hooks/useTheme";
 
 export const Route = createFileRoute("/_authed/settings")({
   component: SettingsPage,
@@ -22,7 +23,10 @@ function SettingsPage() {
       <AppHeader />
       <main className="px-4 py-8 sm:px-8 page-container-small">
         <h1 className="text-lg font-semibold mb-8">Settings</h1>
-        <McpSection />
+        <div className="space-y-10">
+          <ThemeSection />
+          <McpSection />
+        </div>
       </main>
     </div>
   );
@@ -35,6 +39,42 @@ const backdropCls =
 
 const popupCls =
   "w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl transition-all duration-150 data-[starting-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:opacity-0 data-[ending-style]:scale-95";
+
+// ── Theme Section ───────────────────────────────────────────────────
+
+const themeOptions: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+function ThemeSection() {
+  const { preference, setTheme } = useTheme();
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-sm font-semibold">Appearance</h2>
+        <p className="text-xs text-zinc-500 mt-0.5">
+          Choose how Breadcrumb looks to you.
+        </p>
+      </div>
+
+      <select
+        id="theme-select"
+        value={preference}
+        onChange={(e) => setTheme(e.target.value as ThemePreference)}
+        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500"
+      >
+        {themeOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </section>
+  );
+}
 
 // ── MCP Section ─────────────────────────────────────────────────────
 

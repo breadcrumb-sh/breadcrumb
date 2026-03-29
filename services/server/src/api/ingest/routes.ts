@@ -6,6 +6,7 @@ import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "../../services/ingest/helpers.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { trackTraceIngested } from "../../shared/lib/telemetry.js";
+import { enqueueScan } from "../../services/monitor/jobs.js";
 
 const log = createLogger("ingest");
 
@@ -89,6 +90,7 @@ ingestRoutes.post("/traces", async (c) => {
 
   if (t.end_time) {
     trackTraceIngested();
+    void enqueueScan(projectId);
   }
 
   return c.json({ ok: true }, 202);

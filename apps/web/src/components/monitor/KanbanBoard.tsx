@@ -1,19 +1,198 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { Plus } from "@phosphor-icons/react/Plus";
+import { MagicWandIcon } from "@phosphor-icons/react/MagicWand";
 import { trpc } from "../../lib/trpc";
 import { COLUMNS } from "./columns";
 import { CreateItemDialog } from "./CreateItemDialog";
 import { MonitorItemSheet } from "./MonitorItemSheet";
-import type { MonitorItem } from "./types";
+import type { MonitorItem, TaskStatus } from "./types";
+
+// ── Collapsed columns (localStorage) ────────────────────────────────────────
+
+const COLLAPSED_KEY = "kanban-collapsed";
+
+function useCollapsedColumns() {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? "{}"); } catch { return {}; }
+  });
+  const toggle = useCallback((colId: string) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [colId]: !prev[colId] };
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  return { collapsed, toggle };
+}
+
+// ── Allowed drop transitions ────────────────────────────────────────────────
+
+const ALLOWED_DROPS: Record<string, TaskStatus[]> = {
+  queue: ["investigating", "done"],
+  investigating: ["done"],
+  review: ["investigating", "done"],
+  done: [],
+};
+
+function canDrop(fromStatus: string, toStatus: TaskStatus): boolean {
+  return ALLOWED_DROPS[fromStatus]?.includes(toStatus) ?? false;
+}
+
+// ── Draggable card ──────────────────────────────────────────────────────────
+
+function DraggableCard({
+  task,
+  onOpen,
+}: {
+  task: MonitorItem;
+  onOpen: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task.id,
+    data: task,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onOpen}
+      className={`rounded-lg flex flex-col gap-1.5 border p-3 text-left hover:border-zinc-700 transition-colors cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-30" : ""
+      } ${task.read ? "border-zinc-800 bg-zinc-900" : "border-blue-500/30 bg-blue-500/5"}`}
+    >
+      {task.source === "agent" && (
+        <div className="flex flex-row items-center gap-1.5">
+          <MagicWandIcon size={14} className="text-muted-foreground" />
+          <span className="text-muted-foreground text-xs">Auto-detected</span>
+        </div>
+      )}
+      <p className={`text-sm leading-[1.4] transition-colors hover:underline ${
+        task.status === "done" ? "text-zinc-500 line-through" : "text-white"
+      }`}>
+        {task.title}
+      </p>
+    </div>
+  );
+}
+
+// ── Droppable column ────────────────────────────────────────────────────────
+
+function DroppableColumn({
+  col,
+  tasks,
+  isValidTarget,
+  isDragging,
+  isCollapsed,
+  onToggleCollapse,
+  onOpenItem,
+  onAdd,
+}: {
+  col: (typeof COLUMNS)[number];
+  tasks: MonitorItem[];
+  isValidTarget: boolean;
+  isDragging: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  onOpenItem: (task: MonitorItem) => void;
+  onAdd?: () => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.id });
+
+  const dimmed = isDragging && !isValidTarget;
+  const highlighted = isDragging && isValidTarget;
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col shrink-0 rounded-lg p-3 transition-all duration-150 ${
+        isCollapsed ? "w-auto min-w-0 h-fit" : "min-w-[280px] w-[320px] max-h-full"
+      } ${dimmed ? "opacity-30" : ""} ${
+        highlighted ? (isOver ? "bg-zinc-800/40" : "bg-zinc-800/20") : ""
+      }`}
+    >
+
+      <div className="flex items-center justify-between h-7">
+        <div className="flex items-center gap-2">
+          <col.icon className={`size-4 shrink-0 ${col.dotColor}`} />
+          <span className="text-sm font-medium text-zinc-100 leading-none">
+            {col.title}
+          </span>
+          <span className="text-sm text-zinc-500 tabular-nums leading-none ml-1">
+            {tasks.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 ml-2">
+          {onAdd && !isCollapsed && (
+            <button
+              onClick={onAdd}
+              className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+            >
+              <Plus size={16} weight="bold" />
+            </button>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            <CaretDown
+              size={14}
+              weight="bold"
+              className={`transition-transform duration-150 ${isCollapsed ? "-rotate-90" : ""}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {!isCollapsed && (
+        <>
+          <p className="text-xs text-zinc-500 mb-4">{col.description}</p>
+
+          <div className="flex flex-col gap-2 overflow-y-auto min-h-0 flex-1">
+            {tasks.map((task) => (
+              <DraggableCard
+                key={task.id}
+                task={task}
+                onOpen={() => onOpenItem(task)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Board ───────────────────────────────────────────────────────────────────
 
 export function KanbanBoard({
   projectId,
   alignRef,
+  selectedItemId,
+  onSelectItem,
 }: {
   projectId: string;
   alignRef?: React.RefObject<HTMLElement | null>;
+  selectedItemId?: string;
+  onSelectItem?: (id: string | null) => void;
 }) {
-  const items = trpc.monitor.list.useQuery({ projectId });
+  const items = trpc.monitor.list.useQuery({ projectId }, {
+    refetchInterval: (query) =>
+      query.state.data?.some((i) => i.processing) ? 3000 : false,
+  });
   const utils = trpc.useUtils();
 
   const updateItem = trpc.monitor.update.useMutation({
@@ -22,14 +201,26 @@ export function KanbanBoard({
   const deleteItem = trpc.monitor.delete.useMutation({
     onSuccess: () => {
       utils.monitor.list.invalidate({ projectId });
-      setSelectedItem(null);
+      setSelectedId(null);
     },
   });
+  const investigate = trpc.monitor.investigate.useMutation({
+    onSuccess: () => utils.monitor.list.invalidate({ projectId }),
+  });
 
-  const [selectedItem, setSelectedItem] = useState<MonitorItem | null>(null);
+  const markRead = trpc.monitor.markRead.useMutation({
+    onSuccess: () => utils.monitor.list.invalidate({ projectId }),
+  });
+  const setSelectedId = (id: string | null) => onSelectItem?.(id);
   const [addOpen, setAddOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<MonitorItem | null>(null);
+  const { collapsed, toggle: toggleCollapsed } = useCollapsedColumns();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [padLeft, setPadLeft] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   useEffect(() => {
     const measure = () => {
@@ -45,71 +236,86 @@ export function KanbanBoard({
   }, [alignRef]);
 
   const tasks = items.data ?? [];
+  const selectedItem = selectedItemId ? tasks.find((t) => t.id === selectedItemId) ?? null : null;
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveItem(event.active.data.current as MonitorItem);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const item = event.active.data.current as MonitorItem;
+    const targetCol = event.over?.id as TaskStatus | undefined;
+    setActiveItem(null);
+
+    if (!targetCol || targetCol === item.status) return;
+    if (!canDrop(item.status, targetCol)) return;
+
+    // Optimistic update — move the item immediately in the cache
+    utils.monitor.list.setData({ projectId }, (old) =>
+      old?.map((t) => t.id === item.id ? { ...t, status: targetCol, dismissed: targetCol === "done" } : t),
+    );
+
+    if (targetCol === "done") {
+      updateItem.mutate({ id: item.id, dismissed: true, status: "done" });
+    } else if (targetCol === "investigating") {
+      investigate.mutate({ id: item.id });
+    }
+  }
 
   return (
     <>
-      <div
-        ref={scrollRef}
-        className={`flex gap-6 overflow-x-auto pb-2 h-full min-h-0 pr-5 sm:pr-8 ${padLeft === null ? "invisible" : ""}`}
-        style={{ paddingLeft: padLeft ?? 0 }}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
-        {COLUMNS.map((col) => {
-          const colTasks = tasks.filter((t) => t.status === col.id);
-          return (
-            <div
-              key={col.id}
-              className="flex flex-col min-w-[280px] w-[320px] shrink-0 max-h-full"
-            >
-              <div className="flex items-center justify-between h-7">
-                <div className="flex items-center gap-2">
-                  <col.icon className={`size-4 shrink-0 ${col.dotColor}`} />
-                  <span className="text-sm font-medium text-zinc-100 leading-none">
-                    {col.title}
-                  </span>
-                  <span className="text-sm text-zinc-500 tabular-nums leading-none ml-1">
-                    {colTasks.length}
-                  </span>
-                </div>
-                {col.id === "queue" && (
-                  <button
-                    onClick={() => setAddOpen(true)}
-                    className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-                  >
-                    <Plus size={16} weight="bold" />
-                  </button>
-                )}
-              </div>
+        <div
+          ref={scrollRef}
+          className={`flex gap-2 overflow-x-auto pb-2 h-full min-h-0 pr-5 sm:pr-8 ${padLeft === null ? "invisible" : ""}`}
+          style={{ paddingLeft: padLeft ?? 0 }}
+        >
+          {COLUMNS.map((col) => {
+            const colTasks = tasks.filter((t) => t.status === col.id);
+            const isValidTarget = activeItem
+              ? canDrop(activeItem.status, col.id) && col.id !== activeItem.status
+              : false;
 
-              <p className="text-xs text-zinc-500 mb-4">{col.description}</p>
+            return (
+              <DroppableColumn
+                key={col.id}
+                col={col}
+                tasks={colTasks}
+                isValidTarget={isValidTarget}
+                isDragging={activeItem !== null}
+                isCollapsed={!!collapsed[col.id]}
+                onToggleCollapse={() => toggleCollapsed(col.id)}
+                onOpenItem={(task) => {
+                  setSelectedId(task.id);
+                  if (!task.read) markRead.mutate({ id: task.id });
+                }}
+                onAdd={col.id === "queue" ? () => setAddOpen(true) : undefined}
+              />
+            );
+          })}
+        </div>
 
-              <div className="flex flex-col gap-2 overflow-y-auto min-h-0 flex-1">
-                {colTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-left hover:border-zinc-700 transition-colors"
-                  >
-                    <button
-                      onClick={() => setSelectedItem(task)}
-                      className="text-sm text-zinc-200 hover:text-zinc-100 hover:underline transition-colors text-left"
-                    >
-                      {task.title}
-                    </button>
-                  </div>
-                ))}
-              </div>
+        <DragOverlay>
+          {activeItem && (
+            <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 w-[300px] shadow-xl opacity-90 rotate-2">
+              <span className="text-sm text-zinc-200">{activeItem.title}</span>
             </div>
-          );
-        })}
-      </div>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       <MonitorItemSheet
         item={selectedItem}
         open={selectedItem !== null}
-        onOpenChange={(open) => { if (!open) setSelectedItem(null); }}
+        onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         onDismiss={() => {
           if (selectedItem) {
             updateItem.mutate({ id: selectedItem.id, dismissed: true, status: "done" });
-            setSelectedItem(null);
+            setSelectedId(null);
           }
         }}
         onDelete={() => {

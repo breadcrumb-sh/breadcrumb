@@ -55,7 +55,7 @@ const ALLOWED_FUNCTIONS = new Set([
   "toyear", "tomonth", "todayofweek", "todayofmonth",
   "tohour", "tominute", "tosecond",
   "now", "today", "yesterday",
-  "tounixtimestamp", "fromunixtimestamp",
+  "tounixtimestamp", "tounixtimestamp64milli", "fromunixtimestamp",
   "totimezone",
 
   // String

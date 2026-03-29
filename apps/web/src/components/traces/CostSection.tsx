@@ -10,6 +10,7 @@ import { useProjectFilters } from "../../hooks/useProjectFilters";
 import { trpc } from "../../lib/trpc";
 import { StatCell } from "../overview/StatCell";
 import { ChartCard } from "../overview/ChartCard";
+import { TopSlowestSpansTable } from "../overview/TopSlowestSpansTable";
 
 const EMPTY_STRINGS: string[] = [];
 
@@ -54,6 +55,18 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
+function formatDurationAxis(ms: number): string {
+  if (!ms || ms <= 0) return "0";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatDuration(ms: number): string {
+  if (!ms || ms <= 0) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function pctChange(current?: number, previous?: number): number | null {
   if (current == null || previous == null) return null;
   if (previous === 0 && current === 0) return null;
@@ -86,9 +99,19 @@ export function CostSection() {
 
   const stats = trpc.traces.stats.useQuery(commonFilters);
   const daily = trpc.traces.dailyMetrics.useQuery(commonFilters);
+  const slowestSpans = trpc.traces.topSlowestSpans.useQuery(commonFilters);
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
+
+  const totalTokens =
+    stats.data != null
+      ? stats.data.inputTokens + stats.data.outputTokens
+      : undefined;
+  const prevTotalTokens =
+    stats.data?.prev != null
+      ? stats.data.prev.inputTokens + stats.data.prev.outputTokens
+      : undefined;
 
   return (
     <div className="space-y-6">
@@ -100,7 +123,7 @@ export function CostSection() {
         <MultiselectCombobox options={modelList.data ?? []} selected={selectedModels} onChange={(v) => setFilters((p) => ({ ...p, models: v.length ? v : undefined }))} placeholder="All models" />
       </div>
 
-      {/* ── Cost stat cards ───────────────────────────────────── */}
+      {/* ── Stat cards ────────────────────────────────────────── */}
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-4">
         <StatCell
           label="Total cost"
@@ -113,22 +136,19 @@ export function CostSection() {
         />
         <StatCell
           className="border-l border-zinc-800"
-          label="Input tokens"
-          value={stats.data ? formatTokens(stats.data.inputTokens) : "—"}
+          label="Total tokens"
+          value={totalTokens != null ? formatTokens(totalTokens) : "—"}
           loading={stats.isLoading}
-          delta={pctChange(
-            stats.data?.inputTokens,
-            stats.data?.prev?.inputTokens,
-          )}
+          delta={pctChange(totalTokens, prevTotalTokens)}
         />
         <StatCell
           className="border-t sm:border-t-0 sm:border-l border-zinc-800"
-          label="Output tokens"
-          value={stats.data ? formatTokens(stats.data.outputTokens) : "—"}
+          label="Avg duration"
+          value={stats.data ? formatDuration(stats.data.avgDurationMs) : "—"}
           loading={stats.isLoading}
           delta={pctChange(
-            stats.data?.outputTokens,
-            stats.data?.prev?.outputTokens,
+            stats.data?.avgDurationMs,
+            stats.data?.prev?.avgDurationMs,
           )}
         />
         <StatCell
@@ -164,6 +184,23 @@ export function CostSection() {
           leftMargin={50}
           formatAxis={(v) => `$${formatAxisCost(Number(v))}`}
           formatTooltip={(y) => formatCost(Number(y))}
+        />
+      </div>
+
+      {/* ── Latency charts ───────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <ChartCard
+          label="Avg duration over time"
+          data={fillDays(daily.data ?? [], from, to, (r) => r.date, (r) =>
+            r ? r.avgDurationMs : 0,
+          )}
+          loading={daily.isLoading}
+          formatAxis={(v) => formatDurationAxis(Number(v))}
+          formatTooltip={(y) => formatDuration(Number(y))}
+        />
+        <TopSlowestSpansTable
+          data={slowestSpans.data}
+          loading={slowestSpans.isLoading}
         />
       </div>
     </div>

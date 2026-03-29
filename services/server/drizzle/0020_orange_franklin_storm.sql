@@ -1,0 +1,1 @@
+ALTER TABLE "monitor_items" ADD COLUMN "processing" boolean DEFAULT false NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE "monitor_items" ADD COLUMN "read" boolean DEFAULT true NOT NULL;

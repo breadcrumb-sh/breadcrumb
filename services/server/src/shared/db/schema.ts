@@ -122,6 +122,7 @@ export const project = pgTable("project", {
   slug: text("slug").unique(),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
   autoAnalyze: boolean("auto_analyze").notNull().default(false),
+  agentMemory: text("agent_memory").notNull().default(""),
   createdAt: timestamp("created_at").notNull(),
 });
 
@@ -188,12 +189,30 @@ export const monitorItems = pgTable(
       .references(() => project.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     description: text("description").notNull().default(""),
+    source: varchar("source", { length: 16 }).notNull().default("user"), // user | agent
     status: varchar("status", { length: 32 }).notNull().default("queue"), // queue | investigating | review | done
+    note: text("note").notNull().default(""), // agent's working scratchpad
+    processing: boolean("processing").notNull().default(false),
+    read: boolean("read").notNull().default(true),
     dismissed: boolean("dismissed").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (t) => [index("monitor_items_project_id_idx").on(t.projectId)],
+);
+
+export const monitorComments = pgTable(
+  "monitor_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    source: varchar("source", { length: 16 }).notNull(), // user | agent
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("monitor_comments_item_id_idx").on(t.monitorItemId)],
 );
 
 export const traceSummaries = pgTable(

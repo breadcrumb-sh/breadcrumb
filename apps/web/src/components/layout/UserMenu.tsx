@@ -1,6 +1,4 @@
 import { useRef, useState, useCallback } from "react";
-import { Sun } from "@phosphor-icons/react/Sun";
-import { Moon } from "@phosphor-icons/react/Moon";
 import { SignOut } from "@phosphor-icons/react/SignOut";
 import { Gear } from "@phosphor-icons/react/Gear";
 import { ChatCircleDots } from "@phosphor-icons/react/ChatCircleDots";
@@ -9,13 +7,11 @@ import { useClickOutside } from "../../hooks/useClickOutside";
 import { authClient } from "../../lib/auth-client";
 import { openUserJotFeedback } from "../../lib/userjot";
 import { useAuth } from "../../hooks/useAuth";
-import { useTheme } from "../../hooks/useTheme";
 
 export function UserMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
   if (!user) {
@@ -55,18 +51,6 @@ export function UserMenu() {
             <ChatCircleDots size={14} weight="bold" />
             Feedback
           </button>
-
-          <button
-            onClick={() => { toggle(); setOpen(false); }}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
-          >
-            {theme === "dark"
-              ? <Sun size={14} weight="bold" />
-              : <Moon size={14} weight="bold" />}
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-
-          <div className="my-1 border-t border-zinc-800" />
 
           <Link
             to="/settings"
