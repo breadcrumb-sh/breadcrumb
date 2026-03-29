@@ -143,7 +143,15 @@ function OverviewPage() {
 function MonitorSummary({ projectId, from, to }: { projectId: string; from: string; to: string }) {
   const summary = trpc.monitor.summary.useQuery({ projectId, from, to });
   const d = summary.data;
-  if (!d || d.traceCount === 0) return null;
+  if (!d) return null;
+
+  if (d.traceCount === 0) {
+    return (
+      <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">
+        No traces in this period. I'm ready and will start monitoring as soon as traces come in.
+      </p>
+    );
+  }
 
   const sentences: React.ReactNode[] = [];
 
