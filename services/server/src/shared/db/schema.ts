@@ -121,10 +121,32 @@ export const project = pgTable("project", {
   name: text("name").notNull(),
   slug: text("slug").unique(),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-  autoAnalyze: boolean("auto_analyze").notNull().default(false),
   agentMemory: text("agent_memory").notNull().default(""),
+  agentMonthlyCostLimitCents: integer("agent_monthly_cost_limit_cents").notNull().default(1000), // stored in cents, default $10
+  agentScanIntervalSeconds: integer("agent_scan_interval_seconds").notNull().default(300), // minimum seconds between auto scans, default 5 min
   createdAt: timestamp("created_at").notNull(),
 });
+
+// ── Agent usage tracking ────────────────────────────────────────────
+
+export const agentUsage = pgTable(
+  "agent_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    month: varchar("month", { length: 7 }).notNull(), // YYYY-MM
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    costCents: integer("cost_cents").notNull().default(0), // cost in cents
+    calls: integer("calls").notNull().default(0),
+  },
+  (t) => [
+    unique("agent_usage_project_month").on(t.projectId, t.month),
+    index("agent_usage_project_id_idx").on(t.projectId),
+  ],
+);
 
 // ── Application tables ───────────────────────────────────────────────
 
@@ -215,23 +237,4 @@ export const monitorComments = pgTable(
   (t) => [index("monitor_comments_item_id_idx").on(t.monitorItemId)],
 );
 
-export const traceSummaries = pgTable(
-  "trace_summaries",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    projectId: text("project_id")
-      .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
-    traceId: text("trace_id").notNull(),
-    markdown: text("markdown").notNull().default(""),
-    status: varchar("status", { length: 16 }).notNull().default("pending"), // pending | running | done | error
-    errorMessage: text("error_message"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (t) => [
-    unique("trace_summaries_project_trace_unique").on(t.projectId, t.traceId),
-    index("trace_summaries_project_id_idx").on(t.projectId),
-  ],
-);
 

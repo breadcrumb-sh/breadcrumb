@@ -16,6 +16,7 @@ import { db } from "../../shared/db/postgres.js";
 import { monitorItems, monitorComments, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
+import { recordUsage } from "./usage.js";
 
 const log = createLogger("monitor-agent");
 
@@ -156,7 +157,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
   log.info({ projectId, itemId }, "starting investigation");
 
   try {
-    await generateText({
+    const result = await generateText({
       model,
       system: SYSTEM_PROMPT,
       messages,
@@ -313,7 +314,12 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
       },
     });
 
-    log.info({ projectId, itemId }, "investigation complete");
+    // Record usage — estimate cost at $3/M input, $15/M output (conservative)
+    const input = result.usage?.inputTokens ?? 0;
+    const output = result.usage?.outputTokens ?? 0;
+    const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
+    await recordUsage(projectId, input, output, costCents);
+    log.info({ projectId, itemId, inputTokens: input, outputTokens: output, costCents }, "investigation complete");
   } catch (err) {
     log.error({ projectId, itemId, err }, "investigation failed");
     await addAgentComment(

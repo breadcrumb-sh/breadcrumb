@@ -169,6 +169,20 @@
       "when": 1774823624078,
       "tag": "0023_first_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1774826209183,
+      "tag": "0024_lazy_spacker_dave",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774850000000,
+      "tag": "0025_drop_trace_analysis",
+      "breakpoints": true
     }
   ]
 }

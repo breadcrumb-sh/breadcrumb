@@ -70,9 +70,9 @@ function DraggableCard({
       {...listeners}
       {...attributes}
       onClick={onOpen}
-      className={`rounded-lg flex flex-col gap-1.5 border p-3 text-left hover:border-zinc-700 transition-colors cursor-grab active:cursor-grabbing ${
+      className={`rounded-lg flex flex-col gap-1.5 border p-3 text-left transition-colors cursor-grab active:cursor-grabbing ${
         isDragging ? "opacity-30" : ""
-      } ${task.read ? "border-zinc-800 bg-zinc-900" : "border-blue-500/30 bg-blue-500/5"}`}
+      } ${task.read ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700" : "border-blue-500/30 hover:border-blue-500/40 bg-blue-500/5"}`}
     >
       {task.source === "agent" && (
         <div className="flex flex-row items-center gap-1.5">

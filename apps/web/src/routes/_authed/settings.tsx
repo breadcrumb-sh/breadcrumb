@@ -7,6 +7,8 @@ import { Check } from "@phosphor-icons/react/Check";
 import { X } from "@phosphor-icons/react/X";
 import { Dialog } from "@base-ui/react/dialog";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { Select } from "@base-ui/react/select";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { usePageView } from "../../hooks/usePageView";
 import { trpc } from "../../lib/trpc";
 import { AppHeader } from "../../components/layout/AppHeader";
@@ -60,18 +62,37 @@ function ThemeSection() {
         </p>
       </div>
 
-      <select
-        id="theme-select"
+      <Select.Root
         value={preference}
-        onChange={(e) => setTheme(e.target.value as ThemePreference)}
-        className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500"
+        onValueChange={(v) => v && setTheme(v as ThemePreference)}
       >
-        {themeOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        <Select.Trigger className="h-[30px] flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 text-xs text-zinc-400 outline-none hover:border-zinc-700 focus:border-zinc-600 cursor-pointer transition-colors min-w-[120px]">
+          <Select.Value className="truncate flex-1 text-left">
+            {themeOptions.find((o) => o.value === preference)?.label}
+          </Select.Value>
+          <Select.Icon>
+            <CaretDown size={12} className="text-zinc-500" />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Positioner sideOffset={4} className="z-[100]">
+            <Select.Popup className="rounded-lg border border-zinc-800 bg-zinc-900 py-1 shadow-xl max-h-[240px] overflow-y-auto min-w-[var(--anchor-width)] motion-preset-fade motion-preset-slide-down-sm motion-duration-150">
+              {themeOptions.map((opt) => (
+                <Select.Item
+                  key={opt.value}
+                  value={opt.value}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-400 outline-none cursor-default data-[highlighted]:bg-zinc-800 data-[highlighted]:text-zinc-100 transition-colors"
+                >
+                  <Select.ItemIndicator className="w-3">
+                    <Check size={10} />
+                  </Select.ItemIndicator>
+                  <Select.ItemText>{opt.label}</Select.ItemText>
+                </Select.Item>
+              ))}
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>
     </section>
   );
 }

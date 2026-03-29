@@ -1,11 +1,7 @@
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
-import { router, projectViewerProcedure, projectMemberProcedure } from "../../../trpc.js";
+import { router, projectViewerProcedure } from "../../../trpc.js";
 import { readonlyClickhouse } from "../../../shared/db/clickhouse.js";
-import { db } from "../../../shared/db/postgres.js";
-import { traceSummaries } from "../../../shared/db/schema.js";
 import { toStr } from "../../../services/traces/helpers.js";
-import { analyzeTrace } from "../../../services/traces/analyze.js";
 
 const traceIdInput = z.object({
   projectId: z.string().uuid(),
@@ -80,78 +76,4 @@ export const detailRouter = router({
       }));
     }),
 
-  // ── Trace summary (analysis) ───────────────────────────────────────────
-
-  summary: projectViewerProcedure
-    .input(traceIdInput)
-    .query(async ({ input }) => {
-      const [row] = await db
-        .select()
-        .from(traceSummaries)
-        .where(
-          and(
-            eq(traceSummaries.projectId, input.projectId),
-            eq(traceSummaries.traceId, input.traceId),
-          ),
-        );
-      if (!row) return null;
-      return {
-        id: row.id,
-        markdown: row.markdown,
-        status: row.status as "pending" | "running" | "done" | "error",
-        errorMessage: row.errorMessage,
-        updatedAt: row.updatedAt,
-      };
-    }),
-
-  analyze: projectMemberProcedure
-    .input(
-      traceIdInput.extend({
-        force: z.boolean().optional(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      // Check for existing summary
-      const [existing] = await db
-        .select()
-        .from(traceSummaries)
-        .where(
-          and(
-            eq(traceSummaries.projectId, input.projectId),
-            eq(traceSummaries.traceId, input.traceId),
-          ),
-        );
-
-      if (existing && existing.status === "running") {
-        return { id: existing.id, status: "running" as const };
-      }
-      if (existing && existing.status === "done" && !input.force) {
-        return { id: existing.id, status: "done" as const };
-      }
-
-      // Upsert a row in pending/running state
-      const [row] = await db
-        .insert(traceSummaries)
-        .values({
-          projectId: input.projectId,
-          traceId: input.traceId,
-          markdown: "",
-          status: "running",
-        })
-        .onConflictDoUpdate({
-          target: [traceSummaries.projectId, traceSummaries.traceId],
-          set: {
-            status: "running",
-            markdown: "",
-            errorMessage: null,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
-
-      // Fire and forget — the analysis function updates the row when done
-      analyzeTrace(input.projectId, input.traceId).catch(() => {});
-
-      return { id: row.id, status: "running" as const };
-    }),
 });

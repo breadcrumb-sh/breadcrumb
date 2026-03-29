@@ -1,12 +1,13 @@
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import type { Icon } from "@phosphor-icons/react";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export type NavSubItem = {
   label: string;
-  id: string;
+  id?: string;
+  children?: NavSubItem[];
 };
 
 export type NavLeafItem = {
@@ -24,6 +25,99 @@ export type NavGroupItem = {
 };
 
 export type NavEntry = NavLeafItem | NavGroupItem;
+
+// ── Sub-items (recursive) ───────────────────────────────────────────────────
+
+function SubItems({
+  items,
+  activeId,
+  onSelect,
+  openSections,
+  toggleSection,
+  depth,
+}: {
+  items: NavSubItem[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  openSections: Set<string>;
+  toggleSection: (label: string) => void;
+  depth: number;
+}) {
+  return (
+    <>
+      {items.map((child) => {
+        // Nested group (has children)
+        if (child.children && child.children.length > 0) {
+          const isOpen = openSections.has(child.label);
+          const hasActiveChild = child.children.some(
+            (c) => c.id === activeId || c.children?.some((gc) => gc.id === activeId),
+          );
+
+          return (
+            <div key={child.label}>
+              <button
+                onClick={() => toggleSection(child.label)}
+                className={`
+                  flex items-center gap-2 w-full text-left rounded-md px-2.5 py-1.5 text-[13px]
+                  transition-colors duration-150
+                  ${hasActiveChild
+                    ? "text-zinc-200"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
+                  }
+                `}
+              >
+                <span className="flex-1">{child.label}</span>
+                <CaretDown
+                  size={11}
+                  className={`shrink-0 text-zinc-600 transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}
+                />
+              </button>
+
+              <div
+                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="mt-0.5 ml-2 border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
+                    <SubItems
+                      items={child.children}
+                      activeId={activeId}
+                      onSelect={onSelect}
+                      openSections={openSections}
+                      toggleSection={toggleSection}
+                      depth={depth + 1}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Leaf item
+        if (!child.id) return null;
+        const isActive = activeId === child.id;
+        return (
+          <button
+            key={child.id}
+            onClick={() => onSelect(child.id!)}
+            className={`
+              block w-full text-left rounded-md px-2.5 py-1.5 text-[13px]
+              transition-colors duration-150
+              ${isActive
+                ? "text-zinc-100 bg-zinc-800/40 font-medium"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
+              }
+            `}
+          >
+            {child.label}
+          </button>
+        );
+      })}
+    </>
+  );
+}
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -103,25 +197,14 @@ export function SidebarNav({
               >
                 <div className="overflow-hidden">
                   <div className="mt-0.5 ml-[19px] border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
-                    {entry.children.map((child) => {
-                      const isChildActive = activeId === child.id;
-                      return (
-                        <button
-                          key={child.id}
-                          onClick={() => onSelect(child.id)}
-                          className={`
-                            block w-full text-left rounded-md px-2.5 py-1.5 text-[13px]
-                            transition-colors duration-150
-                            ${isChildActive
-                              ? "text-zinc-100 bg-zinc-800/40 font-medium"
-                              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
-                            }
-                          `}
-                        >
-                          {child.label}
-                        </button>
-                      );
-                    })}
+                    <SubItems
+                      items={entry.children}
+                      activeId={activeId}
+                      onSelect={onSelect}
+                      openSections={openSections}
+                      toggleSection={toggleSection}
+                      depth={1}
+                    />
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -9,7 +9,8 @@ import {
   checkOrgRole,
 } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems, monitorComments, project } from "../../shared/db/schema.js";
+import { monitorItems, monitorComments, project, agentUsage } from "../../shared/db/schema.js";
+import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
 import { enqueueProcess } from "../../services/monitor/jobs.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
 
@@ -24,6 +25,54 @@ export const monitorRouter = router({
         .from(monitorItems)
         .where(eq(monitorItems.projectId, input.projectId))
         .orderBy(monitorItems.updatedAt);
+    }),
+
+  summary: projectMemberProcedure
+    .input(z.object({
+      projectId: z.string(),
+      from: z.string(), // YYYY-MM-DD
+      to: z.string(),
+    }))
+    .query(async ({ input }) => {
+      const since = new Date(input.from);
+
+      // Postgres counts
+      const items = await db
+        .select()
+        .from(monitorItems)
+        .where(eq(monitorItems.projectId, input.projectId));
+
+      const issuesFound = items.filter(
+        (i) => i.source === "agent" && i.createdAt >= since,
+      ).length;
+      const needsReview = items.filter((i) => i.status === "review").length;
+      const dismissed = items.filter(
+        (i) => i.dismissed && i.updatedAt >= since,
+      ).length;
+      const resolved = items.filter(
+        (i) => i.status === "done" && !i.dismissed && i.updatedAt >= since,
+      ).length;
+
+      // ClickHouse trace count
+      const result = await readonlyClickhouse.query({
+        query: `
+          SELECT count() AS cnt
+          FROM (
+            SELECT id
+            FROM breadcrumb.traces
+            WHERE project_id = {projectId: UUID}
+              AND start_time >= {from: Date}
+              AND start_time < {to: Date} + INTERVAL 1 DAY
+            GROUP BY id
+          )
+        `,
+        query_params: { projectId: input.projectId, from: input.from, to: input.to },
+        format: "JSONEachRow",
+      });
+      const rows = (await result.json()) as Array<{ cnt: string }>;
+      const traceCount = Number(rows[0]?.cnt ?? 0);
+
+      return { issuesFound, needsReview, dismissed, resolved, traceCount };
     }),
 
   create: projectMemberProcedure
@@ -233,6 +282,53 @@ export const monitorRouter = router({
       await db
         .update(project)
         .set({ agentMemory: input.content })
+        .where(eq(project.id, input.projectId));
+    }),
+
+  // ── Limits ────────────────────────────────────────────────────────
+
+  getLimits: projectMemberProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ input }) => {
+      const [p] = await db
+        .select({
+          monthlyCostLimitCents: project.agentMonthlyCostLimitCents,
+          scanIntervalSeconds: project.agentScanIntervalSeconds,
+        })
+        .from(project)
+        .where(eq(project.id, input.projectId));
+
+      const month = new Date().toISOString().slice(0, 7);
+      const [usage] = await db
+        .select()
+        .from(agentUsage)
+        .where(and(eq(agentUsage.projectId, input.projectId), eq(agentUsage.month, month)));
+
+      return {
+        monthlyCostLimitCents: p?.monthlyCostLimitCents ?? 1000,
+        scanIntervalSeconds: p?.scanIntervalSeconds ?? 300,
+        monthUsage: {
+          inputTokens: usage?.inputTokens ?? 0,
+          outputTokens: usage?.outputTokens ?? 0,
+          costCents: usage?.costCents ?? 0,
+          calls: usage?.calls ?? 0,
+        },
+      };
+    }),
+
+  updateLimits: projectAdminProcedure
+    .input(z.object({
+      projectId: z.string(),
+      monthlyCostLimitCents: z.number().min(0),
+      scanIntervalSeconds: z.number().min(60).max(86400),
+    }))
+    .mutation(async ({ input }) => {
+      await db
+        .update(project)
+        .set({
+          agentMonthlyCostLimitCents: input.monthlyCostLimitCents,
+          agentScanIntervalSeconds: input.scanIntervalSeconds,
+        })
         .where(eq(project.id, input.projectId));
     }),
 });

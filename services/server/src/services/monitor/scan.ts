@@ -16,6 +16,7 @@ import { db } from "../../shared/db/postgres.js";
 import { monitorItems, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
+import { recordUsage } from "./usage.js";
 
 const log = createLogger("monitor-scan");
 
@@ -77,7 +78,7 @@ export async function runScan(projectId: string) {
   log.info({ projectId }, "starting scan");
 
   try {
-    await generateText({
+    const result = await generateText({
       model,
       system: SCAN_SYSTEM,
       prompt: `${context}\n\nScan recent traces for this project. Query the data to understand what's happening, update project knowledge, and create tickets for any issues worth investigating.`,
@@ -164,7 +165,11 @@ export async function runScan(projectId: string) {
       },
     });
 
-    log.info({ projectId }, "scan complete");
+    const input = result.usage?.inputTokens ?? 0;
+    const output = result.usage?.outputTokens ?? 0;
+    const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
+    await recordUsage(projectId, input, output, costCents);
+    log.info({ projectId, inputTokens: input, outputTokens: output, costCents }, "scan complete");
   } catch (err) {
     log.error({ projectId, err }, "scan failed");
   }

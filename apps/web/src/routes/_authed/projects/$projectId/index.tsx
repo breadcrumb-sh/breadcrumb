@@ -122,7 +122,7 @@ function OverviewPage() {
         />
       </div>
 
-      <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">You have <span className="text-foreground">42 new traces</span> since you last visited.<br/>I've created <span className="text-foreground">2 new items</span> for me to monitor and completed <span className="text-foreground">3 items</span> for you to look at!</p>
+      <MonitorSummary projectId={projectId} from={from} to={to} />
 
       </div>
       {/* ── Agent monitoring board ────────────────────────────── */}
@@ -135,6 +135,59 @@ function OverviewPage() {
         />
       </div>
     </div>
+  );
+}
+
+// ── Monitor summary ─────────────────────────────────────────────────────────
+
+function MonitorSummary({ projectId, from, to }: { projectId: string; from: string; to: string }) {
+  const summary = trpc.monitor.summary.useQuery({ projectId, from, to });
+  const d = summary.data;
+  if (!d || d.traceCount === 0) return null;
+
+  const sentences: React.ReactNode[] = [];
+
+  // Trace count
+  sentences.push(
+    <span key="traces">
+      Across <span className="text-foreground">{d.traceCount.toLocaleString()} traces</span> in this period
+      {d.issuesFound > 0
+        ? <>, I found <span className="text-foreground">{d.issuesFound} {d.issuesFound === 1 ? "issue" : "issues"}</span></>
+        : <>, I found no issues</>
+      }.
+    </span>,
+  );
+
+  // Review + closed
+  const statusParts: React.ReactNode[] = [];
+  if (d.needsReview > 0) {
+    statusParts.push(<span key="review"><span className="text-foreground">{d.needsReview}</span> {d.needsReview === 1 ? "item needs" : "items need"} your review</span>);
+  }
+  if (d.resolved > 0) {
+    statusParts.push(<span key="resolved"><span className="text-foreground">{d.resolved}</span> {d.resolved === 1 ? "was" : "were"} resolved</span>);
+  }
+  if (d.dismissed > 0) {
+    statusParts.push(<span key="dismissed"><span className="text-foreground">{d.dismissed}</span> {d.dismissed === 1 ? "was" : "were"} dismissed</span>);
+  }
+  if (statusParts.length > 0) {
+    sentences.push(
+      <span key="status">
+        {statusParts.map((part, i) => (
+          <span key={i}>{i > 0 && ", "}{part}</span>
+        ))}.
+      </span>,
+    );
+  }
+
+  return (
+    <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">
+      {sentences.map((s, i) => (
+        <span key={i}>
+          {i > 0 && <br />}
+          {s}
+        </span>
+      ))}
+    </p>
   );
 }
 

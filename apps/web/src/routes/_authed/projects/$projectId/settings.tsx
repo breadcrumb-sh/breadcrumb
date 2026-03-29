@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { AgentLimitsSection } from "../../../../components/settings/AgentLimitsSection";
 import { AgentMemorySection } from "../../../../components/settings/AgentMemorySection";
 import { AiProviderSection } from "../../../../components/settings/AiProviderSection";
 import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
@@ -10,7 +11,7 @@ import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "ai", "memory", "danger"]).optional(),
+  tab: z.enum(["general", "api-keys", "ai", "memory", "limits", "danger"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -39,6 +40,7 @@ function SettingsPage() {
       )}
       {section === "ai" && <AiProviderSection projectId={projectId} />}
       {section === "memory" && <AgentMemorySection projectId={projectId} />}
+      {section === "limits" && <AgentLimitsSection projectId={projectId} />}
       {section === "danger" && (
         <DangerSection projectId={projectId} canDelete={isOwner} />
       )}

@@ -95,19 +95,6 @@ export const projectsRouter = router({
       return p;
     }),
 
-  setAutoAnalyze: projectAdminProcedure
-    .input(
-      z.object({ projectId: z.string(), autoAnalyze: z.boolean() }),
-    )
-    .mutation(async ({ input }) => {
-      const [p] = await db
-        .update(project)
-        .set({ autoAnalyze: input.autoAnalyze })
-        .where(eq(project.id, input.projectId))
-        .returning();
-      return p;
-    }),
-
   delete: authedProcedure
     .input(z.object({ projectId: z.string() }))
     .mutation(async ({ input, ctx }) => {

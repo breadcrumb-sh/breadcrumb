@@ -48,8 +48,14 @@ function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
       children: [
         ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
         { label: "API Keys", id: "settings:api-keys" },
-        ...(isAdmin ? [{ label: "AI Provider", id: "settings:ai" }] : []),
-        { label: "Agent Memory", id: "settings:memory" },
+        ...(isAdmin ? [{
+          label: "AI",
+          children: [
+            { label: "Provider", id: "settings:ai" },
+            { label: "Agent Memory", id: "settings:memory" },
+            { label: "Limits", id: "settings:limits" },
+          ],
+        }] : []),
         ...(isOwner ? [{ label: "Danger", id: "settings:danger" }] : []),
       ],
     },
@@ -68,6 +74,7 @@ function navIdToRoute(projectId: string) {
       "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
       "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
       "settings:memory": { to: "/projects/$projectId/settings", search: { tab: "memory" } },
+      "settings:limits": { to: "/projects/$projectId/settings", search: { tab: "limits" } },
       "settings:danger": { to: "/projects/$projectId/settings", search: { tab: "danger" } },
     };
     return routes[id] ?? { to: "/projects/$projectId" };
@@ -87,11 +94,14 @@ function getActiveId(pathname: string, base: string, tab?: string): string {
 }
 
 /** Which groups should start expanded based on current URL. */
-function getDefaultOpen(pathname: string, base: string): string[] {
+function getDefaultOpen(pathname: string, base: string, tab?: string): string[] {
   const rel = pathname.slice(base.length) || "";
   const open: string[] = [];
   if (rel.startsWith("/traces") || rel.startsWith("/trace/")) open.push("Traces");
-  if (rel.startsWith("/settings")) open.push("Settings");
+  if (rel.startsWith("/settings")) {
+    open.push("Settings");
+    if (tab === "ai" || tab === "memory" || tab === "limits") open.push("AI");
+  }
   return open;
 }
 
@@ -115,7 +125,7 @@ function ProjectLayout() {
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   const activeId = getActiveId(pathname, base, tab);
   const navItems = useMemo(() => buildNavItems(isAdmin, isOwner), [isAdmin, isOwner]);
-  const defaultOpen = useMemo(() => getDefaultOpen(pathname, base), [pathname, base]);
+  const defaultOpen = useMemo(() => getDefaultOpen(pathname, base, tab), [pathname, base, tab]);
 
   const resolver = useMemo(() => navIdToRoute(projectId), [projectId]);
   const handleSelect = useCallback(
