@@ -13,10 +13,12 @@ import { boss } from "../../shared/lib/boss.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
 import { CLICKHOUSE_SCHEMA } from "../explore/clickhouse-schema.js";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems, monitorComments, project } from "../../shared/db/schema.js";
+import { monitorItems, monitorComments, monitorLabels, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
 import { recordUsage } from "./usage.js";
+import { emitMonitorEvent } from "./events.js";
+import { recordActivity } from "./activity.js";
 
 const log = createLogger("monitor-agent");
 
@@ -64,12 +66,22 @@ You have three output channels:
 Investigation workflow:
 1. Read your existing note (provided in context). If empty, create a research plan.
 2. Execute your plan — query traces, record findings in the note.
-3. When you have a clear picture, write one concise comment for the developer.
-4. Update the ticket status.
+3. Set priority and labels using set_properties once you understand the issue.
+4. When you have a clear picture, write one concise comment for the developer.
+5. Update the ticket status.
+
+Priority levels:
+- "critical" — Production-breaking. Data loss, security issue, complete failure of core functionality.
+- "high" — Significant impact. Major degradation, frequent errors, high cost anomalies.
+- "medium" — Moderate concern. Intermittent issues, performance degradation, elevated error rates.
+- "low" — Minor. Edge cases, cosmetic issues, small inefficiencies.
+- "none" — Default. Use when the issue doesn't clearly map to a severity level.
+
+Labels: Apply labels that match the nature of the issue. Use set_properties with the exact label names available for this project (listed in context below). Also set traceNames to the trace name(s) this issue relates to — this links the ticket to specific agents or workflows.
 
 Status decisions:
 - "review" — Real issue found. Comment should include what you found AND concrete suggested actions.
-- "done" (dismissed=true) — False positive or not actionable. Brief comment explaining why.
+- "done" — False positive or not actionable. Brief comment explaining why.
 - Schedule a follow-up — Not enough data yet. Use schedule_followup to check again later.
 - "review" — Unsure and need developer input. Comment explains what you found and what you need.
 
@@ -100,7 +112,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     model = await getAiModel(projectId);
   } catch {
     log.warn({ projectId }, "no AI provider configured — skipping investigation");
-    await addAgentComment(itemId, "Cannot investigate — no AI provider configured for this project.");
+    await addAgentComment(projectId, itemId, "Cannot investigate — no AI provider configured for this project.");
     return;
   }
 
@@ -117,6 +129,12 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     .where(eq(monitorComments.monitorItemId, itemId))
     .orderBy(monitorComments.createdAt);
 
+  // Fetch available labels
+  const labels = await db
+    .select({ name: monitorLabels.name })
+    .from(monitorLabels)
+    .where(eq(monitorLabels.projectId, projectId));
+
   // Build messages
   const ticketContext = [
     `## Project Knowledge`,
@@ -125,6 +143,9 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     `## Ticket`,
     `**${item.title}**`,
     item.description || "(no description)",
+    ``,
+    `## Available Labels`,
+    labels.length > 0 ? labels.map((l) => l.name).join(", ") : "(none configured)",
     ``,
     `## Ticket Note`,
     item.note || "(empty — start by creating a research plan)",
@@ -166,10 +187,10 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
         stepCountIs(40),
         async () => {
           const [current] = await db
-            .select({ status: monitorItems.status, dismissed: monitorItems.dismissed })
+            .select({ status: monitorItems.status })
             .from(monitorItems)
             .where(eq(monitorItems.id, itemId));
-          if (!current || current.dismissed || current.status === "done") {
+          if (!current || current.status === "done") {
             log.info({ itemId }, "item cancelled — stopping investigation");
             return true;
           }
@@ -208,6 +229,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
           execute: async ({ target, content }) => {
             if (target === "note") {
               await db.update(monitorItems).set({ note: content, updatedAt: new Date() }).where(eq(monitorItems.id, itemId));
+              emitMonitorEvent({ projectId, itemId, type: "status" });
             } else {
               await db.update(project).set({ agentMemory: content }).where(eq(project.id, projectId));
             }
@@ -234,6 +256,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
             if (target === "note") {
               await db.update(monitorItems).set({ note: updated, updatedAt: new Date() }).where(eq(monitorItems.id, itemId));
               item.note = updated; // keep local copy in sync
+              emitMonitorEvent({ projectId, itemId, type: "status" });
             } else {
               await db.update(project).set({ agentMemory: updated }).where(eq(project.id, projectId));
               if (proj) proj.agentMemory = updated;
@@ -250,24 +273,74 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
           }),
           execute: async ({ content }) => {
             log.debug({ itemId }, "adding comment");
-            await addAgentComment(itemId, content);
+            await addAgentComment(projectId, itemId, content);
             return "Comment added.";
           },
         }),
 
         set_status: tool({
-          description: `Update the ticket status. Use "review" after you've left a comment with findings and suggested actions. Use "done" with dismissed=true for false positives.`,
+          description: `Update the ticket status. Use "review" after you've left a comment with findings and suggested actions. Use "done" for false positives or resolved items.`,
           inputSchema: z.object({
             status: z.enum(["review", "done"]).describe("The new status"),
-            dismissed: z.boolean().optional().describe("Set to true when moving to done as a false positive"),
           }),
-          execute: async ({ status, dismissed }) => {
-            log.info({ itemId, status, dismissed }, "agent updating status");
+          execute: async ({ status }) => {
+            log.info({ itemId, status }, "agent updating status");
+            const oldStatus = item.status;
             await db
               .update(monitorItems)
-              .set({ status, dismissed: dismissed ?? false, updatedAt: new Date() })
+              .set({ status, read: status === "done", updatedAt: new Date() })
               .where(eq(monitorItems.id, itemId));
+            if (status !== oldStatus) {
+              await recordActivity(itemId, "status_change", "agent", { fromStatus: oldStatus, toStatus: status });
+            }
+            emitMonitorEvent({ projectId, itemId, type: "status" });
             return `Status updated to "${status}".`;
+          },
+        }),
+
+        set_properties: tool({
+          description: "Set priority, labels, and/or linked trace names on the ticket. Call this once you understand the nature and severity of the issue. Use traceNames to link this ticket to specific agent/workflow trace names.",
+          inputSchema: z.object({
+            priority: z.enum(["none", "low", "medium", "high", "critical"]).optional().describe("Issue priority"),
+            labelNames: z.array(z.string()).optional().describe("Label names to apply (must match existing project labels)"),
+            traceNames: z.array(z.string()).optional().describe("Trace names this issue is linked to (e.g. the agent or workflow name)"),
+          }),
+          execute: async ({ priority, labelNames, traceNames }) => {
+            const results: string[] = [];
+
+            if (priority) {
+              await db.update(monitorItems).set({ priority, updatedAt: new Date() }).where(eq(monitorItems.id, itemId));
+              results.push(`Priority set to "${priority}".`);
+            }
+
+            if (traceNames && traceNames.length > 0) {
+              await db.update(monitorItems).set({ traceNames, updatedAt: new Date() }).where(eq(monitorItems.id, itemId));
+              results.push(`Linked to traces: ${traceNames.join(", ")}.`);
+            }
+
+            if (labelNames && labelNames.length > 0) {
+              const { monitorLabels, monitorItemLabels } = await import("../../shared/db/schema.js");
+              const { and, inArray } = await import("drizzle-orm");
+              const labels = await db
+                .select({ id: monitorLabels.id, name: monitorLabels.name })
+                .from(monitorLabels)
+                .where(and(eq(monitorLabels.projectId, projectId), inArray(monitorLabels.name, labelNames)));
+
+              if (labels.length > 0) {
+                await db.delete(monitorItemLabels).where(eq(monitorItemLabels.monitorItemId, itemId));
+                await db.insert(monitorItemLabels).values(
+                  labels.map((l) => ({ monitorItemId: itemId, monitorLabelId: l.id })),
+                );
+                results.push(`Labels set: ${labels.map((l) => l.name).join(", ")}.`);
+                const missing = labelNames.filter((n) => !labels.some((l) => l.name === n));
+                if (missing.length > 0) results.push(`Labels not found: ${missing.join(", ")}.`);
+              } else {
+                results.push(`No matching labels found for: ${labelNames.join(", ")}.`);
+              }
+            }
+
+            emitMonitorEvent({ projectId, itemId, type: "status" });
+            return results.join(" ") || "No changes made.";
           },
         }),
 
@@ -294,6 +367,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
                   read: false,
                 })
                 .returning();
+              await recordActivity(created.id, "created", "agent");
               await boss.send(
                 "monitor-process",
                 { projectId, itemId: created.id },
@@ -323,13 +397,13 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
   } catch (err) {
     log.error({ projectId, itemId, err }, "investigation failed");
     await addAgentComment(
-      itemId,
+      projectId, itemId,
       `Investigation encountered an error: ${err instanceof Error ? err.message : "Unknown error"}`,
     );
   }
 }
 
-async function addAgentComment(itemId: string, content: string) {
+async function addAgentComment(projectId: string, itemId: string, content: string) {
   await db.insert(monitorComments).values({
     monitorItemId: itemId,
     source: "agent",
@@ -339,4 +413,5 @@ async function addAgentComment(itemId: string, content: string) {
     .update(monitorItems)
     .set({ read: false, updatedAt: new Date() })
     .where(eq(monitorItems.id, itemId));
+  emitMonitorEvent({ projectId, itemId, type: "comment" });
 }

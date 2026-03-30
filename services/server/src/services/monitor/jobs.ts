@@ -10,6 +10,8 @@ import { createLogger } from "../../shared/lib/logger.js";
 import { runInvestigation } from "./agent.js";
 import { runScan } from "./scan.js";
 import { checkBudget, getScanInterval } from "./usage.js";
+import { emitMonitorEvent } from "./events.js";
+import { recordActivity } from "./activity.js";
 
 const log = createLogger("monitor-jobs");
 
@@ -45,11 +47,11 @@ async function handleProcess(job: { data: MonitorJobData }) {
 
   // Check if item is still actionable
   const [item] = await db
-    .select({ status: monitorItems.status, dismissed: monitorItems.dismissed })
+    .select({ status: monitorItems.status })
     .from(monitorItems)
     .where(eq(monitorItems.id, itemId));
 
-  if (!item || item.dismissed || item.status === "done") {
+  if (!item || item.status === "done") {
     log.info({ projectId, itemId, status: item?.status }, "skipping — item no longer actionable");
     return;
   }
@@ -61,10 +63,16 @@ async function handleProcess(job: { data: MonitorJobData }) {
 
   log.info({ projectId, itemId }, "processing monitor item");
 
+  const oldStatus = item.status;
   await db
     .update(monitorItems)
     .set({ status: "investigating", processing: true, updatedAt: new Date() })
     .where(eq(monitorItems.id, itemId));
+  if (oldStatus !== "investigating") {
+    await recordActivity(itemId, "status_change", "agent", { fromStatus: oldStatus, toStatus: "investigating" });
+  }
+  await recordActivity(itemId, "processing_started", "agent");
+  emitMonitorEvent({ projectId, itemId, type: "processing" });
 
   try {
     await runInvestigation({ projectId, itemId });
@@ -73,6 +81,8 @@ async function handleProcess(job: { data: MonitorJobData }) {
       .update(monitorItems)
       .set({ processing: false, updatedAt: new Date() })
       .where(eq(monitorItems.id, itemId));
+    await recordActivity(itemId, "processing_finished", "agent");
+    emitMonitorEvent({ projectId, itemId, type: "processing" });
   }
 }
 

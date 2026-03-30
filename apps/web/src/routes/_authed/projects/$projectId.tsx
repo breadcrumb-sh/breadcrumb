@@ -48,6 +48,7 @@ function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
       children: [
         ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
         { label: "API Keys", id: "settings:api-keys" },
+        ...(isAdmin ? [{ label: "Labels", id: "settings:labels" }] : []),
         ...(isAdmin ? [{
           label: "AI",
           children: [
@@ -75,6 +76,7 @@ function navIdToRoute(projectId: string) {
       "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
       "settings:memory": { to: "/projects/$projectId/settings", search: { tab: "memory" } },
       "settings:limits": { to: "/projects/$projectId/settings", search: { tab: "limits" } },
+      "settings:labels": { to: "/projects/$projectId/settings", search: { tab: "labels" } },
       "settings:danger": { to: "/projects/$projectId/settings", search: { tab: "danger" } },
     };
     return routes[id] ?? { to: "/projects/$projectId" };

@@ -213,10 +213,13 @@ export const monitorItems = pgTable(
     description: text("description").notNull().default(""),
     source: varchar("source", { length: 16 }).notNull().default("user"), // user | agent
     status: varchar("status", { length: 32 }).notNull().default("queue"), // queue | investigating | review | done
+    priority: varchar("priority", { length: 16 }).notNull().default("none"), // none | low | medium | high | critical
+    traceNames: jsonb("trace_names").$type<string[]>().notNull().default([]), // linked trace name identifiers
     note: text("note").notNull().default(""), // agent's working scratchpad
     processing: boolean("processing").notNull().default(false),
     read: boolean("read").notNull().default(true),
     dismissed: boolean("dismissed").notNull().default(false),
+    createdById: text("created_by_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -231,10 +234,61 @@ export const monitorComments = pgTable(
       .notNull()
       .references(() => monitorItems.id, { onDelete: "cascade" }),
     source: varchar("source", { length: 16 }).notNull(), // user | agent
+    authorId: text("author_id"),
     content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [index("monitor_comments_item_id_idx").on(t.monitorItemId)],
+);
+
+// ── Monitor labels ─────────────────────────────────────────────────
+
+export const monitorLabels = pgTable(
+  "monitor_labels",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 64 }).notNull(),
+    color: varchar("color", { length: 7 }).notNull(), // hex e.g. #ef4444
+  },
+  (t) => [index("monitor_labels_project_id_idx").on(t.projectId)],
+);
+
+export const monitorItemLabels = pgTable(
+  "monitor_item_labels",
+  {
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    monitorLabelId: uuid("monitor_label_id")
+      .notNull()
+      .references(() => monitorLabels.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    index("monitor_item_labels_item_idx").on(t.monitorItemId),
+    index("monitor_item_labels_label_idx").on(t.monitorLabelId),
+  ],
+);
+
+// ── Monitor activity ──────────────────────────────────────────────
+
+export const monitorActivity = pgTable(
+  "monitor_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 32 }).notNull(), // created | status_change | processing_started | processing_finished | dismissed
+    fromStatus: varchar("from_status", { length: 32 }),
+    toStatus: varchar("to_status", { length: 32 }),
+    actor: varchar("actor", { length: 16 }).notNull().default("system"), // user | agent | system
+    actorId: text("actor_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("monitor_activity_item_id_idx").on(t.monitorItemId)],
 );
 
 

@@ -1,5 +1,7 @@
+import { on } from "events";
 import { z } from "zod";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, and, gte, sql, desc } from "drizzle-orm";
+import { tracked } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import {
   router,
@@ -9,10 +11,12 @@ import {
   checkOrgRole,
 } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems, monitorComments, project, agentUsage } from "../../shared/db/schema.js";
+import { monitorItems, monitorComments, monitorActivity, project, agentUsage, user } from "../../shared/db/schema.js";
 import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
 import { enqueueProcess } from "../../services/monitor/jobs.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
+import { monitorEvents, emitMonitorEvent, type MonitorEvent } from "../../services/monitor/events.js";
+import { recordActivity } from "../../services/monitor/activity.js";
 
 const statusEnum = z.enum(["queue", "investigating", "review", "done"]);
 
@@ -20,11 +24,16 @@ export const monitorRouter = router({
   list: projectMemberProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
-      return db
-        .select()
+      const rows = await db
+        .select({
+          item: monitorItems,
+          createdByName: user.name,
+        })
         .from(monitorItems)
+        .leftJoin(user, eq(monitorItems.createdById, user.id))
         .where(eq(monitorItems.projectId, input.projectId))
-        .orderBy(monitorItems.updatedAt);
+        .orderBy(desc(monitorItems.updatedAt));
+      return rows.map((r) => ({ ...r.item, createdByName: r.createdByName }));
     }),
 
   summary: projectMemberProcedure
@@ -46,11 +55,8 @@ export const monitorRouter = router({
         (i) => i.source === "agent" && i.createdAt >= since,
       ).length;
       const needsReview = items.filter((i) => i.status === "review").length;
-      const dismissed = items.filter(
-        (i) => i.dismissed && i.updatedAt >= since,
-      ).length;
       const resolved = items.filter(
-        (i) => i.status === "done" && !i.dismissed && i.updatedAt >= since,
+        (i) => i.status === "done" && i.updatedAt >= since,
       ).length;
 
       // ClickHouse trace count
@@ -72,7 +78,7 @@ export const monitorRouter = router({
       const rows = (await result.json()) as Array<{ cnt: string }>;
       const traceCount = Number(rows[0]?.cnt ?? 0);
 
-      return { issuesFound, needsReview, dismissed, resolved, traceCount };
+      return { issuesFound, needsReview, resolved, traceCount };
     }),
 
   create: projectMemberProcedure
@@ -83,16 +89,18 @@ export const monitorRouter = router({
         description: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const [item] = await db
         .insert(monitorItems)
         .values({
           projectId: input.projectId,
           title: input.title,
+          createdById: ctx.user.id,
           ...(input.description ? { description: input.description } : {}),
         })
         .returning();
 
+      await recordActivity(item.id, "created", "user", { actorId: ctx.user.id });
       await enqueueProcess(input.projectId, item.id);
 
       return item;
@@ -105,12 +113,13 @@ export const monitorRouter = router({
         title: z.string().min(1).optional(),
         description: z.string().optional(),
         status: statusEnum.optional(),
-        dismissed: z.boolean().optional(),
+        priority: z.enum(["none", "low", "medium", "high", "critical"]).optional(),
+        traceNames: z.array(z.string()).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       const [item] = await db
-        .select({ projectId: monitorItems.projectId })
+        .select({ projectId: monitorItems.projectId, status: monitorItems.status })
         .from(monitorItems)
         .where(eq(monitorItems.id, input.id));
       if (!item) throw new TRPCError({ code: "NOT_FOUND" });
@@ -129,9 +138,13 @@ export const monitorRouter = router({
       const { id, ...updates } = input;
       const [updated] = await db
         .update(monitorItems)
-        .set({ ...updates, updatedAt: new Date() })
+        .set({ ...updates, ...(updates.status === "done" ? { read: true } : {}), updatedAt: new Date() })
         .where(eq(monitorItems.id, id))
         .returning();
+
+      if (updates.status && updates.status !== item.status) {
+        await recordActivity(id, "status_change", "user", { fromStatus: item.status, toStatus: updates.status, actorId: ctx.user.id });
+      }
       return updated;
     }),
 
@@ -166,6 +179,38 @@ export const monitorRouter = router({
       await db.delete(monitorItems).where(eq(monitorItems.id, input.id));
     }),
 
+  // ── Activity ────────────────────────────────────────────────────────
+
+  listActivity: authedProcedure
+    .input(z.object({ monitorItemId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const [item] = await db
+        .select({ projectId: monitorItems.projectId })
+        .from(monitorItems)
+        .where(eq(monitorItems.id, input.monitorItemId));
+      if (!item) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const [p] = await db
+        .select({ organizationId: project.organizationId })
+        .from(project)
+        .where(eq(project.id, item.projectId));
+      if (!p) throw new TRPCError({ code: "NOT_FOUND" });
+      await checkOrgRole(ctx.user.id, p.organizationId, [
+        "viewer", "member", "admin", "owner",
+      ]);
+
+      const rows = await db
+        .select({
+          activity: monitorActivity,
+          actorName: user.name,
+        })
+        .from(monitorActivity)
+        .leftJoin(user, eq(monitorActivity.actorId, user.id))
+        .where(eq(monitorActivity.monitorItemId, input.monitorItemId))
+        .orderBy(monitorActivity.createdAt);
+      return rows.map((r) => ({ ...r.activity, actorName: r.actorName }));
+    }),
+
   // ── Comments ────────────────────────────────────────────────────────
 
   listComments: authedProcedure
@@ -187,11 +232,16 @@ export const monitorRouter = router({
         "viewer", "member", "admin", "owner",
       ]);
 
-      return db
-        .select()
+      const rows = await db
+        .select({
+          comment: monitorComments,
+          authorName: user.name,
+        })
         .from(monitorComments)
+        .leftJoin(user, eq(monitorComments.authorId, user.id))
         .where(eq(monitorComments.monitorItemId, input.monitorItemId))
         .orderBy(monitorComments.createdAt);
+      return rows.map((r) => ({ ...r.comment, authorName: r.authorName }));
     }),
 
   addComment: authedProcedure
@@ -222,6 +272,7 @@ export const monitorRouter = router({
         .values({
           monitorItemId: input.monitorItemId,
           source: "user",
+          authorId: ctx.user.id,
           content: input.content,
         })
         .returning();
@@ -231,6 +282,8 @@ export const monitorRouter = router({
         .update(monitorItems)
         .set({ updatedAt: new Date() })
         .where(eq(monitorItems.id, input.monitorItemId));
+
+      emitMonitorEvent({ projectId: item.projectId, itemId: input.monitorItemId, type: "comment" });
 
       // Enqueue investigation so the agent can respond to the comment
       await enqueueProcess(item.projectId, input.monitorItemId, true);
@@ -255,10 +308,15 @@ export const monitorRouter = router({
       await checkOrgRole(ctx.user.id, p.organizationId, ["member", "admin", "owner"]);
 
       // Update status and run immediately (don't await — return fast)
+      const oldStatus = item.status;
       await db
         .update(monitorItems)
         .set({ status: "investigating", updatedAt: new Date() })
         .where(eq(monitorItems.id, input.id));
+
+      if (oldStatus !== "investigating") {
+        await recordActivity(input.id, "status_change", "user", { fromStatus: oldStatus, toStatus: "investigating", actorId: ctx.user.id });
+      }
 
       // Fire and forget
       runInvestigation({ projectId: item.projectId, itemId: item.id }).catch(() => {});
@@ -330,5 +388,19 @@ export const monitorRouter = router({
           agentScanIntervalSeconds: input.scanIntervalSeconds,
         })
         .where(eq(project.id, input.projectId));
+    }),
+
+  // ── SSE subscription ──────────────────────────────────────────────
+
+  onEvent: projectMemberProcedure
+    .input(z.object({ projectId: z.string() }))
+    .subscription(async function* (opts) {
+      const { projectId } = opts.input;
+      for await (const [event] of on(monitorEvents, `project:${projectId}`, {
+        signal: opts.signal,
+      })) {
+        const e = event as MonitorEvent;
+        yield tracked(e.itemId, e);
+      }
     }),
 });

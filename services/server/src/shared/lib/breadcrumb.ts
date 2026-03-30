@@ -17,6 +17,7 @@ export async function initBreadcrumb() {
   const bc = init({
     apiKey: env.breadcrumbApiKey,
     baseUrl: env.breadcrumbBaseUrl,
+    batching: false,
   });
 
   const { telemetry } = initAiSdk(bc);

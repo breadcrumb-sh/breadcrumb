@@ -6,12 +6,13 @@ import { AiProviderSection } from "../../../../components/settings/AiProviderSec
 import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
 import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
+import { LabelsSection } from "../../../../components/settings/LabelsSection";
 import { useOrgRole } from "../../../../hooks/useOrgRole";
 import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "ai", "memory", "limits", "danger"]).optional(),
+  tab: z.enum(["general", "api-keys", "ai", "memory", "limits", "labels", "danger"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -41,6 +42,7 @@ function SettingsPage() {
       {section === "ai" && <AiProviderSection projectId={projectId} />}
       {section === "memory" && <AgentMemorySection projectId={projectId} />}
       {section === "limits" && <AgentLimitsSection projectId={projectId} />}
+      {section === "labels" && <LabelsSection projectId={projectId} />}
       {section === "danger" && (
         <DangerSection projectId={projectId} canDelete={isOwner} />
       )}

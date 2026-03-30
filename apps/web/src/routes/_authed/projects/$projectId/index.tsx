@@ -174,9 +174,6 @@ function MonitorSummary({ projectId, from, to }: { projectId: string; from: stri
   if (d.resolved > 0) {
     statusParts.push(<span key="resolved"><span className="text-foreground">{d.resolved}</span> {d.resolved === 1 ? "was" : "were"} resolved</span>);
   }
-  if (d.dismissed > 0) {
-    statusParts.push(<span key="dismissed"><span className="text-foreground">{d.dismissed}</span> {d.dismissed === 1 ? "was" : "were"} dismissed</span>);
-  }
   if (statusParts.length > 0) {
     sentences.push(
       <span key="status">

@@ -7,10 +7,13 @@ export type MonitorItem = {
   description: string;
   source: string;
   status: string;
+  priority: string;
+  traceNames: string[];
   note: string;
   processing: boolean;
   read: boolean;
-  dismissed: boolean;
+  createdById: string | null;
+  createdByName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -19,6 +22,8 @@ export type MonitorComment = {
   id: string;
   monitorItemId: string;
   source: string;
+  authorId: string | null;
+  authorName: string | null;
   content: string;
   createdAt: Date;
 };

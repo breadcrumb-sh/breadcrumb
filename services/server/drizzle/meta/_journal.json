@@ -183,6 +183,34 @@
       "when": 1774850000000,
       "tag": "0025_drop_trace_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774900000000,
+      "tag": "0026_monitor_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1774910000000,
+      "tag": "0027_add_user_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774920000000,
+      "tag": "0028_monitor_labels_priority",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774930000000,
+      "tag": "0029_monitor_trace_names",
+      "breakpoints": true
     }
   ]
 }

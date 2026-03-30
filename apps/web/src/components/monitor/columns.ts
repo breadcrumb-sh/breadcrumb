@@ -1,4 +1,4 @@
-import type { Column } from "./types";
+import type { Column, TaskStatus } from "./types";
 import { QueueIcon, InvestigatingIcon, ReviewIcon, DoneIcon } from "./status-icons";
 
 export const COLUMNS: Column[] = [
@@ -26,11 +26,22 @@ export const COLUMNS: Column[] = [
   {
     id: "done",
     title: "Done",
-    description: "Resolved or dismissed",
+    description: "Resolved or closed",
     icon: DoneIcon,
     dotColor: "text-violet-400",
   },
 ];
+
+export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
+  queue: ["investigating", "done"],
+  investigating: ["done"],
+  review: ["queue", "done"],
+  done: ["queue", "review"],
+};
+
+export function canTransition(from: string, to: TaskStatus): boolean {
+  return ALLOWED_TRANSITIONS[from as TaskStatus]?.includes(to) ?? false;
+}
 
 export function statusInfo(status: string) {
   const col = COLUMNS.find((c) => c.id === status);

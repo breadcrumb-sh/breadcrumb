@@ -14,7 +14,7 @@ import {
 import { Plus } from "@phosphor-icons/react/Plus";
 import { MagicWandIcon } from "@phosphor-icons/react/MagicWand";
 import { trpc } from "../../lib/trpc";
-import { COLUMNS } from "./columns";
+import { COLUMNS, canTransition } from "./columns";
 import { CreateItemDialog } from "./CreateItemDialog";
 import { MonitorItemSheet } from "./MonitorItemSheet";
 import type { MonitorItem, TaskStatus } from "./types";
@@ -39,15 +39,8 @@ function useCollapsedColumns() {
 
 // ── Allowed drop transitions ────────────────────────────────────────────────
 
-const ALLOWED_DROPS: Record<string, TaskStatus[]> = {
-  queue: ["investigating", "done"],
-  investigating: ["done"],
-  review: ["investigating", "done"],
-  done: [],
-};
-
 function canDrop(fromStatus: string, toStatus: TaskStatus): boolean {
-  return ALLOWED_DROPS[fromStatus]?.includes(toStatus) ?? false;
+  return canTransition(fromStatus, toStatus);
 }
 
 // ── Draggable card ──────────────────────────────────────────────────────────
@@ -80,8 +73,8 @@ function DraggableCard({
           <span className="text-muted-foreground text-xs">Auto-detected</span>
         </div>
       )}
-      <p className={`text-sm leading-[1.4] transition-colors hover:underline ${
-        task.status === "done" ? "text-zinc-500 line-through" : "text-white"
+      <p className={`text-sm leading-[1.4] transition-colors ${
+        task.status === "done" ? "text-muted-foreground line-through" : "text-foreground hover:underline"
       }`}>
         {task.title}
       </p>
@@ -189,11 +182,20 @@ export function KanbanBoard({
   selectedItemId?: string;
   onSelectItem?: (id: string | null) => void;
 }) {
-  const items = trpc.monitor.list.useQuery({ projectId }, {
-    refetchInterval: (query) =>
-      query.state.data?.some((i) => i.processing) ? 3000 : false,
-  });
+  const items = trpc.monitor.list.useQuery({ projectId });
   const utils = trpc.useUtils();
+
+  // SSE subscription for real-time updates
+  trpc.monitor.onEvent.useSubscription({ projectId }, {
+    onData: (tracked) => {
+      const event = tracked.data;
+      utils.monitor.list.invalidate({ projectId });
+      if (event.type === "comment") {
+        utils.monitor.listComments.invalidate({ monitorItemId: event.itemId });
+      }
+      utils.monitor.listActivity.invalidate({ monitorItemId: event.itemId });
+    },
+  });
 
   const updateItem = trpc.monitor.update.useMutation({
     onSuccess: () => utils.monitor.list.invalidate({ projectId }),
@@ -252,13 +254,13 @@ export function KanbanBoard({
 
     // Optimistic update — move the item immediately in the cache
     utils.monitor.list.setData({ projectId }, (old) =>
-      old?.map((t) => t.id === item.id ? { ...t, status: targetCol, dismissed: targetCol === "done" } : t),
+      old?.map((t) => t.id === item.id ? { ...t, status: targetCol } : t),
     );
 
-    if (targetCol === "done") {
-      updateItem.mutate({ id: item.id, dismissed: true, status: "done" });
-    } else if (targetCol === "investigating") {
+    if (targetCol === "investigating") {
       investigate.mutate({ id: item.id });
+    } else {
+      updateItem.mutate({ id: item.id, status: targetCol });
     }
   }
 
@@ -314,7 +316,7 @@ export function KanbanBoard({
         onOpenChange={(open) => { if (!open) setSelectedId(null); }}
         onDismiss={() => {
           if (selectedItem) {
-            updateItem.mutate({ id: selectedItem.id, dismissed: true, status: "done" });
+            updateItem.mutate({ id: selectedItem.id, status: "done" });
             setSelectedId(null);
           }
         }}
