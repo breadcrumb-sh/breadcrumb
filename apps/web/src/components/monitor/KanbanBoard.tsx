@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { Plus } from "@phosphor-icons/react/Plus";
 import { MagicWandIcon } from "@phosphor-icons/react/MagicWand";
+import { PriorityIcon, PRIORITIES } from "./priority";
 import { trpc } from "../../lib/trpc";
 import { COLUMNS, canTransition } from "./columns";
 import { CreateItemDialog } from "./CreateItemDialog";
@@ -41,6 +42,22 @@ function useCollapsedColumns() {
 
 function canDrop(fromStatus: string, toStatus: TaskStatus): boolean {
   return canTransition(fromStatus, toStatus);
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatRelativeTime(date: Date) {
+  const now = Date.now();
+  const ms = now - new Date(date).getTime();
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(date).toLocaleDateString();
 }
 
 // ── Draggable card ──────────────────────────────────────────────────────────
@@ -77,6 +94,20 @@ function DraggableCard({
         task.status === "done" ? "text-muted-foreground line-through" : "text-foreground hover:underline"
       }`}>
         {task.title}
+      </p>
+      {task.priority && task.priority !== "none" && (() => {
+        const p = PRIORITIES.find((pr) => pr.value === task.priority);
+        return p ? (
+          <div className="flex flex-wrap gap-1.5 mt-0.5">
+            <span className={`inline-flex items-center gap-1 rounded-full border border-current/10 bg-current/5 px-2 py-0.5 text-xs ${p.color}`}>
+              <PriorityIcon level={p.value} className="size-3" />
+              {p.label}
+            </span>
+          </div>
+        ) : null;
+      })()}
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {formatRelativeTime(task.createdAt)}
       </p>
     </div>
   );
