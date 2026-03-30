@@ -73,7 +73,6 @@ function DraggableCard({
     id: task.id,
     data: task,
   });
-
   return (
     <div
       ref={setNodeRef}
@@ -95,18 +94,24 @@ function DraggableCard({
       }`}>
         {task.title}
       </p>
-      {task.priority && task.priority !== "none" && (() => {
-        const p = PRIORITIES.find((pr) => pr.value === task.priority);
-        return p ? (
-          <div className="flex flex-wrap gap-1.5 mt-0.5">
-            <span className={`inline-flex items-center gap-1 rounded-full border border-current/10 bg-current/5 px-2 py-0.5 text-xs ${p.color}`}>
-              <PriorityIcon level={p.value} className="size-3" />
-              {p.label}
-            </span>
-          </div>
-        ) : null;
-      })()}
-      <p className="text-xs text-muted-foreground mt-0.5">
+      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+        {task.priority && task.priority !== "none" && (() => {
+          const p = PRIORITIES.find((pr) => pr.value === task.priority);
+          return p ? (
+            <PriorityIcon level={p.value} className={`size-3.5 ${p.color}`} />
+          ) : null;
+        })()}
+        {task.labels.map((label) => (
+          <span
+            key={label.id}
+            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] leading-none border border-zinc-700 bg-zinc-800/50"
+          >
+            <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: label.color }} />
+            {label.name}
+          </span>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
         {formatRelativeTime(task.createdAt)}
       </p>
     </div>

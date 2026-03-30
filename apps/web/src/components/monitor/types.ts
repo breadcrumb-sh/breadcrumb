@@ -14,6 +14,7 @@ export type MonitorItem = {
   read: boolean;
   createdById: string | null;
   createdByName: string | null;
+  labels: Array<{ id: string; name: string; color: string }>;
   createdAt: Date;
   updatedAt: Date;
 };

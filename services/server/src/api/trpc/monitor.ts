@@ -1,6 +1,6 @@
 import { on } from "events";
 import { z } from "zod";
-import { eq, and, gte, sql, desc } from "drizzle-orm";
+import { eq, and, gte, sql, desc, inArray } from "drizzle-orm";
 import { tracked } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import {
@@ -11,7 +11,7 @@ import {
   checkOrgRole,
 } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems, monitorComments, monitorActivity, project, agentUsage, user } from "../../shared/db/schema.js";
+import { monitorItems, monitorComments, monitorActivity, monitorLabels, monitorItemLabels, project, agentUsage, user } from "../../shared/db/schema.js";
 import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
 import { enqueueProcess } from "../../services/monitor/jobs.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
@@ -33,7 +33,32 @@ export const monitorRouter = router({
         .leftJoin(user, eq(monitorItems.createdById, user.id))
         .where(eq(monitorItems.projectId, input.projectId))
         .orderBy(desc(monitorItems.updatedAt));
-      return rows.map((r) => ({ ...r.item, createdByName: r.createdByName }));
+
+      // Batch-fetch all item-label associations for this project
+      const itemIds = rows.map((r) => r.item.id);
+      const labelRows = itemIds.length > 0
+        ? await db
+            .select({
+              itemId: monitorItemLabels.monitorItemId,
+              label: monitorLabels,
+            })
+            .from(monitorItemLabels)
+            .innerJoin(monitorLabels, eq(monitorItemLabels.monitorLabelId, monitorLabels.id))
+            .where(inArray(monitorItemLabels.monitorItemId, itemIds))
+        : [];
+
+      const labelsByItem = new Map<string, Array<{ id: string; name: string; color: string }>>();
+      for (const r of labelRows) {
+        const arr = labelsByItem.get(r.itemId) ?? [];
+        arr.push({ id: r.label.id, name: r.label.name, color: r.label.color });
+        labelsByItem.set(r.itemId, arr);
+      }
+
+      return rows.map((r) => ({
+        ...r.item,
+        createdByName: r.createdByName,
+        labels: labelsByItem.get(r.item.id) ?? [],
+      }));
     }),
 
   summary: projectMemberProcedure
