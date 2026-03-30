@@ -73,16 +73,8 @@ function DraggableCard({
     id: task.id,
     data: task,
   });
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={onOpen}
-      className={`rounded-lg flex flex-col gap-1.5 border p-3 text-left transition-colors cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-30" : ""
-      } ${task.read ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700" : "border-blue-500/30 hover:border-blue-500/40 bg-blue-500/5"}`}
-    >
+  const cardContent = (
+    <>
       {task.source === "agent" && (
         <div className="flex flex-row items-center gap-1.5">
           <MagicWandIcon size={14} className="text-muted-foreground" />
@@ -114,6 +106,39 @@ function DraggableCard({
       <p className="text-xs text-muted-foreground">
         {formatRelativeTime(task.createdAt)}
       </p>
+    </>
+  );
+
+  if (task.processing) {
+    return (
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        onClick={onOpen}
+        className={`relative rounded-lg p-px cursor-grab active:cursor-grabbing overflow-hidden ${isDragging ? "opacity-30" : ""}`}
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square w-[200%] animate-[spin_2.5s_linear_infinite]"
+          style={{ background: "conic-gradient(from 0deg, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.25) 75%, rgba(255,255,255,0.5) 85%, rgba(255,255,255,0.25) 92%, rgba(255,255,255,0.1) 100%)" }}
+        />
+        <div className="relative rounded-[calc(var(--radius-lg)-1px)] bg-zinc-900 p-3 flex flex-col gap-1.5 text-left">
+          {cardContent}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onOpen}
+      className={`rounded-lg flex flex-col gap-1.5 border p-3 text-left transition-colors cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-30" : ""
+      } ${task.read ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700" : "border-blue-500/30 hover:border-blue-500/40 bg-blue-500/5"}`}
+    >
+      {cardContent}
     </div>
   );
 }
