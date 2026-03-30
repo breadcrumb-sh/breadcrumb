@@ -50,6 +50,11 @@ export function AgentLimitsSection({ projectId }: { projectId: string }) {
     });
   };
 
+  const isDirty = limits.data
+    ? costLimit !== (limits.data.monthlyCostLimitCents === 0 ? "" : (limits.data.monthlyCostLimitCents / 100).toString()) ||
+      scanInterval !== (limits.data.scanIntervalSeconds / 60).toString()
+    : false;
+
   const d = limits.data;
   const spentCents = d?.monthUsage.costCents ?? 0;
   const limitCents = d?.monthlyCostLimitCents ?? 0;
@@ -133,7 +138,7 @@ export function AgentLimitsSection({ projectId }: { projectId: string }) {
 
         <button
           type="submit"
-          disabled={updateLimits.isPending}
+          disabled={updateLimits.isPending || !isDirty}
           className="rounded-md bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50"
         >
           Save

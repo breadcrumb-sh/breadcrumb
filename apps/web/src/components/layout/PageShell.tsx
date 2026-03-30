@@ -61,7 +61,7 @@ export function PageShell({
       {/* Desktop sidebar */}
       <aside
         className={`hidden sm:flex shrink-0 flex-col border-r border-zinc-800/70 bg-zinc-950 z-20 transition-[width] duration-200 ease-out overflow-hidden ${
-          collapsed ? "w-0 border-r-0" : "w-52"
+          collapsed ? "w-0 border-r-0" : "w-56"
         }`}
       >
         {sidebarHeader}

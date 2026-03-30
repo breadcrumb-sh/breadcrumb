@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Pencil } from "@phosphor-icons/react/Pencil";
-import { Plus } from "@phosphor-icons/react/Plus";
+import { Tag } from "@phosphor-icons/react/Tag";
 import { Trash } from "@phosphor-icons/react/Trash";
+import { Plus } from "@phosphor-icons/react/Plus";
 import { trpc } from "../../lib/trpc";
 import { backdropCls, popupCls } from "./dialog-styles";
 
@@ -11,140 +11,324 @@ const PRESET_COLORS = [
   "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280",
 ];
 
+type LabelDraft = { id: string; name: string; color: string };
+
+/* ── Color picker popover ──────────────────────────── */
+
+function ColorPicker({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute left-0 bottom-[calc(100%+6px)] z-50 flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 p-2 shadow-xl"
+    >
+      {PRESET_COLORS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => {
+            onChange(c);
+            onClose();
+          }}
+          className={`size-6 rounded-full transition-all ${
+            value === c
+              ? "ring-2 ring-zinc-300 ring-offset-2 ring-offset-zinc-900"
+              : "hover:scale-110"
+          }`}
+          style={{ backgroundColor: c }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Single label row ──────────────────────────────── */
+
+function LabelRow({
+  label,
+  onUpdate,
+  onDelete,
+}: {
+  label: LabelDraft;
+  onUpdate: (id: string, patch: Partial<{ name: string; color: string }>) => void;
+  onDelete: (label: { id: string; name: string }) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = () => {
+    setEditing(true);
+    requestAnimationFrame(() => inputRef.current?.select());
+  };
+
+  return (
+    <div className="group flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-zinc-800/40">
+      {/* Color dot — click to pick */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setColorOpen((o) => !o)}
+          className="size-3 rounded-full shrink-0 translate-y-px transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          style={{ backgroundColor: label.color }}
+          aria-label="Change color"
+        />
+        {colorOpen && (
+          <ColorPicker
+            value={label.color}
+            onChange={(color) => onUpdate(label.id, { color })}
+            onClose={() => setColorOpen(false)}
+          />
+        )}
+      </div>
+
+      {/* Name — click to edit inline */}
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={label.name}
+          onChange={(e) => onUpdate(label.id, { name: e.target.value })}
+          onBlur={() => setEditing(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") setEditing(false);
+          }}
+          maxLength={64}
+          className="flex-1 min-w-0 bg-transparent text-sm text-zinc-100 outline-none selection:bg-zinc-700"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={startEditing}
+          className="flex-1 min-w-0 text-left text-sm text-zinc-200 truncate cursor-text hover:text-zinc-100 transition-colors"
+        >
+          {label.name}
+        </button>
+      )}
+
+      {/* Delete */}
+      <button
+        type="button"
+        onClick={() => onDelete({ id: label.id, name: label.name })}
+        className="shrink-0 p-1 rounded text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-zinc-800 transition-all focus-visible:opacity-100"
+        aria-label={`Delete ${label.name}`}
+      >
+        <Trash size={14} />
+      </button>
+    </div>
+  );
+}
+
+/* ── New-label input row ───────────────────────────── */
+
+function NewLabelInput({
+  usedColors,
+  onCreate,
+}: {
+  usedColors: string[];
+  onCreate: (name: string, color: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [colorOpen, setColorOpen] = useState(false);
+
+  const nextColor =
+    PRESET_COLORS.find((c) => !usedColors.includes(c)) ?? PRESET_COLORS[0];
+  const [color, setColor] = useState(nextColor);
+
+  useEffect(() => {
+    setColor(PRESET_COLORS.find((c) => !usedColors.includes(c)) ?? PRESET_COLORS[0]);
+  }, [usedColors]);
+
+  const handleCreate = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate(trimmed, color);
+    setName("");
+  };
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setColorOpen((o) => !o)}
+          className="size-3 rounded-full shrink-0 translate-y-px transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          style={{ backgroundColor: color }}
+          aria-label="Pick color for new label"
+        />
+        {colorOpen && (
+          <ColorPicker
+            value={color}
+            onChange={setColor}
+            onClose={() => setColorOpen(false)}
+          />
+        )}
+      </div>
+      <div className="flex-1 flex items-center gap-2">
+        <Plus size={12} className="shrink-0 text-zinc-600" />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleCreate();
+            if (e.key === "Escape") setName("");
+          }}
+          placeholder="Add a label..."
+          maxLength={64}
+          className="flex-1 min-w-0 bg-transparent text-sm text-zinc-300 placeholder-zinc-600 outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── Main section ──────────────────────────────────── */
+
 export function LabelsSection({ projectId }: { projectId: string }) {
   const labels = trpc.labels.list.useQuery({ projectId });
   const utils = trpc.useUtils();
+  const invalidate = useCallback(
+    () => utils.labels.list.invalidate({ projectId }),
+    [utils, projectId],
+  );
 
-  const createLabel = trpc.labels.create.useMutation({
-    onSuccess: () => utils.labels.list.invalidate({ projectId }),
-  });
-  const updateLabel = trpc.labels.update.useMutation({
-    onSuccess: () => utils.labels.list.invalidate({ projectId }),
-  });
-  const deleteLabel = trpc.labels.delete.useMutation({
-    onSuccess: () => utils.labels.list.invalidate({ projectId }),
-  });
+  const createLabel = trpc.labels.create.useMutation({ onSuccess: invalidate });
+  const updateLabel = trpc.labels.update.useMutation({ onSuccess: invalidate });
+  const deleteLabelMut = trpc.labels.delete.useMutation({ onSuccess: invalidate });
 
-  const [editing, setEditing] = useState<{ id?: string; name: string; color: string } | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const handleSave = () => {
-    if (!editing || !editing.name.trim()) return;
-    if (editing.id) {
-      updateLabel.mutate({ projectId, id: editing.id, name: editing.name.trim(), color: editing.color });
-    } else {
-      createLabel.mutate({ projectId, name: editing.name.trim(), color: editing.color });
+  // Local draft state — mirrors server data, tracks pending edits
+  const [drafts, setDrafts] = useState<LabelDraft[]>([]);
+  useEffect(() => {
+    if (labels.data) {
+      setDrafts(labels.data.map((l) => ({ id: l.id, name: l.name, color: l.color })));
     }
-    setEditing(null);
+  }, [labels.data]);
+
+  const handleUpdate = (id: string, patch: Partial<{ name: string; color: string }>) => {
+    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   };
 
+  // Compute dirty state
+  const isDirty = labels.data
+    ? drafts.some((d) => {
+        const original = labels.data!.find((l) => l.id === d.id);
+        return original && (original.name !== d.name || original.color !== d.color);
+      })
+    : false;
+
+  const isSaving = updateLabel.isPending;
+
+  const handleSave = async () => {
+    if (!labels.data) return;
+    const mutations = drafts
+      .filter((d) => {
+        const original = labels.data!.find((l) => l.id === d.id);
+        return original && (original.name !== d.name.trim() || original.color !== d.color);
+      })
+      .filter((d) => d.name.trim())
+      .map((d) =>
+        updateLabel.mutateAsync({
+          projectId,
+          id: d.id,
+          name: d.name.trim(),
+          color: d.color,
+        }),
+      );
+    await Promise.all(mutations);
+  };
+
+  const handleCreate = (name: string, color: string) => {
+    createLabel.mutate({ projectId, name, color });
+  };
+
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const handleDelete = () => {
-    if (deleteId) {
-      deleteLabel.mutate({ projectId, id: deleteId });
-      setDeleteId(null);
+    if (deleting) {
+      deleteLabelMut.mutate({ projectId, id: deleting.id });
+      setDeleting(null);
     }
   };
+
+  const usedColors = drafts.map((l) => l.color);
+  const hasLabels = drafts.length > 0;
 
   return (
     <section className="space-y-6 max-w-md">
       <div>
         <h3 className="text-sm font-semibold mb-1">Labels</h3>
         <p className="text-xs text-zinc-400">
-          Labels help categorize monitor items. The AI agent can also apply labels during investigations.
+          Categorize monitor items. Click a name to rename it, or a color dot to change it.
         </p>
       </div>
 
-      <div className="space-y-1">
-        {labels.data?.map((label) => (
-          <div
-            key={label.id}
-            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-zinc-900 group transition-colors"
-          >
-            <div
-              className="size-3 rounded-full shrink-0"
-              style={{ backgroundColor: label.color }}
-            />
-            <span className="text-sm text-zinc-200 flex-1">{label.name}</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={() => setEditing({ id: label.id, name: label.name, color: label.color })}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                onClick={() => setDeleteId(label.id)}
-                className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors"
-              >
-                <Trash size={14} />
-              </button>
-            </div>
+      <div className="rounded-lg border border-zinc-800/70 bg-zinc-900/30 divide-y divide-zinc-800/50">
+        {/* Empty state */}
+        {labels.data && !hasLabels && (
+          <div className="flex flex-col items-center gap-2 py-8 text-zinc-500">
+            <Tag size={24} weight="duotone" />
+            <p className="text-sm">No labels yet</p>
+            <p className="text-xs text-zinc-600">
+              Type below to create your first label
+            </p>
           </div>
+        )}
+
+        {/* Label rows */}
+        {drafts.map((label) => (
+          <LabelRow
+            key={label.id}
+            label={label}
+            onUpdate={handleUpdate}
+            onDelete={setDeleting}
+          />
         ))}
 
-        {labels.data?.length === 0 && (
-          <p className="text-sm text-zinc-500 py-4">No labels yet.</p>
-        )}
+        {/* Always-visible creation row */}
+        <NewLabelInput usedColors={usedColors} onCreate={handleCreate} />
       </div>
 
+      {/* Single save button */}
       <button
-        onClick={() => setEditing({ name: "", color: PRESET_COLORS[0] })}
-        className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+        type="button"
+        onClick={handleSave}
+        disabled={!isDirty || isSaving}
+        className="rounded-md bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:pointer-events-none"
       >
-        <Plus size={14} weight="bold" />
-        Add label
+        {isSaving ? "Saving…" : "Save"}
       </button>
 
-      {/* Edit / Create inline form */}
-      {editing && (
-        <div className="rounded-md border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
-          <input
-            autoFocus
-            value={editing.name}
-            onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-            placeholder="Label name"
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-zinc-500"
-          />
-          <div className="flex items-center gap-2">
-            {PRESET_COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => setEditing({ ...editing, color: c })}
-                className={`size-6 rounded-full transition-all ${editing.color === c ? "ring-2 ring-zinc-400 ring-offset-2 ring-offset-zinc-950" : "hover:scale-110"}`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              disabled={!editing.name.trim()}
-              className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50"
-            >
-              {editing.id ? "Save" : "Create"}
-            </button>
-            <button
-              onClick={() => setEditing(null)}
-              className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Delete confirm */}
-      <AlertDialog.Root open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+      {/* Delete confirmation */}
+      <AlertDialog.Root
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+      >
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className={backdropCls} />
           <AlertDialog.Viewport className="fixed inset-0 z-[60] grid place-items-center px-4">
             <AlertDialog.Popup className={popupCls}>
               <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
-                Delete this label?
+                Delete "{deleting?.name}"?
               </AlertDialog.Title>
               <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                This will remove the label from all monitor items.
+                This label will be removed from all monitor items that use it.
               </AlertDialog.Description>
               <div className="flex justify-end gap-2">
                 <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">

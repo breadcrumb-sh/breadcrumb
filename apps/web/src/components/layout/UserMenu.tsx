@@ -32,7 +32,7 @@ export function UserMenu() {
         aria-label="User menu"
         className="flex items-center justify-center size-8 overflow-hidden hover:opacity-80 transition-opacity"
       >
-        <div className="size-8 bg-zinc-800/50 flex items-center justify-center text-xs font-medium text-zinc-300">
+        <div className="size-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-xs font-medium text-zinc-300">
           {(user?.name ?? user?.email ?? "U").charAt(0).toUpperCase()}
         </div>
       </button>
