@@ -33,7 +33,7 @@ export const COLUMNS: Column[] = [
 ];
 
 export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  queue: ["investigating", "done"],
+  queue: ["done"],
   investigating: ["done"],
   review: ["queue", "done"],
   done: ["queue", "review"],
