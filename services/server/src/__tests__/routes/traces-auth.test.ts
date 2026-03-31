@@ -42,6 +42,9 @@ vi.mock("../../services/explore/ai-provider.js", () => ({
   getAiModel: vi.fn(),
 }));
 
+vi.mock("../../shared/lib/boss.js", () => ({
+  boss: { send: vi.fn(), insert: vi.fn(), createQueue: vi.fn(), work: vi.fn(), on: vi.fn() },
+}));
 
 const { appRouter } = await import("../../api/trpc/router.js");
 

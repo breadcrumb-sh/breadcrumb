@@ -42,7 +42,8 @@ export async function enqueueProcess(projectId: string, itemId: string, debounce
   }
 }
 
-async function handleProcess(job: { data: MonitorJobData }) {
+/** @internal Exported for testing */
+export async function handleProcess(job: { data: MonitorJobData }) {
   const { projectId, itemId } = job.data;
 
   // Check if item is still actionable
@@ -95,7 +96,8 @@ export async function enqueueScan(projectId: string) {
   if (jobId) log.info({ projectId, jobId, intervalSeconds: interval }, "enqueued monitor-scan");
 }
 
-async function handleScan(job: { data: ScanJobData }) {
+/** @internal Exported for testing */
+export async function handleScan(job: { data: ScanJobData }) {
   const { projectId } = job.data;
 
   if (!(await checkBudget(projectId))) {

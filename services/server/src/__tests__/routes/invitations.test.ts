@@ -63,6 +63,10 @@ vi.mock("../../shared/lib/sandboxed-query.js", () => ({
   runSandboxedQuery: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("../../shared/lib/boss.js", () => ({
+  boss: { send: vi.fn(), insert: vi.fn(), createQueue: vi.fn(), work: vi.fn(), on: vi.fn() },
+}));
+
 
 vi.mock("../../shared/lib/encryption.js", () => ({
   encrypt: vi.fn().mockReturnValue("encrypted"),
