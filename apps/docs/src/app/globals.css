@@ -544,10 +544,18 @@ div:has(> [data-orientation]) figure.shiki {
   }
 
   .hero-screenshot-section {
-    padding: 2rem 0 0;
+    padding: 3rem 0 0;
+    overflow-x: clip;
+  }
+
+  .hero-screenshot-wrapper {
+    padding: 0 0 0 1.25rem;
   }
 
   .hero-screenshot-container {
-    transform: rotateX(6deg) rotateY(-2deg) scale(0.98);
+    width: 160%;
+    max-width: none;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
   }
 }
