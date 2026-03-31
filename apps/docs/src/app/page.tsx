@@ -35,7 +35,7 @@ export default function Home() {
     <>
       <main>
         <nav>
-          <div className="marketing-inner flex h-24 items-center justify-between">
+          <div className="marketing-inner flex h-16 items-center justify-between sm:h-24">
             <div className="flex items-center gap-7">
               <Link href="/" className="flex items-center gap-2">
                 <Logo />
