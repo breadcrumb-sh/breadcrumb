@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { TimelineAnimation } from "./timeline-animation";
 
 export const metadata: Metadata = {
   title: "Simple, Open-Source LLM Tracing",
@@ -44,7 +42,7 @@ export default function Home() {
                 <span className="font-display text-[16px] font-semibold tracking-tight text-fg">
                   Breadcrumb
                 </span>
-                <span className="ml-1 flex h-5 items-center border border-dashed border-white/50 px-1.5 font-display text-[12px] leading-3 tracking-tight text-white/50">
+                <span className="ml-1 font-display text-[12px] text-fg-3">
                   Beta
                 </span>
               </Link>
@@ -73,21 +71,20 @@ export default function Home() {
           </div>
         </nav>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner pb-14 pt-14 sm:pb-20 sm:pt-20">
-            <h1 className="mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
-              Open-source LLM tracing for agent visibility
+        <section className="relative z-10">
+          <div className="marketing-inner pt-10 sm:pt-28">
+            <h1 className="motion-blur-in-sm motion-duration-1000 mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
+              Open-source LLM tracing that catches what dashboards can't
             </h1>
-            <p className="mb-8 max-w-[430px] text-[14px] leading-[1.75] text-fg-2 sm:text-[15px]">
-              Like Plausible, but for your AI agents. Stop guessing why your agent
-              failed - trace every prompt, response, and token.
+            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-200 mb-8 max-w-[540px] text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
+              Your agent hallucinated, lost context, and returned a confident wrong answer. The error rate stayed at zero. Breadcrumb catches that.
             </p>
-            <div className="flex w-full gap-3 sm:w-auto">
+            <div className="motion-blur-in-sm motion-duration-1000 motion-delay-400 flex w-full gap-3 sm:w-auto">
               <a
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap bg-fg px-8 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial sm:px-12"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap rounded-[2px] bg-fg px-8 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial sm:px-12"
               >
                 Get Early Access
               </a>
@@ -95,7 +92,7 @@ export default function Home() {
                 href="https://demo.breadcrumb.sh"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap border border-current px-8 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial sm:px-14"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap rounded-[2px] border border-current px-8 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial sm:px-14"
               >
                 Try the Demo
               </a>
@@ -103,54 +100,22 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner">
-            <div className="border-x border-border">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-[6px] w-[6px]">
-                    <span className="live-ping absolute inset-0 rounded-full bg-[#22c08b] opacity-40" />
-                    <span className="relative h-[6px] w-[6px] rounded-full bg-[#22c08b]" />
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-fg-3">
-                    traces - live
-                  </span>
-                </div>
-                <div className="flex gap-[5px]">
-                  <span className="block h-[6px] w-[6px] bg-[#58508d]" />
-                  <span className="block h-[6px] w-[6px] bg-[#b4558d]" />
-                  <span className="block h-[6px] w-[6px] bg-[#e77371]" />
-                  <span className="block h-[6px] w-[6px] bg-[#7b6aad]" />
-                </div>
-              </div>
-              <div className="px-4 pb-6 pt-5 sm:px-5">
-                <div className="mb-[10px] flex justify-between">
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">0</span>
-                  <span className="hidden font-mono text-[9px] text-fg-3 opacity-40 sm:block">
-                    250ms
-                  </span>
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">500ms</span>
-                  <span className="hidden font-mono text-[9px] text-fg-3 opacity-40 sm:block">
-                    750ms
-                  </span>
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">1s+</span>
-                </div>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-0 flex" aria-hidden="true">
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4" />
-                  </div>
-                  <div id="tl-rows" className="relative flex flex-col gap-[10px] sm:gap-[13px]" />
-                  <TimelineAnimation />
-                </div>
+        <section className="hero-screenshot-section relative">
+          <div className="hero-screenshot-gradient" />
+          <div className="hero-screenshot-wrapper">
+            <div className="hero-screenshot-container motion-translate-y-in-[30px] motion-opacity-in-0 motion-blur-in-sm motion-duration-1000 motion-delay-200">
+              <div className="hero-img-wrap">
+                <img
+                  src="/dashboard.webp"
+                  alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs"
+                  className="hero-img-sharp"
+                />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-border">
+        <section className="relative z-10 border-b border-border bg-bg">
           <div className="marketing-inner py-10 sm:py-12">
             <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
               Three lines of code. Every call traced.
@@ -162,37 +127,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner pt-8 sm:pt-12">
-            <div className="marketing-browser">
-              <div className="marketing-browser-toolbar">
-                <div className="marketing-browser-dots">
-                  <span className="marketing-browser-dot bg-[#ff5f57]" />
-                  <span className="marketing-browser-dot bg-[#febc2e]" />
-                  <span className="marketing-browser-dot bg-[#28c840]" />
-                </div>
-                <div className="marketing-browser-address">
-                  <span className="font-mono text-[10px] text-fg-3">app.breadcrumb.sh</span>
-                </div>
-                <div className="marketing-browser-dots invisible">
-                  <span className="marketing-browser-dot" />
-                  <span className="marketing-browser-dot" />
-                  <span className="marketing-browser-dot" />
-                </div>
-              </div>
-              <div className="marketing-browser-content">
-                <Image
-                  src="/dashboard.png"
-                  alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs"
-                  width={2062}
-                  height={1434}
-                  priority={false}
-                  className="block w-full"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+        <section className="border-b border-border" />
 
         <section className="border-b border-border">
           <div className="marketing-inner py-10 sm:py-12">
@@ -285,7 +220,7 @@ export default function Home() {
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="items-center gap-3 bg-fg px-12 py-2.5 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
+                className="items-center gap-3 rounded-[2px] bg-fg px-12 py-2.5 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
               >
                 Get Early Access
               </a>

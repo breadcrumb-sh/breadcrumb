@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+@plugin "tailwindcss-motion";
 
 :root {
   --background: #121213;
@@ -25,8 +26,8 @@
   --color-surface: var(--brand-surface);
   --color-surface-2: var(--brand-surface-2);
   --color-bg: var(--background);
-  --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -74,7 +75,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 code,
@@ -216,7 +217,7 @@ div:has(> [data-orientation]) figure.shiki {
 }
 
 .marketing-inner {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
@@ -282,9 +283,104 @@ div:has(> [data-orientation]) figure.shiki {
   }
 }
 
+.hero-screenshot-section {
+  padding: 4.5rem 0 0;
+  border-bottom: 1px solid var(--brand-border);
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.hero-screenshot-wrapper {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 1140px) {
+  .hero-screenshot-wrapper {
+    padding: 0;
+  }
+}
+
+.hero-screenshot-container {
+  position: relative;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  box-shadow:
+    1px 0 0 0 rgba(255, 255, 255, 0.12),
+    -1px 0 0 0 rgba(255, 255, 255, 0.12),
+    0 -1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.hero-screenshot-container .marketing-browser {
+  border-radius: 10px 10px 0 0;
+  border-bottom: none;
+}
+
+.hero-img-wrap {
+  position: relative;
+  line-height: 0;
+  overflow: hidden;
+  padding-top: 2px;
+  background: var(--background);
+}
+
+.hero-img-sharp {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hero-img-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(4px);
+  -webkit-mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 28%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.15) 45%,
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 0.7) 68%,
+    black 85%
+  );
+  mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 28%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.15) 45%,
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 0.7) 68%,
+    black 85%
+  );
+}
+
+.hero-screenshot-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 150%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 @media (max-width: 640px) {
   .marketing-inner {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+
+  .hero-screenshot-section {
+    padding: 2rem 0 0;
+  }
+
+  .hero-screenshot-container {
+    transform: rotateX(6deg) rotateY(-2deg) scale(0.98);
   }
 }
