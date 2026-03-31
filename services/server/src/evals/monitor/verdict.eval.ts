@@ -11,7 +11,7 @@ import { evalite } from "evalite";
 import { evalModel } from "./model.js";
 import { buildInvestigatePrompt, createInvestigateTools } from "../../services/monitor/investigate-agent.js";
 import { createEvalInvestigateHandlers } from "./eval-handlers.js";
-import { verdictAccuracy, commentPresence, commentQuality } from "./scorers.js";
+import { verdictAccuracy, commentPresence, commentQuality, prioritySetting, labelSetting } from "./scorers.js";
 import type { InvestigateFixture, MonitorEvalOutcome } from "./types.js";
 
 import obviousErrorSpike from "./fixtures/verdict/obvious-error-spike.json" with { type: "json" };
@@ -70,5 +70,5 @@ evalite<InvestigateFixture, MonitorEvalOutcome, InvestigateFixture["expected"]>(
 
     return outcome;
   },
-  scorers: [verdictAccuracy, commentPresence, commentQuality],
+  scorers: [verdictAccuracy, commentPresence, commentQuality, prioritySetting, labelSetting],
 });

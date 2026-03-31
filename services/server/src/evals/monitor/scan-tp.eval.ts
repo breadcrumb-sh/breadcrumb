@@ -1,6 +1,9 @@
 /**
  * Scan true positive evals — the scan agent sees real patterns and content
  * quality issues across multiple traces and SHOULD create tickets.
+ *
+ * Kept small (4 fixtures) since these are e2e and expensive.
+ * Remaining fixtures in scan-tp/ are available for expanded runs.
  */
 
 import { generateText, stepCountIs } from "ai";
@@ -8,26 +11,18 @@ import { evalite } from "evalite";
 import { evalModel } from "./model.js";
 import { buildScanPrompt, createScanTools } from "../../services/monitor/scan-agent.js";
 import { createEvalScanHandlers } from "./eval-handlers.js";
-import { ticketDecision, ticketCount, ticketRelevance, scanQueryEfficiency } from "./scorers.js";
+import { ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency } from "./scorers.js";
 import type { ScanFixture, MonitorEvalOutcome } from "./types.js";
 
-import jsonStringified from "./fixtures/scan-tp/json-stringified-context.json" with { type: "json" };
-import duplicateRetrieval from "./fixtures/scan-tp/duplicate-retrieval-results.json" with { type: "json" };
-import templateVariable from "./fixtures/scan-tp/template-variable-unsubstituted.json" with { type: "json" };
 import repeatedTimeout from "./fixtures/scan-tp/repeated-timeout-pattern.json" with { type: "json" };
-import truncatedPrompt from "./fixtures/scan-tp/truncated-system-prompt.json" with { type: "json" };
+import templateVariable from "./fixtures/scan-tp/template-variable-unsubstituted.json" with { type: "json" };
 import encodingArtifacts from "./fixtures/scan-tp/encoding-artifacts.json" with { type: "json" };
-import agentLooping from "./fixtures/scan-tp/agent-looping-pattern.json" with { type: "json" };
 import retrievalDegradation from "./fixtures/scan-tp/retrieval-quality-degradation.json" with { type: "json" };
 
 const fixtures: ScanFixture[] = [
-  jsonStringified as ScanFixture,
-  duplicateRetrieval as ScanFixture,
-  templateVariable as ScanFixture,
   repeatedTimeout as ScanFixture,
-  truncatedPrompt as ScanFixture,
+  templateVariable as ScanFixture,
   encodingArtifacts as ScanFixture,
-  agentLooping as ScanFixture,
   retrievalDegradation as ScanFixture,
 ];
 
@@ -45,10 +40,10 @@ evalite<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>("Scan Pattern 
       tools,
       temperature: 0,
       maxOutputTokens: 4096,
-      stopWhen: stepCountIs(20),
+      stopWhen: stepCountIs(10),
     });
 
     return outcome;
   },
-  scorers: [ticketDecision, ticketCount, ticketRelevance, scanQueryEfficiency],
+  scorers: [ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency],
 });

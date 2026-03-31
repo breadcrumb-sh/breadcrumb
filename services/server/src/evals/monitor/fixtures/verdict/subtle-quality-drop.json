@@ -28,6 +28,8 @@
   "expected": {
     "verdicts": { "review": 1.0, "done": 0.0, "followup": 0.3 },
     "shouldComment": true,
-    "commentKeywords": ["relevance", "0.61", "degradation"]
+    "commentKeywords": ["relevance", "0.61", "degradation"],
+    "expectedPriority": "medium",
+    "expectedLabels": ["quality"]
   }
 }

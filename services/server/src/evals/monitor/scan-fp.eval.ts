@@ -1,6 +1,9 @@
 /**
  * Scan false positive resistance evals — the scan agent sees noisy-but-normal
  * trace data and should NOT create tickets.
+ *
+ * Kept small (4 fixtures) since these are e2e and expensive.
+ * Remaining fixtures in scan-fp/ are available for expanded runs.
  */
 
 import { generateText, stepCountIs } from "ai";
@@ -13,26 +16,14 @@ import type { ScanFixture, MonitorEvalOutcome } from "./types.js";
 
 import singleError from "./fixtures/scan-fp/single-error-healthy-rest.json" with { type: "json" };
 import toolRetries from "./fixtures/scan-fp/tool-retries-with-recovery.json" with { type: "json" };
-import latencyVariance from "./fixtures/scan-fp/normal-latency-variance.json" with { type: "json" };
-import costWithinRange from "./fixtures/scan-fp/cost-within-range.json" with { type: "json" };
-import lowVolume from "./fixtures/scan-fp/low-volume-period.json" with { type: "json" };
 import newAgent from "./fixtures/scan-fp/new-agent-appeared.json" with { type: "json" };
 import highToken from "./fixtures/scan-fp/high-token-long-conversations.json" with { type: "json" };
-import modelChange from "./fixtures/scan-fp/model-version-change.json" with { type: "json" };
-import emptyRetrieval from "./fixtures/scan-fp/occasional-empty-retrieval.json" with { type: "json" };
-import weekendShift from "./fixtures/scan-fp/weekend-pattern-shift.json" with { type: "json" };
 
 const fixtures: ScanFixture[] = [
   singleError as ScanFixture,
   toolRetries as ScanFixture,
-  latencyVariance as ScanFixture,
-  costWithinRange as ScanFixture,
-  lowVolume as ScanFixture,
   newAgent as ScanFixture,
   highToken as ScanFixture,
-  modelChange as ScanFixture,
-  emptyRetrieval as ScanFixture,
-  weekendShift as ScanFixture,
 ];
 
 evalite<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>("Scan False Positive Resistance", {
@@ -49,7 +40,7 @@ evalite<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>("Scan False Po
       tools,
       temperature: 0,
       maxOutputTokens: 4096,
-      stopWhen: stepCountIs(20),
+      stopWhen: stepCountIs(10),
     });
 
     return outcome;

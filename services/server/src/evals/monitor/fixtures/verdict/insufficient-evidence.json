@@ -27,6 +27,8 @@
   "expected": {
     "verdicts": { "followup": 1.0, "done": 0.5, "review": 0.3 },
     "shouldComment": true,
-    "commentKeywords": ["deprecated", "limited", "data"]
+    "commentKeywords": ["deprecated", "limited", "data"],
+    "expectedPriority": "low",
+    "expectedLabels": ["bug"]
   }
 }

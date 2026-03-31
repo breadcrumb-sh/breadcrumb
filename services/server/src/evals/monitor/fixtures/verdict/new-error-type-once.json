@@ -28,6 +28,8 @@
   "expected": {
     "verdicts": { "followup": 1.0, "done": 0.5, "review": 0.0 },
     "shouldComment": true,
-    "commentKeywords": ["dimension", "new", "first"]
+    "commentKeywords": ["dimension", "new", "first"],
+    "expectedPriority": "low",
+    "expectedLabels": ["bug"]
   }
 }

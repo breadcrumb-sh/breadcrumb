@@ -75,6 +75,40 @@ export const ticketRelevance = createScorer<ScanFixture, MonitorEvalOutcome, Sca
   },
 });
 
+export const ticketQuality = createScorer<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>({
+  name: "Ticket Quality",
+  description: "LLM judge: are the created tickets specific, actionable, and well-scoped for the investigation agent?",
+  scorer: async ({ input, output }) => {
+    if (output.ticketsCreated.length === 0) return 1;
+
+    const tickets = output.ticketsCreated
+      .map((t, i) => `### Ticket ${i + 1}\n**Title:** ${t.title}\n**Description:** ${t.description}`)
+      .join("\n\n");
+
+    const { object } = await generateObject({
+      model: evalModel,
+      temperature: 0,
+      schema: z.object({
+        specificity: z.number().describe("Does the title name the affected agent, the issue type, and a key metric or symptom? 0 = vague ('something is wrong'), 1 = precise ('customer-support-bot: 12% retrieval timeout rate')"),
+        actionability: z.number().describe("Does the description give the investigation agent enough context to start working? Does it say what to look at, what data to query, what the expected vs actual behavior is? 0 = no direction, 1 = clear investigation starting point"),
+        scoping: z.number().describe("Is each ticket about one clear issue? Or does it dump multiple unrelated findings into one ticket? 0 = unfocused grab-bag, 1 = one well-defined issue per ticket"),
+      }),
+      prompt: `You are evaluating tickets created by a monitoring scan agent. These tickets will be picked up by an investigation agent that queries trace data to understand the issue.
+
+## Project Context
+${input.projectMemory}
+
+## Tickets Created
+${tickets}
+
+Rate the tickets on each dimension from 0 to 1.`,
+    });
+
+    const clamp = (n: number) => Math.max(0, Math.min(1, n));
+    return (clamp(object.specificity) + clamp(object.actionability) + clamp(object.scoping)) / 3;
+  },
+});
+
 // ── Investigation scorers ───────────────────────────────────────────────────
 
 type InvestigateExpected = InvestigateFixture["expected"];
@@ -172,6 +206,31 @@ export const prioritySetting = createScorer<InvestigateFixture, MonitorEvalOutco
     const actualIdx = PRIORITY_ORDER.indexOf(output.prioritySet);
     if (Math.abs(expectedIdx - actualIdx) === 1) return 0.5;
     return 0;
+  },
+});
+
+export const labelSetting = createScorer<InvestigateFixture, MonitorEvalOutcome, InvestigateExpected>({
+  name: "Label Setting",
+  description: "Did the agent apply the correct labels?",
+  scorer: ({ output, expected }) => {
+    if (!expected?.expectedLabels || expected.expectedLabels.length === 0) return 1;
+    if (output.labelsSet.length === 0) return 0;
+
+    const expectedSet = new Set(expected.expectedLabels.map((l) => l.toLowerCase()));
+    const actualSet = new Set(output.labelsSet.map((l) => l.toLowerCase()));
+
+    // Score based on overlap
+    let matched = 0;
+    for (const label of expectedSet) {
+      if (actualSet.has(label)) matched++;
+    }
+
+    // Penalize extra labels slightly (0.5 penalty per spurious label)
+    const spurious = output.labelsSet.filter((l) => !expectedSet.has(l.toLowerCase())).length;
+    const recall = matched / expectedSet.size;
+    const penalty = Math.min(spurious * 0.15, 0.5);
+
+    return Math.max(0, recall - penalty);
   },
 });
 

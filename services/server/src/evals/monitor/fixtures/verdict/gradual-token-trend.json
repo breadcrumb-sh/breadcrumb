@@ -32,6 +32,8 @@
   "expected": {
     "verdicts": { "followup": 1.0, "review": 0.3, "done": 0.3 },
     "shouldComment": true,
-    "commentKeywords": ["trend", "token", "tracking"]
+    "commentKeywords": ["trend", "token", "tracking"],
+    "expectedPriority": "low",
+    "expectedLabels": ["cost", "pattern"]
   }
 }

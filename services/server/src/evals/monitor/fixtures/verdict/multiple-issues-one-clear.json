@@ -29,6 +29,8 @@
   "expected": {
     "verdicts": { "review": 1.0, "done": 0.0, "followup": 0.0 },
     "shouldComment": true,
-    "commentKeywords": ["rate limit", "30%", "45"]
+    "commentKeywords": ["rate limit", "30%", "45"],
+    "expectedPriority": "high",
+    "expectedLabels": ["bug"]
   }
 }
