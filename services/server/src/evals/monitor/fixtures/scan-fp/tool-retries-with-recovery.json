@@ -1,0 +1,27 @@
+{
+  "name": "tool-retries-with-recovery",
+  "description": "15% of traces have error spans on the retrieval step (vector search returns empty), but all traces complete successfully because the agent retries with keyword fallback. Span-level errors with trace-level recovery are not issues.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 148, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 3100, "p95_duration_ms": 4200 },
+      { "trace_name": "email-classifier", "total_traces": 102, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 490, "p95_duration_ms": 610 },
+      { "trace_name": "doc-summarizer", "total_traces": 48, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9800, "p95_duration_ms": 14500 }
+    ],
+    "spans": [
+      { "span_name": "vector_search", "parent_trace_name": "customer-support-bot", "total_spans": 148, "error_spans": 22, "error_rate": 0.1486, "avg_duration_ms": 180, "errors_summary": "empty result set from vector store" },
+      { "span_name": "keyword_fallback_search", "parent_trace_name": "customer-support-bot", "total_spans": 22, "error_spans": 0, "error_rate": 0, "avg_duration_ms": 95, "note": "only invoked when vector_search fails" },
+      { "span_name": "llm_generate_response", "parent_trace_name": "customer-support-bot", "total_spans": 148, "error_spans": 0, "error_rate": 0, "avg_duration_ms": 1800 }
+    ],
+    "error": [
+      { "span_name": "vector_search", "error_count": 22, "sample_error": "Vector search returned 0 results for query embedding", "sample_trace_ids": ["tr_f1e2d3c4", "tr_a9b8c7d6", "tr_1122aabb"], "all_parent_traces_succeeded": true }
+    ],
+    "duration": [
+      { "trace_name": "customer-support-bot", "traces_with_retry": 22, "avg_duration_with_retry_ms": 3400, "traces_without_retry": 126, "avg_duration_without_retry_ms": 3050, "note": "retry adds ~350ms but all traces complete successfully" }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": false,
+    "shouldUpdateMemory": false
+  }
+}

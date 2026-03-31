@@ -41,7 +41,7 @@ export interface ScanFixture {
   queryResponses: Record<string, unknown[]>;
   expected: {
     shouldCreateTickets: boolean;
-    ticketCount?: [number, number];
+    ticketCount?: number[];
     shouldUpdateMemory: boolean;
     ticketTitleKeywords?: string[];
   };

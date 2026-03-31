@@ -1,0 +1,40 @@
+{
+  "name": "retrieval-quality-degradation",
+  "description": "customer-support-bot retrieval relevance scores dropped from 0.85 average to 0.52 over the last 24 hours. Affects all traces. The bot is getting irrelevant context and giving worse answers.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 148, "error_traces": 3, "error_rate": 0.020, "avg_duration_ms": 3100, "p95_duration_ms": 4300 },
+      { "trace_name": "email-classifier", "total_traces": 100, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 492, "p95_duration_ms": 618 },
+      { "trace_name": "doc-summarizer", "total_traces": 50, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9400, "p95_duration_ms": 14100 }
+    ],
+    "retrieval": [
+      { "trace_name": "customer-support-bot", "span_name": "vector_search", "period": "last_24_hours", "avg_relevance_score": 0.52, "p50_relevance_score": 0.49, "p10_relevance_score": 0.28, "traces_with_score_below_0_5": 82, "total_traces": 148, "pct_below_0_5": 0.554 },
+      { "trace_name": "customer-support-bot", "span_name": "vector_search", "period": "previous_7_day_avg", "avg_relevance_score": 0.85, "p50_relevance_score": 0.87, "p10_relevance_score": 0.72, "traces_with_score_below_0_5": 4, "total_traces_per_day": 150, "pct_below_0_5": 0.027 },
+      { "trace_name": "customer-support-bot", "relevance_score_trend": [
+        { "date": "2026-03-25", "avg_relevance_score": 0.86, "trace_count": 148 },
+        { "date": "2026-03-26", "avg_relevance_score": 0.85, "trace_count": 152 },
+        { "date": "2026-03-27", "avg_relevance_score": 0.84, "trace_count": 150 },
+        { "date": "2026-03-28", "avg_relevance_score": 0.83, "trace_count": 145 },
+        { "date": "2026-03-29", "avg_relevance_score": 0.78, "trace_count": 80 },
+        { "date": "2026-03-30", "avg_relevance_score": 0.61, "trace_count": 148 },
+        { "date": "2026-03-31", "avg_relevance_score": 0.52, "trace_count": 148 }
+      ]}
+    ],
+    "spans": [
+      { "trace_name": "customer-support-bot", "span_name": "vector_search", "period": "last_24_hours", "total_spans": 148, "error_spans": 0, "avg_duration_ms": 185, "avg_results_returned": 4.8, "note": "retrieval still returns results and doesn't error — but results are irrelevant" },
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "period": "last_24_hours", "avg_output_tokens": 280, "period_comparison_yesterday": 195, "note": "agent generating longer responses — possibly hedging due to poor context quality" }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 8.55, "trace_count": 298, "breakdown": { "customer-support-bot": 5.20, "email-classifier": 1.08, "doc-summarizer": 2.27 } },
+      { "date": "2026-03-30", "total_cost_usd": 8.80, "trace_count": 300, "breakdown": { "customer-support-bot": 5.45, "email-classifier": 1.10, "doc-summarizer": 2.25 } },
+      { "date": "2026-03-28", "total_cost_usd": 7.90, "trace_count": 295, "breakdown": { "customer-support-bot": 4.55, "email-classifier": 1.05, "doc-summarizer": 2.30 } }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": true,
+    "ticketCount": [1, 2],
+    "shouldUpdateMemory": true,
+    "ticketTitleKeywords": ["relevance", "retrieval", "degradation"]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "truncated-system-prompt",
+  "description": "doc-summarizer's system prompt is cut off mid-sentence in all 50 traces today. Likely a deployment issue. The agent still responds but quality may be degraded.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 149, "error_traces": 2, "error_rate": 0.013, "avg_duration_ms": 2880, "p95_duration_ms": 3920 },
+      { "trace_name": "email-classifier", "total_traces": 101, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 495, "p95_duration_ms": 620 },
+      { "trace_name": "doc-summarizer", "total_traces": 50, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 7200, "p95_duration_ms": 11800 }
+    ],
+    "spans": [
+      { "trace_name": "doc-summarizer", "span_name": "llm_summarize", "span_count": 50, "avg_input_tokens": 420, "avg_output_tokens": 180, "avg_duration_ms": 4200 },
+      { "trace_name": "doc-summarizer", "span_name": "llm_refine", "span_count": 50, "avg_input_tokens": 650, "avg_output_tokens": 210, "avg_duration_ms": 2800 },
+      { "trace_name": "customer-support-bot", "span_name": "llm_respond", "span_count": 149, "avg_input_tokens": 3200, "avg_output_tokens": 350, "avg_duration_ms": 1800 }
+    ],
+    "LENGTH": [
+      { "trace_name": "doc-summarizer", "span_name": "llm_summarize", "avg_input_length": 1680, "min_input_length": 1520, "max_input_length": 1890, "avg_output_length": 720, "period": "today", "trace_count": 50 },
+      { "trace_name": "doc-summarizer", "span_name": "llm_summarize", "avg_input_length": 2950, "min_input_length": 2700, "max_input_length": 3400, "avg_output_length": 1250, "period": "yesterday", "trace_count": 52, "note": "input is 43% shorter today vs yesterday despite similar document sizes" }
+    ],
+    "s.input": [
+      { "trace_id": "ds-today-001", "span_name": "llm_summarize", "input_preview": "{\"system\":\"You are a document summarization assistant. Your task is to create concise, accurate summaries of uploaded documents. Follow these guidelines:\\n1. Identify the main topic and key arguments\\n2. Extract important data points and statistics\\n3. Preserve the original tone and intent\\n4. Structure the summary with\",\"user\":\"Please summarize the following document: ...\"}", "input_length": 1640, "period": "today" },
+      { "trace_id": "ds-today-014", "span_name": "llm_summarize", "input_preview": "{\"system\":\"You are a document summarization assistant. Your task is to create concise, accurate summaries of uploaded documents. Follow these guidelines:\\n1. Identify the main topic and key arguments\\n2. Extract important data points and statistics\\n3. Preserve the original tone and intent\\n4. Structure the summary with\",\"user\":\"Summarize this report: ...\"}", "input_length": 1580, "period": "today" },
+      { "trace_id": "ds-yest-001", "span_name": "llm_summarize", "input_preview": "{\"system\":\"You are a document summarization assistant. Your task is to create concise, accurate summaries of uploaded documents. Follow these guidelines:\\n1. Identify the main topic and key arguments\\n2. Extract important data points and statistics\\n3. Preserve the original tone and intent\\n4. Structure the summary with: an executive overview (2-3 sentences), key findings (bullet points), supporting details, and a conclusion\\n5. For technical documents, include terminology definitions\\n6. For financial documents, highlight numerical trends\\n7. Maximum summary length: 500 words unless the document exceeds 20 pages\\n8. Always cite specific sections when referencing claims\",\"user\":\"Please summarize the following document: ...\"}", "input_length": 2880, "period": "yesterday" }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 7.40, "trace_count": 300, "breakdown": { "customer-support-bot": 4.78, "email-classifier": 1.08, "doc-summarizer": 1.54 } },
+      { "date": "2026-03-30", "total_cost_usd": 8.05, "trace_count": 303, "breakdown": { "customer-support-bot": 4.72, "email-classifier": 1.10, "doc-summarizer": 2.23 } }
+    ],
+    "token": [
+      { "trace_name": "doc-summarizer", "period": "today", "avg_input_tokens": 420, "avg_output_tokens": 180, "trace_count": 50 },
+      { "trace_name": "doc-summarizer", "period": "yesterday", "avg_input_tokens": 780, "avg_output_tokens": 310, "trace_count": 52, "note": "input tokens dropped 46% today — doc-summarizer system prompt appears significantly shorter" }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": true,
+    "ticketCount": [1, 1],
+    "shouldUpdateMemory": true,
+    "ticketTitleKeywords": ["truncated", "prompt", "doc-summarizer"]
+  }
+}

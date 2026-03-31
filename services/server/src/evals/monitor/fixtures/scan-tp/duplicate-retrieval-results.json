@@ -1,0 +1,30 @@
+{
+  "name": "duplicate-retrieval-results",
+  "description": "customer-support-bot retrieval step returns duplicate chunks in 60% of traces. Same content appears 2-3 times in the retrieved context, wasting context window and potentially confusing the agent.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 148, "error_traces": 3, "error_rate": 0.020, "avg_duration_ms": 3200, "p95_duration_ms": 4400 },
+      { "trace_name": "email-classifier", "total_traces": 101, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 490, "p95_duration_ms": 618 },
+      { "trace_name": "doc-summarizer", "total_traces": 49, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9400, "p95_duration_ms": 14000 }
+    ],
+    "retrieval": [
+      { "trace_name": "customer-support-bot", "span_name": "vector_search", "total_spans": 148, "spans_with_duplicate_chunks": 89, "duplicate_rate": 0.6014, "avg_unique_chunks_when_duplicated": 2.8, "avg_total_chunks_when_duplicated": 5.1, "avg_unique_chunks_when_clean": 4.5, "avg_total_chunks_when_clean": 4.5 },
+      { "trace_name": "customer-support-bot", "comparison": "today_vs_last_week", "today_duplicate_rate": 0.6014, "last_week_duplicate_rate": 0.05, "note": "duplicate rate spiked from 5% to 60% — suggests a vector store indexing issue" }
+    ],
+    "input": [
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "period": "today", "avg_input_tokens": 5200, "traces_with_duplicated_context": 89, "avg_input_tokens_with_duplicates": 6100, "avg_input_tokens_without_duplicates": 3800, "note": "traces with duplicate retrieval use ~60% more input tokens" },
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "period": "last_week_avg", "avg_input_tokens": 3600 }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 9.60, "trace_count": 298, "breakdown": { "customer-support-bot": 5.95, "email-classifier": 1.10, "doc-summarizer": 2.55 } },
+      { "date": "2026-03-30", "total_cost_usd": 7.85, "trace_count": 302, "breakdown": { "customer-support-bot": 4.65, "email-classifier": 1.08, "doc-summarizer": 2.12 } }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": true,
+    "ticketCount": [1, 2],
+    "shouldUpdateMemory": true,
+    "ticketTitleKeywords": ["duplicate", "retrieval"]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "template-variable-unsubstituted",
+  "description": "30% of email-classifier traces have literal template variables like '{{sender_name}}' and '{{email_date}}' in the prompt input. Template substitution is failing silently.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 150, "error_traces": 2, "error_rate": 0.013, "avg_duration_ms": 2860, "p95_duration_ms": 3900 },
+      { "trace_name": "email-classifier", "total_traces": 102, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 505, "p95_duration_ms": 640 },
+      { "trace_name": "doc-summarizer", "total_traces": 50, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9300, "p95_duration_ms": 14100 }
+    ],
+    "input": [
+      { "trace_name": "email-classifier", "span_name": "llm_classify", "total_spans": 102, "spans_containing_template_vars": 31, "template_var_rate": 0.304, "template_vars_found": ["{{sender_name}}", "{{email_date}}", "{{company_name}}"], "sample_trace_ids": ["tr_ec_t01", "tr_ec_t02", "tr_ec_t03", "tr_ec_t04", "tr_ec_t05"] },
+      { "trace_id": "tr_ec_t01", "span_name": "llm_classify", "input_preview": "Classify the following email from {{sender_name}} received on {{email_date}}. The sender's company is {{company_name}}. Email body: Hi, I wanted to follow up on our previous discussion about pricing...", "timestamp": "2026-03-31T09:12:44Z" },
+      { "trace_id": "tr_ec_t02", "span_name": "llm_classify", "input_preview": "Classify the following email from {{sender_name}} received on {{email_date}}. The sender's company is {{company_name}}. Email body: Please find attached the Q1 report as requested...", "timestamp": "2026-03-31T09:45:18Z" }
+    ],
+    "spans": [
+      { "trace_name": "email-classifier", "span_name": "llm_classify", "total_spans": 102, "error_spans": 0, "avg_duration_ms": 480, "note": "no errors — model still classifies but without proper sender/date context" },
+      { "trace_name": "email-classifier", "span_name": "template_render", "total_spans": 102, "error_spans": 0, "avg_duration_ms": 2, "note": "template render span completes without error even when variables are unresolved" }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 8.10, "trace_count": 302, "cost_per_trace_usd": 0.0268 },
+      { "date": "2026-03-30", "total_cost_usd": 8.00, "trace_count": 300, "cost_per_trace_usd": 0.0267 }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": true,
+    "ticketCount": [1, 1],
+    "shouldUpdateMemory": true,
+    "ticketTitleKeywords": ["template", "variable", "email-classifier"]
+  }
+}

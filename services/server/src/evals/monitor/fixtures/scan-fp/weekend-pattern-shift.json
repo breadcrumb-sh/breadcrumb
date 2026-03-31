@@ -1,0 +1,29 @@
+{
+  "name": "weekend-pattern-shift",
+  "description": "Saturday: volume is 40% lower, mix shifted toward doc-summarizer (people catching up) and away from email-classifier. All per-agent metrics are normal. Weekend traffic patterns are expected.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 85, "error_traces": 1, "error_rate": 0.012, "avg_duration_ms": 2750, "p95_duration_ms": 3800 },
+      { "trace_name": "email-classifier", "total_traces": 35, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 488, "p95_duration_ms": 610 },
+      { "trace_name": "doc-summarizer", "total_traces": 60, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9800, "p95_duration_ms": 14500 }
+    ],
+    "cost": [
+      { "date": "2026-03-28", "day": "Saturday", "total_cost_usd": 5.95, "trace_count": 180, "cost_per_trace_usd": 0.0331 },
+      { "date": "2026-03-27", "day": "Friday", "total_cost_usd": 8.20, "trace_count": 308, "cost_per_trace_usd": 0.0266 },
+      { "date": "2026-03-26", "day": "Thursday", "total_cost_usd": 7.85, "trace_count": 295, "cost_per_trace_usd": 0.0266 },
+      { "date": "2026-03-21", "day": "last Saturday", "total_cost_usd": 5.70, "trace_count": 175, "cost_per_trace_usd": 0.0326 }
+    ],
+    "duration": [
+      { "trace_name": "customer-support-bot", "period": "today", "avg_duration_ms": 2750, "p95_duration_ms": 3800, "trace_count": 85 },
+      { "trace_name": "email-classifier", "period": "today", "avg_duration_ms": 488, "p95_duration_ms": 610, "trace_count": 35 },
+      { "trace_name": "doc-summarizer", "period": "today", "avg_duration_ms": 9800, "p95_duration_ms": 14500, "trace_count": 60 },
+      { "trace_name": "customer-support-bot", "period": "last_saturday", "avg_duration_ms": 2800, "p95_duration_ms": 3850, "trace_count": 80 },
+      { "trace_name": "doc-summarizer", "period": "last_saturday", "avg_duration_ms": 10100, "p95_duration_ms": 14800, "trace_count": 55 }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": false,
+    "shouldUpdateMemory": false
+  }
+}

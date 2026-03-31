@@ -1,0 +1,27 @@
+{
+  "name": "encoding-artifacts",
+  "description": "25% of customer-support-bot traces contain HTML entities (&amp;, &lt;, &#39;) and mojibake characters (Ã¤, Ã¶) in the input. User content is not being decoded properly before being passed to the agent.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 152, "error_traces": 3, "error_rate": 0.020, "avg_duration_ms": 2920, "p95_duration_ms": 4000 },
+      { "trace_name": "email-classifier", "total_traces": 99, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 492, "p95_duration_ms": 618 },
+      { "trace_name": "doc-summarizer", "total_traces": 51, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9400, "p95_duration_ms": 14100 }
+    ],
+    "input": [
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "total_spans": 152, "spans_with_html_entities": 38, "html_entity_rate": 0.25, "entities_found": ["&amp;", "&lt;", "&gt;", "&#39;", "&quot;"], "sample_trace_ids": ["tr_enc_01", "tr_enc_02", "tr_enc_03", "tr_enc_04"] },
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "total_spans": 152, "spans_with_mojibake": 22, "mojibake_rate": 0.145, "mojibake_patterns_found": ["Ã¤ (should be ä)", "Ã¶ (should be ö)", "Ã¼ (should be ü)", "Ã© (should be é)"], "note": "UTF-8 bytes interpreted as Latin-1, typical double-encoding issue" },
+      { "trace_id": "tr_enc_01", "span_name": "llm_generate_response", "input_preview": "User message: I can&apos;t find my order. I ordered on the 3rd &amp; expected delivery by the 5th. The tracking page shows &lt;no data&gt;. Please help.", "timestamp": "2026-03-31T10:22:15Z" },
+      { "trace_id": "tr_enc_03", "span_name": "llm_generate_response", "input_preview": "User message: Mein Name ist MÃ¼ller und ich habe ein Problem mit meiner Bestellung. KÃ¶nnen Sie mir bitte helfen? Die LÃ¶sung wÃ¤re...", "timestamp": "2026-03-31T11:45:33Z" }
+    ],
+    "spans": [
+      { "trace_name": "customer-support-bot", "span_name": "llm_generate_response", "total_spans": 152, "error_spans": 0, "avg_duration_ms": 1850, "note": "model still processes the garbled input without erroring" }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": true,
+    "ticketCount": [1, 2],
+    "shouldUpdateMemory": true,
+    "ticketTitleKeywords": ["encoding", "html", "artifacts"]
+  }
+}
