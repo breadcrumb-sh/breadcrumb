@@ -58,6 +58,13 @@ evalite<InvestigateFixture, MonitorEvalOutcome, InvestigateFixture["expected"]>(
     });
     const tools = createInvestigateTools(handlers);
 
+    // Append a hint that research is done — the pre-filled note contains findings.
+    // This prevents the agent from re-investigating and keeps the eval cheap.
+    messages.push({
+      role: "user" as const,
+      content: "Your research is complete — your note above contains all findings. Now make your final decision: set priority and labels with set_properties, leave a concise comment for the developer, and set the ticket status.",
+    });
+
     await generateText({
       model: evalModel,
       system,
@@ -65,7 +72,7 @@ evalite<InvestigateFixture, MonitorEvalOutcome, InvestigateFixture["expected"]>(
       tools,
       temperature: 0,
       maxOutputTokens: 4096,
-      stopWhen: stepCountIs(20),
+      stopWhen: stepCountIs(8),
     });
 
     return outcome;

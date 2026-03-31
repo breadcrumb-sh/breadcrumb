@@ -45,7 +45,7 @@ export async function runScan(projectId: string) {
       system,
       prompt,
       temperature: 0,
-      stopWhen: stepCountIs(40),
+      stopWhen: stepCountIs(15),
       experimental_telemetry: getTelemetry("monitor-scan", { projectId }),
       tools,
     });

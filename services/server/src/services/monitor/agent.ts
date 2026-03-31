@@ -91,7 +91,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
       messages,
       temperature: 0,
       stopWhen: [
-        stepCountIs(40),
+        stepCountIs(20),
         async () => {
           const [current] = await db
             .select({ status: monitorItems.status })

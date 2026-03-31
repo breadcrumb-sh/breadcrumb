@@ -5,11 +5,11 @@
  * a consistent string representation of query results.
  */
 
-const MAX_DISPLAY_ROWS = 50;
+const MAX_DISPLAY_ROWS = 20;
 
 export function formatQueryResult(rows: unknown[]): string {
   const truncated = rows.length > MAX_DISPLAY_ROWS ? rows.slice(0, MAX_DISPLAY_ROWS) : rows;
-  const json = JSON.stringify(truncated, null, 2);
-  const note = rows.length > MAX_DISPLAY_ROWS ? `\n(showing ${MAX_DISPLAY_ROWS} of ${rows.length} rows)` : "";
-  return `${rows.length} rows returned${note}\n${json}`;
+  const json = JSON.stringify(truncated);
+  const note = rows.length > MAX_DISPLAY_ROWS ? ` (showing ${MAX_DISPLAY_ROWS} of ${rows.length})` : "";
+  return `${rows.length} rows${note}\n${json}`;
 }
