@@ -358,6 +358,141 @@ div:has(> [data-orientation]) figure.shiki {
   );
 }
 
+.monitor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--brand-border);
+  background: var(--brand-surface);
+  padding: 12px;
+}
+
+
+.monitor-card-processing {
+  position: relative;
+  border-radius: 8px;
+  padding: 1px;
+  overflow: hidden;
+}
+
+.monitor-card-processing-border {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  aspect-ratio: 1;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.18) 75%,
+    rgba(255, 255, 255, 0.4) 85%,
+    rgba(255, 255, 255, 0.18) 92%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  transform-origin: top left;
+  animation: processing-spin 2.5s linear infinite;
+}
+
+@keyframes processing-spin {
+  from { transform: rotate(0deg) translate(-50%, -50%); }
+  to { transform: rotate(360deg) translate(-50%, -50%); }
+}
+
+.monitor-card-processing-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 7px;
+  background: var(--brand-surface);
+  padding: 12px;
+}
+
+.findings-ticker-wrap {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.findings-ticker {
+  height: 100%;
+  overflow: hidden;
+}
+
+.findings-ticker-track {
+  display: flex;
+  flex-direction: column;
+  animation: ticker-scroll 20s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.findings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--brand-border);
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.findings-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.findings-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-fg-3);
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.findings-text {
+  color: var(--brand-fg-2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.findings-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand-fg-3);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.findings-fade-top,
+.findings-fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.findings-fade-top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--background), transparent);
+}
+
+.findings-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--background), transparent);
+}
+
 .hero-screenshot-gradient {
   position: absolute;
   bottom: 0;
