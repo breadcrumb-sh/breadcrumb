@@ -88,7 +88,7 @@ pre,
 .prose pre,
 [data-rehype-pretty-code-fragment] pre,
 [data-rehype-pretty-code-fragment] code {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-geist-mono), monospace !important;
 }
 
 #nd-docs-layout,
@@ -203,6 +203,38 @@ pre,
 .prose table,
 .prose blockquote {
   background-color: color-mix(in srgb, var(--brand-surface) 88%, var(--background));
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  letter-spacing: -0.02em;
+}
+
+.prose h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.prose h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.prose p,
+.prose li {
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prose table {
+  font-size: 0.8125rem;
 }
 
 figure.shiki,

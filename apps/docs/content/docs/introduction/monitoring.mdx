@@ -1,0 +1,24 @@
+---
+title: Monitoring
+icon: Shield
+description: An AI agent that watches your traces and surfaces real issues.
+---
+
+LLM failures don't look like regular failures. Your agent can hallucinate, lose context, or drift from its goal — all while returning a 200. Breadcrumb's monitor catches these.
+
+## How it works
+
+Two agents work as a pipeline:
+
+1. **Scan agent** — runs periodically on incoming traces, learns your project's patterns, and opens tickets when something looks wrong
+2. **Investigation agent** — digs into flagged tickets, queries your traces, and writes a verdict with evidence
+
+Findings appear on a [kanban board](/docs/product/monitoring/overview) in your project overview: Queue → Investigating → Review → Done.
+
+## What it catches
+
+Hallucination, context loss, intent mismatches, retry loops, cost anomalies, instruction drift — the kind of issues that return 200 OK but produce wrong results.
+
+## Setup
+
+Configure an [AI provider](/docs/product/configuration/ai-provider) and the monitor starts automatically. Adjust scan intervals and cost limits in [agent settings](/docs/product/configuration/agent).

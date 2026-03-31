@@ -1,9 +1,8 @@
 {
-  "title": "AI",
+  "title": "Integrations",
   "collapsible": true,
   "pages": [
     "mcp",
-    "explore",
-    "observations"
+    "webhooks"
   ]
 }

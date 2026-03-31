@@ -2,8 +2,10 @@
   "title": "Configuration",
   "collapsible": true,
   "pages": [
+    "organizations",
     "api-keys",
-    "members",
-    "ai-provider"
+    "ai-provider",
+    "agent",
+    "members"
   ]
 }

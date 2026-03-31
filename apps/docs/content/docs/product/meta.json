@@ -2,8 +2,9 @@
   "title": "Product",
   "collapsible": false,
   "pages": [
-    "observability",
-    "ai",
-    "settings"
+    "monitoring",
+    "visualizations",
+    "integrations",
+    "configuration"
   ]
 }
