@@ -169,6 +169,9 @@ export const monitorRouter = router({
 
       if (updates.status && updates.status !== item.status) {
         await recordActivity(id, "status_change", "user", { fromStatus: item.status, toStatus: updates.status, actorId: ctx.user.id });
+        if (updates.status === "queue") {
+          await enqueueProcess(item.projectId, id);
+        }
       }
       return updated;
     }),

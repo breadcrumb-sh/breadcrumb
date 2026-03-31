@@ -248,6 +248,28 @@ body {
   display: none;
 }
 
+/* ── Processing border gradient ───────────────────────────────── */
+:root {
+  --processing-border: conic-gradient(
+    from 0deg,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.25) 75%,
+    rgba(255,255,255,0.5) 85%,
+    rgba(255,255,255,0.25) 92%,
+    rgba(255,255,255,0.1) 100%
+  );
+}
+:root.light {
+  --processing-border: conic-gradient(
+    from 0deg,
+    rgba(0,0,0,0.05) 50%,
+    rgba(0,0,0,0.15) 75%,
+    rgba(0,0,0,0.3) 85%,
+    rgba(0,0,0,0.15) 92%,
+    rgba(0,0,0,0.05) 100%
+  );
+}
+
 /* ── Span minimap bar colours ─────────────────────────────────── */
 :root {
   --minimap-llm:       #a78bfa; /* violet-400 */

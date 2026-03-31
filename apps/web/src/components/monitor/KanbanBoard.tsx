@@ -119,7 +119,7 @@ function DraggableCard({
         className={`relative rounded-lg p-px cursor-grab active:cursor-grabbing overflow-hidden ${isDragging ? "opacity-30" : ""}`}
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square w-[200%] animate-[spin_2.5s_linear_infinite]"
-          style={{ background: "conic-gradient(from 0deg, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.25) 75%, rgba(255,255,255,0.5) 85%, rgba(255,255,255,0.25) 92%, rgba(255,255,255,0.1) 100%)" }}
+          style={{ background: "var(--processing-border)" }}
         />
         <div className="relative rounded-[calc(var(--radius-lg)-1px)] bg-zinc-900 p-3 flex flex-col gap-1.5 text-left">
           {cardContent}
