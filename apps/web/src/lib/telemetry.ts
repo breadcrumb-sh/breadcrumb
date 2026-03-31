@@ -11,6 +11,17 @@ function getTheme(): "dark" | "light" {
 export function initPostHog(disabled: boolean, instanceId?: string | null) {
   if (disabled) return;
 
+  const URL_PROPS = [
+    "$current_url",
+    "$pathname",
+    "$referrer",
+    "$referring_domain",
+    "$initial_current_url",
+    "$initial_pathname",
+    "$initial_referrer",
+    "$initial_referring_domain",
+  ];
+
   posthog.init(POSTHOG_KEY, {
     api_host: `${window.location.origin}/ext`,
     ui_host: "https://eu.posthog.com",
@@ -20,13 +31,13 @@ export function initPostHog(disabled: boolean, instanceId?: string | null) {
     disable_session_recording: true,
     persistence: "memory",
     ip: false,
-    property_denylist: [
-      "$ip",
-      "$current_url",
-      "$pathname",
-      "$referrer",
-      "$referring_domain",
-    ],
+    property_denylist: ["$ip", ...URL_PROPS],
+    sanitize_properties(properties) {
+      for (const key of URL_PROPS) {
+        delete properties[key];
+      }
+      return properties;
+    },
   });
 
   if (instanceId) {
