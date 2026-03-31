@@ -1,0 +1,32 @@
+{
+  "name": "single-hallucination",
+  "description": "One trace where bot hallucinated a fake return policy. 1 occurrence in 200 traces. Could be one-off or systematic.",
+  "item": {
+    "title": "Hallucination detected in customer-support-bot response",
+    "description": "User report: customer-support-bot cited a '90-day return policy' that does not exist. Actual policy is 30 days.",
+    "status": "investigating",
+    "note": "Investigated the hallucination report. Findings:\n\n- Confirmed hallucination in trace hall-6601 at 11:42:18 UTC\n- The bot responded: \"Our return policy allows returns within 90 days of purchase with a full refund.\"\n- Actual company policy: 30-day return window (verified in knowledge base doc kb-returns-v3)\n- The retrieval step DID return the correct document chunk (relevance score 0.88)\n- The LLM ignored the retrieved context and generated a fabricated policy\n- LLM output confidence score (from logprobs): 0.72 — lower than typical 0.85+ for factual responses\n\nScope assessment:\n- Checked all 200 traces in the last 24 hours for similar patterns\n- No other traces mention \"90-day\" or incorrect return policies\n- Ran a broader check for low-confidence outputs (<0.75): found 4 traces, but manual review shows they were accurate\n- The hallucination appears to be a single occurrence\n\nHowever:\n- 1 in 200 = 0.5% hallucination rate on a critical topic (company policy)\n- Cannot rule out systematic risk — the LLM may hallucinate on other policy topics with different phrasing\n- No guardrail or fact-checking step exists in the current agent pipeline\n- A single hallucination on return policy could have financial/legal implications\n\nThis needs monitoring. One occurrence isn't enough to call it a pattern, but hallucinating company policy is high-stakes even as a one-off."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "traces": [
+      { "trace_id": "hall-6601", "status": "ok", "duration_ms": 3200, "timestamp": "2024-01-15T11:42:18Z", "agent": "customer-support-bot", "output_confidence": 0.72 },
+      { "total_traces": 200, "failed_traces": 3, "error_rate": 0.015, "low_confidence_traces": 4, "time_range": "last_24h", "agent": "customer-support-bot" }
+    ],
+    "spans": [
+      { "trace_id": "hall-6601", "span_name": "retrieval.vector_search", "relevance_score": 0.88, "retrieved_doc": "kb-returns-v3", "duration_ms": 190 },
+      { "trace_id": "hall-6601", "span_name": "llm.chat_completion", "model": "gpt-4-turbo", "input_tokens": 11400, "output_tokens": 245, "duration_ms": 2800, "logprob_confidence": 0.72 },
+      { "avg_logprob_confidence": 0.87, "min_logprob_confidence": 0.68, "count": 200, "time_range": "last_24h", "agent": "customer-support-bot" }
+    ],
+    "error": [
+      { "total_traces": 200, "hallucination_flagged": 1, "error_traces": 3, "time_range": "last_24h", "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "followup": 1.0, "review": 0.7, "done": 0.0 },
+    "shouldComment": true,
+    "commentKeywords": ["hallucin", "one", "monitor"]
+  }
+}

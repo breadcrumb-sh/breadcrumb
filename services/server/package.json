@@ -17,7 +17,10 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval": "evalite",
+    "eval:run": "evalite run",
+    "eval:ci": "evalite run --threshold=70"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.47",
@@ -48,9 +51,10 @@
     "@types/cron": "^2.0.1",
     "@types/node": "^22",
     "drizzle-kit": "^0.31.9",
+    "evalite": "^0.19.0",
     "pino-pretty": "^13.1.3",
     "tsx": "^4",
     "typescript": "^5.7",
-    "vitest": "^3"
+    "vitest": "^4.1.2"
   }
 }

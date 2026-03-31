@@ -1,0 +1,34 @@
+{
+  "name": "already-resolved",
+  "description": "Error rate was 15% between 10:00-11:00 but dropped back to 1.2% since 11:30. Self-resolved.",
+  "item": {
+    "title": "Error rate spike on customer-support-bot",
+    "description": "Automated alert: error rate exceeded 10% threshold on customer-support-bot between 10:00-11:00 UTC.",
+    "status": "investigating",
+    "note": "Investigated the error rate spike. Timeline:\n\n- 10:00-11:00 UTC: error rate was 15.2% (12 of 79 traces failed)\n- All 12 errors were \"rate_limit_exceeded\" from OpenAI (HTTP 429)\n- Errors clustered between 10:15-10:45 UTC, coinciding with a burst of 40 traces in 15 minutes (vs normal ~8/hr)\n- 11:00-11:30 UTC: error rate dropped to 3.1% (2 of 65 traces)\n- 11:30 UTC onwards: error rate back to 1.2% (1 of 82 traces) — within baseline\n- Current rate at 13:00 UTC: 0.9% over last hour\n- No config changes or deployments during the window\n- The burst pattern suggests a batch job or automated client hitting the endpoint\n- trace-ids for sample errors: res-4401, res-4412, res-4419\n\nThe issue has self-resolved. The rate limiting was transient and tied to a traffic burst. Current error rate is back within the <2% baseline."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "error": [
+      { "error_message": "rate_limit_exceeded", "count": 12, "time_bucket": "2024-01-15T10:00:00Z", "agent": "customer-support-bot" },
+      { "error_message": "rate_limit_exceeded", "count": 2, "time_bucket": "2024-01-15T11:00:00Z", "agent": "customer-support-bot" },
+      { "error_message": "timeout", "count": 1, "time_bucket": "2024-01-15T12:00:00Z", "agent": "customer-support-bot" }
+    ],
+    "traces": [
+      { "time_bucket": "2024-01-15T10:00:00Z", "total_traces": 79, "failed_traces": 12, "error_rate": 0.152 },
+      { "time_bucket": "2024-01-15T11:00:00Z", "total_traces": 65, "failed_traces": 2, "error_rate": 0.031 },
+      { "time_bucket": "2024-01-15T12:00:00Z", "total_traces": 82, "failed_traces": 1, "error_rate": 0.012 }
+    ],
+    "duration": [
+      { "time_bucket": "2024-01-15T10:00:00Z", "p50_ms": 2900, "p95_ms": 5100, "agent": "customer-support-bot" },
+      { "time_bucket": "2024-01-15T12:00:00Z", "p50_ms": 2700, "p95_ms": 4800, "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "done": 1.0, "review": 0.3, "followup": 0.0 },
+    "shouldComment": true,
+    "commentKeywords": ["resolved", "dropped"]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "intermittent-unclear",
+  "description": "3 traces with 'connection timeout' on retrieval over 6 hours. 4% error rate vs 2% baseline. Not conclusive.",
+  "item": {
+    "title": "Intermittent retrieval timeouts on customer-support-bot",
+    "description": "Automated alert: connection timeout errors detected on customer-support-bot retrieval step.",
+    "status": "investigating",
+    "note": "Investigated the retrieval timeout reports. Findings:\n\n- 3 traces over a 6-hour window (08:00-14:00 UTC) had \"connection timeout\" errors on the vector DB retrieval span\n- Trace IDs: int-2201 (08:22 UTC), int-2287 (10:41 UTC), int-2350 (13:55 UTC)\n- No obvious pattern in timing — roughly every 2-3 hours but irregular\n- Total traces in the window: 74. Error rate: 4.05% (vs 2% baseline)\n- The 4% is above baseline but based on only 3 occurrences — not statistically significant\n- The retrieval span normally takes 120-300ms; failed spans timed out at 5000ms\n- No errors on email-classifier or any other agent\n- Vector DB dashboard shows no reported outages, but I can't see internal connection pool metrics\n- All 3 failed traces had different user sessions and query types — no content similarity\n- The agent did NOT recover in any of the 3 cases — traces returned an error to the user\n\nInconclusive. Could be transient network issues or early sign of vector DB instability. Need more data to determine pattern."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "error": [
+      { "trace_id": "int-2201", "error_message": "connection timeout", "span_name": "retrieval.vector_search", "timestamp": "2024-01-15T08:22:14Z", "duration_ms": 5000 },
+      { "trace_id": "int-2287", "error_message": "connection timeout", "span_name": "retrieval.vector_search", "timestamp": "2024-01-15T10:41:33Z", "duration_ms": 5000 },
+      { "trace_id": "int-2350", "error_message": "connection timeout", "span_name": "retrieval.vector_search", "timestamp": "2024-01-15T13:55:02Z", "duration_ms": 5000 }
+    ],
+    "traces": [
+      { "time_bucket": "2024-01-15T08:00:00Z", "total_traces": 12, "failed_traces": 1, "error_rate": 0.083, "agent": "customer-support-bot" },
+      { "time_bucket": "2024-01-15T10:00:00Z", "total_traces": 18, "failed_traces": 1, "error_rate": 0.056, "agent": "customer-support-bot" },
+      { "time_bucket": "2024-01-15T12:00:00Z", "total_traces": 22, "failed_traces": 0, "error_rate": 0.0, "agent": "customer-support-bot" },
+      { "time_bucket": "2024-01-15T13:00:00Z", "total_traces": 22, "failed_traces": 1, "error_rate": 0.045, "agent": "customer-support-bot" }
+    ],
+    "duration": [
+      { "span_name": "retrieval.vector_search", "p50_ms": 180, "p95_ms": 290, "max_ms": 5000, "sample_count": 74, "time_range": "2024-01-15T08:00:00Z/2024-01-15T14:00:00Z" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "followup": 1.0, "review": 0.5, "done": 0.3 },
+    "shouldComment": true,
+    "commentKeywords": ["3", "timeout", "inconclusive"]
+  }
+}

@@ -18,7 +18,6 @@ const log = createLogger("monitor-jobs");
 const PROCESS_JOB = "monitor-process";
 const SCAN_JOB = "monitor-scan";
 const PROCESS_DEBOUNCE_SECONDS = 60;
-const DEFAULT_SCAN_INTERVAL = 300; // 5 min fallback
 
 interface MonitorJobData {
   projectId: string;

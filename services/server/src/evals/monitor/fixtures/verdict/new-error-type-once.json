@@ -1,0 +1,33 @@
+{
+  "name": "new-error-type-once",
+  "description": "New error 'embedding dimension mismatch' in retrieval. 1 trace at 14:32. Agent recovered via keyword fallback. Never seen before.",
+  "item": {
+    "title": "New error type in customer-support-bot retrieval",
+    "description": "Automated alert: previously unseen error type 'embedding dimension mismatch' detected on customer-support-bot.",
+    "status": "investigating",
+    "note": "Investigated the new error type. Findings:\n\n- Single occurrence: trace new-4401 at 14:32:08 UTC\n- Error on span retrieval.vector_search: \"embedding dimension mismatch: expected 1536, got 3072\"\n- This suggests the query was embedded with a different model (text-embedding-3-large = 3072 dims) than the index expects (text-embedding-ada-002 = 1536 dims)\n- The agent recovered: after the vector search failed, it fell back to keyword-based search (span retrieval.keyword_fallback, 340ms)\n- The trace completed successfully — end user got a response, albeit slightly lower quality (keyword vs semantic)\n- Trace latency: 4.1s (slightly elevated due to the failed attempt + fallback, vs normal 2.8s p50)\n\nScope check:\n- This is the FIRST time this error has appeared — searched all error messages in ClickHouse for \"dimension mismatch\": 0 prior occurrences\n- 82 other traces in the same hour had no issues with the vector search span\n- The embedding model in the successful traces: text-embedding-ada-002 (correct)\n- The one failing trace also shows text-embedding-ada-002 in the config, but the actual API call returned 3072 dims\n- Possible cause: transient API routing issue on OpenAI's side, or a race condition in model version selection\n\nSince the agent recovered and this is a single occurrence of a never-before-seen error, it may be transient. But the dimension mismatch could indicate a configuration drift that hasn't fully manifested yet."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "error": [
+      { "trace_id": "new-4401", "error_message": "embedding dimension mismatch: expected 1536, got 3072", "span_name": "retrieval.vector_search", "timestamp": "2024-01-15T14:32:08Z", "agent": "customer-support-bot" },
+      { "error_message": "embedding dimension mismatch", "historical_count": 0, "search_range": "last_30d" }
+    ],
+    "spans": [
+      { "trace_id": "new-4401", "span_name": "retrieval.vector_search", "status": "error", "duration_ms": 45, "embedding_model": "text-embedding-ada-002", "actual_dimensions": 3072 },
+      { "trace_id": "new-4401", "span_name": "retrieval.keyword_fallback", "status": "ok", "duration_ms": 340, "results_count": 3 },
+      { "trace_id": "new-4401", "span_name": "llm.chat_completion", "status": "ok", "duration_ms": 3200, "input_tokens": 9800, "output_tokens": 310 }
+    ],
+    "traces": [
+      { "total_traces": 83, "failed_traces": 0, "error_rate": 0.0, "time_range": "2024-01-15T14:00:00Z/2024-01-15T15:00:00Z", "agent": "customer-support-bot" },
+      { "trace_id": "new-4401", "status": "ok", "duration_ms": 4100, "timestamp": "2024-01-15T14:32:08Z", "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "followup": 1.0, "done": 0.5, "review": 0.0 },
+    "shouldComment": true,
+    "commentKeywords": ["dimension", "new", "first"]
+  }
+}

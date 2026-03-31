@@ -1,0 +1,33 @@
+{
+  "name": "subtle-quality-drop",
+  "description": "RAG relevance scores dropped from 0.82 (7-day avg) to 0.61 (24h avg) across 150 traces. No errors, no latency change. LLM outputs longer with more hedging.",
+  "item": {
+    "title": "Quality degradation in customer-support-bot responses",
+    "description": "Automated alert: RAG relevance score dropped below 0.70 threshold on customer-support-bot.",
+    "status": "investigating",
+    "note": "Investigated the quality alert. This is a subtle but significant finding:\n\n- RAG relevance score (cosine similarity between query embedding and retrieved chunk embedding):\n  - 7-day average: 0.82 (std dev 0.06)\n  - Last 24h average: 0.61 (std dev 0.11) — a 25% drop\n  - Last 4h average: 0.58\n- Affected traces: 150 in last 24h, all on customer-support-bot\n- No errors: 100% of traces completed successfully (HTTP 200)\n- Latency unchanged: p50 2.9s, p95 5.1s (within normal range)\n- But LLM output tokens increased: avg 680 tokens/response (vs 420 7-day avg)\n- Sampled 10 responses — they contain more hedging language: \"I'm not entirely sure\", \"based on what I found\", \"you may want to verify\"\n- The retrieval step is returning chunks but they're less relevant to the query\n- Checked the vector store: no reindexing events, no schema changes\n- Embedding model version unchanged (text-embedding-ada-002)\n- Possible causes: data drift in the knowledge base, or a recent content update that shifted the embedding space\n- trace-ids sampled: qual-5501, qual-5522, qual-5540, qual-5561, qual-5580\n\nThis looks like a real quality regression. No crash, no errors, but the bot is giving worse answers. Needs human review to assess root cause in the knowledge base."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "spans": [
+      { "span_name": "retrieval.vector_search", "avg_relevance_score": 0.61, "min_relevance_score": 0.31, "max_relevance_score": 0.79, "count": 150, "time_range": "last_24h", "agent": "customer-support-bot" },
+      { "span_name": "retrieval.vector_search", "avg_relevance_score": 0.82, "min_relevance_score": 0.65, "max_relevance_score": 0.95, "count": 1020, "time_range": "last_7d", "agent": "customer-support-bot" },
+      { "span_name": "llm.chat_completion", "avg_output_tokens": 680, "avg_input_tokens": 11800, "count": 150, "time_range": "last_24h", "agent": "customer-support-bot" }
+    ],
+    "traces": [
+      { "time_range": "last_24h", "total_traces": 150, "failed_traces": 0, "error_rate": 0.0, "p50_ms": 2900, "p95_ms": 5100, "agent": "customer-support-bot" },
+      { "time_range": "last_7d", "total_traces": 1020, "failed_traces": 18, "error_rate": 0.018, "p50_ms": 2800, "p95_ms": 4900, "agent": "customer-support-bot" }
+    ],
+    "cost": [
+      { "date": "2024-01-15", "total_cost_usd": 6.20, "trace_count": 150, "avg_cost_per_trace": 0.041, "agent": "customer-support-bot" },
+      { "date": "2024-01-14", "total_cost_usd": 5.10, "trace_count": 148, "avg_cost_per_trace": 0.034, "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "review": 1.0, "done": 0.0, "followup": 0.3 },
+    "shouldComment": true,
+    "commentKeywords": ["relevance", "0.61", "degradation"]
+  }
+}
