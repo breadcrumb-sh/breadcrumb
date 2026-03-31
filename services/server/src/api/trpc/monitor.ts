@@ -15,6 +15,7 @@ import { monitorItems, monitorComments, monitorActivity, monitorLabels, monitorI
 import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
 import { trackMonitorItemCreated, trackMonitorItemStatusChanged, trackMonitorUserComment, trackMonitorInvestigationTriggered } from "../../shared/lib/telemetry.js";
 import { enqueueProcess } from "../../services/monitor/jobs.js";
+import { enqueueWebhooks } from "../../services/monitor/webhooks.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
 import { monitorEvents, emitMonitorEvent, type MonitorEvent } from "../../services/monitor/events.js";
 import { recordActivity } from "../../services/monitor/activity.js";
@@ -174,6 +175,9 @@ export const monitorRouter = router({
         await recordActivity(id, "status_change", "user", { fromStatus: item.status, toStatus: updates.status, actorId: ctx.user.id });
         if (updates.status === "queue") {
           await enqueueProcess(item.projectId, id);
+        }
+        if (updates.status === "review") {
+          await enqueueWebhooks(item.projectId, id);
         }
       }
       return updated;

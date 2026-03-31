@@ -291,4 +291,25 @@ export const monitorActivity = pgTable(
   (t) => [index("monitor_activity_item_id_idx").on(t.monitorItemId)],
 );
 
+// ── Webhook integrations ────────────────────────────────────────────
+
+export const webhookIntegrations = pgTable(
+  "webhook_integration",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    channel: varchar("channel", { length: 16 }).notNull(), // slack | discord
+    url: text("url").notNull(),
+    minPriority: varchar("min_priority", { length: 16 }).notNull().default("all"), // all | low | medium | high | critical
+    enabled: boolean("enabled").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    unique("webhook_integration_project_channel_uniq").on(t.projectId, t.channel),
+    index("webhook_integration_project_idx").on(t.projectId),
+  ],
+);
 

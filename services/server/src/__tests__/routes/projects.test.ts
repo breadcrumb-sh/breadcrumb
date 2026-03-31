@@ -203,9 +203,9 @@ describe("projects.create", () => {
   });
 });
 
-// ── projects.rename ─────────────────────────────────────────────────────────
+// ── projects.update ─────────────────────────────────────────────────────────
 
-describe("projects.rename", () => {
+describe("projects.update", () => {
   it("requires admin role via project→org resolution", async () => {
     // resolveProject: where() terminal
     mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
@@ -214,7 +214,7 @@ describe("projects.rename", () => {
 
     const caller = appRouter.createCaller(userCtx);
     await expect(
-      caller.projects.rename({ projectId: "proj-1", name: "New Name" })
+      caller.projects.update({ projectId: "proj-1", name: "New Name" })
     ).rejects.toThrow("FORBIDDEN");
   });
 
@@ -228,7 +228,7 @@ describe("projects.rename", () => {
     mockReturning.mockResolvedValueOnce([{ id: "proj-1", name: "New Name" }]);
 
     const caller = appRouter.createCaller(userCtx);
-    const result = await caller.projects.rename({ projectId: "proj-1", name: "New Name" });
+    const result = await caller.projects.update({ projectId: "proj-1", name: "New Name" });
     expect(result).toEqual({ id: "proj-1", name: "New Name" });
   });
 });

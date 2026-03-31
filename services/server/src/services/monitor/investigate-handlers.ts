@@ -13,6 +13,7 @@ import { formatQueryResult } from "./format-query-result.js";
 import { checkDuplicate } from "./dedup.js";
 import { emitMonitorEvent } from "./events.js";
 import { recordActivity } from "./activity.js";
+import { enqueueWebhooks } from "./webhooks.js";
 import type { InvestigateToolHandlers } from "./investigate-agent.js";
 
 const log = createLogger("monitor-agent");
@@ -94,6 +95,9 @@ export function createProductionInvestigateHandlers(
       }
       state.status = status;
       emitMonitorEvent({ projectId, itemId, type: "status" });
+      if (status === "review") {
+        await enqueueWebhooks(projectId, itemId);
+      }
       return `Status updated to "${status}".`;
     },
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Tag } from "@phosphor-icons/react/Tag";
 import { Trash } from "@phosphor-icons/react/Trash";
@@ -12,6 +12,12 @@ const PRESET_COLORS = [
 ];
 
 type LabelDraft = { id: string; name: string; color: string };
+
+export interface LabelsSectionHandle {
+  isDirty: boolean;
+  save: () => Promise<void>;
+  isSaving: boolean;
+}
 
 /* ── Color picker popover ──────────────────────────── */
 
@@ -200,151 +206,147 @@ function NewLabelInput({
 
 /* ── Main section ──────────────────────────────────── */
 
-export function LabelsSection({ projectId }: { projectId: string }) {
-  const labels = trpc.labels.list.useQuery({ projectId });
-  const utils = trpc.useUtils();
-  const invalidate = useCallback(
-    () => utils.labels.list.invalidate({ projectId }),
-    [utils, projectId],
-  );
+export const LabelsSection = forwardRef<LabelsSectionHandle, { projectId: string }>(
+  function LabelsSection({ projectId }, ref) {
+    const labels = trpc.labels.list.useQuery({ projectId });
+    const utils = trpc.useUtils();
+    const invalidate = useCallback(
+      () => utils.labels.list.invalidate({ projectId }),
+      [utils, projectId],
+    );
 
-  const createLabel = trpc.labels.create.useMutation({ onSuccess: invalidate });
-  const updateLabel = trpc.labels.update.useMutation({ onSuccess: invalidate });
-  const deleteLabelMut = trpc.labels.delete.useMutation({ onSuccess: invalidate });
+    const createLabel = trpc.labels.create.useMutation({ onSuccess: invalidate });
+    const updateLabel = trpc.labels.update.useMutation({ onSuccess: invalidate });
+    const deleteLabelMut = trpc.labels.delete.useMutation({ onSuccess: invalidate });
 
-  // Local draft state — mirrors server data, tracks pending edits
-  const [drafts, setDrafts] = useState<LabelDraft[]>([]);
-  useEffect(() => {
-    if (labels.data) {
-      setDrafts(labels.data.map((l) => ({ id: l.id, name: l.name, color: l.color })));
-    }
-  }, [labels.data]);
+    // Local draft state — mirrors server data, tracks pending edits
+    const [drafts, setDrafts] = useState<LabelDraft[]>([]);
+    useEffect(() => {
+      if (labels.data) {
+        setDrafts(labels.data.map((l) => ({ id: l.id, name: l.name, color: l.color })));
+      }
+    }, [labels.data]);
 
-  const handleUpdate = (id: string, patch: Partial<{ name: string; color: string }>) => {
-    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-  };
+    const handleUpdate = (id: string, patch: Partial<{ name: string; color: string }>) => {
+      setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    };
 
-  // Compute dirty state
-  const isDirty = labels.data
-    ? drafts.some((d) => {
-        const original = labels.data!.find((l) => l.id === d.id);
-        return original && (original.name !== d.name || original.color !== d.color);
-      })
-    : false;
+    // Compute dirty state
+    const isDirty = labels.data
+      ? drafts.some((d) => {
+          const original = labels.data!.find((l) => l.id === d.id);
+          return original && (original.name !== d.name || original.color !== d.color);
+        })
+      : false;
 
-  const isSaving = updateLabel.isPending;
+    const isSaving = updateLabel.isPending;
 
-  const handleSave = async () => {
-    if (!labels.data) return;
-    const mutations = drafts
-      .filter((d) => {
-        const original = labels.data!.find((l) => l.id === d.id);
-        return original && (original.name !== d.name.trim() || original.color !== d.color);
-      })
-      .filter((d) => d.name.trim())
-      .map((d) =>
-        updateLabel.mutateAsync({
-          projectId,
-          id: d.id,
-          name: d.name.trim(),
-          color: d.color,
-        }),
-      );
-    await Promise.all(mutations);
-  };
+    const save = useCallback(async () => {
+      if (!labels.data) return;
+      const mutations = drafts
+        .filter((d) => {
+          const original = labels.data!.find((l) => l.id === d.id);
+          return original && (original.name !== d.name.trim() || original.color !== d.color);
+        })
+        .filter((d) => d.name.trim())
+        .map((d) =>
+          updateLabel.mutateAsync({
+            projectId,
+            id: d.id,
+            name: d.name.trim(),
+            color: d.color,
+          }),
+        );
+      await Promise.all(mutations);
+    }, [labels.data, drafts, updateLabel, projectId]);
 
-  const handleCreate = (name: string, color: string) => {
-    createLabel.mutate({ projectId, name, color });
-  };
+    useImperativeHandle(ref, () => ({ isDirty, save, isSaving }), [isDirty, save, isSaving]);
 
-  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
-  const handleDelete = () => {
-    if (deleting) {
-      deleteLabelMut.mutate({ projectId, id: deleting.id });
-      setDeleting(null);
-    }
-  };
+    const handleCreate = (name: string, color: string) => {
+      createLabel.mutate({ projectId, name, color });
+    };
 
-  const usedColors = drafts.map((l) => l.color);
-  const hasLabels = drafts.length > 0;
+    const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+    const handleDelete = () => {
+      if (deleting) {
+        deleteLabelMut.mutate({ projectId, id: deleting.id });
+        setDeleting(null);
+      }
+    };
 
-  return (
-    <section className="space-y-6 max-w-md">
-      <div>
-        <h3 className="text-sm font-semibold mb-1">Labels</h3>
-        <p className="text-xs text-zinc-400">
-          Categorize monitor items. Click a name to rename it, or a color dot to change it.
-        </p>
-      </div>
+    const usedColors = drafts.map((l) => l.color);
+    const hasLabels = drafts.length > 0;
 
-      <div className="rounded-lg border border-zinc-800/70 bg-zinc-900/30 divide-y divide-zinc-800/50">
-        {/* Empty state */}
-        {labels.data && !hasLabels && (
-          <div className="flex flex-col items-center gap-2 py-8 text-zinc-500">
-            <Tag size={24} weight="duotone" />
-            <p className="text-sm">No labels yet</p>
-            <p className="text-xs text-zinc-600">
-              Type below to create your first label
-            </p>
-          </div>
-        )}
+    return (
+      <>
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+            Labels
+          </label>
+          <p className="text-xs text-zinc-500 mb-1.5">
+            Categorize monitor items. Click a name to rename it, or a color dot to change it.
+          </p>
+        </div>
 
-        {/* Label rows */}
-        {drafts.map((label) => (
-          <LabelRow
-            key={label.id}
-            label={label}
-            onUpdate={handleUpdate}
-            onDelete={setDeleting}
-          />
-        ))}
+        <div className="rounded-lg border border-zinc-800/70 bg-zinc-900/30 divide-y divide-zinc-800/50">
+          {/* Empty state */}
+          {labels.data && !hasLabels && (
+            <div className="flex flex-col items-center gap-2 py-8 text-zinc-500">
+              <Tag size={24} weight="duotone" />
+              <p className="text-sm">No labels yet</p>
+              <p className="text-xs text-zinc-600">
+                Type below to create your first label
+              </p>
+            </div>
+          )}
 
-        {/* Always-visible creation row */}
-        <NewLabelInput usedColors={usedColors} onCreate={handleCreate} />
-      </div>
+          {/* Label rows */}
+          {drafts.map((label) => (
+            <LabelRow
+              key={label.id}
+              label={label}
+              onUpdate={handleUpdate}
+              onDelete={setDeleting}
+            />
+          ))}
 
-      {/* Single save button */}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={!isDirty || isSaving}
-        className="rounded-md bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-      >
-        {isSaving ? "Saving…" : "Save"}
-      </button>
+          {/* Always-visible creation row */}
+          <NewLabelInput usedColors={usedColors} onCreate={handleCreate} />
+        </div>
 
-      {/* Delete confirmation */}
-      <AlertDialog.Root
-        open={deleting !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null);
-        }}
-      >
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className={backdropCls} />
-          <AlertDialog.Viewport className="fixed inset-0 z-[60] grid place-items-center px-4">
-            <AlertDialog.Popup className={popupCls}>
-              <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
-                Delete "{deleting?.name}"?
-              </AlertDialog.Title>
-              <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
-                This label will be removed from all monitor items that use it.
-              </AlertDialog.Description>
-              <div className="flex justify-end gap-2">
-                <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
-                  Cancel
-                </AlertDialog.Close>
-                <AlertDialog.Close
-                  onClick={handleDelete}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
-                >
-                  Delete
-                </AlertDialog.Close>
-              </div>
-            </AlertDialog.Popup>
-          </AlertDialog.Viewport>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
-    </section>
-  );
-}
+        {/* Delete confirmation */}
+        <AlertDialog.Root
+          open={deleting !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleting(null);
+          }}
+        >
+          <AlertDialog.Portal>
+            <AlertDialog.Backdrop className={backdropCls} />
+            <AlertDialog.Viewport className="fixed inset-0 z-[60] grid place-items-center px-4">
+              <AlertDialog.Popup className={popupCls}>
+                <AlertDialog.Title className="text-base font-semibold text-zinc-100 mb-1">
+                  Delete "{deleting?.name}"?
+                </AlertDialog.Title>
+                <AlertDialog.Description className="text-sm text-zinc-400 mb-6">
+                  This label will be removed from all monitor items that use it.
+                </AlertDialog.Description>
+                <div className="flex justify-end gap-2">
+                  <AlertDialog.Close className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors">
+                    Cancel
+                  </AlertDialog.Close>
+                  <AlertDialog.Close
+                    onClick={handleDelete}
+                    className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </AlertDialog.Close>
+                </div>
+              </AlertDialog.Popup>
+            </AlertDialog.Viewport>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
+      </>
+    );
+  },
+);

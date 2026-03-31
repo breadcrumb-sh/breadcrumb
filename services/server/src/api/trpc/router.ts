@@ -10,6 +10,7 @@ import { aiProvidersRouter } from "./ai-providers.js";
 import { configRouter } from "./config.js";
 import { monitorRouter } from "./monitor.js";
 import { labelsRouter } from "./labels.js";
+import { integrationsRouter } from "./integrations.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -24,6 +25,7 @@ export const appRouter = router({
   aiProviders: aiProvidersRouter,
   monitor: monitorRouter,
   labels: labelsRouter,
+  integrations: integrationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

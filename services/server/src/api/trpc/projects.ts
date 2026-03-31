@@ -72,28 +72,27 @@ export const projectsRouter = router({
       return p;
     }),
 
-  rename: projectAdminProcedure
+  update: projectAdminProcedure
     .input(
-      z.object({ projectId: z.string(), name: z.string().min(1).max(255) }),
+      z.object({
+        projectId: z.string(),
+        name: z.string().min(1).max(255).optional(),
+        timezone: z.string().max(64).optional(),
+      }),
     )
     .mutation(async ({ input }) => {
+      const { projectId, ...fields } = input;
+      const set: Record<string, unknown> = {};
+      if (fields.name !== undefined) set.name = fields.name;
+      if (fields.timezone !== undefined) set.timezone = fields.timezone;
+      if (Object.keys(set).length === 0) {
+        const [p] = await db.select().from(project).where(eq(project.id, projectId));
+        return p;
+      }
       const [p] = await db
         .update(project)
-        .set({ name: input.name })
-        .where(eq(project.id, input.projectId))
-        .returning();
-      return p;
-    }),
-
-  updateTimezone: projectAdminProcedure
-    .input(
-      z.object({ projectId: z.string(), timezone: z.string().max(64) }),
-    )
-    .mutation(async ({ input }) => {
-      const [p] = await db
-        .update(project)
-        .set({ timezone: input.timezone })
-        .where(eq(project.id, input.projectId))
+        .set(set)
+        .where(eq(project.id, projectId))
         .returning();
       return p;
     }),

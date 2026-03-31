@@ -22,6 +22,9 @@ async function main() {
   const { registerMonitorJobs } = await import("./services/monitor/jobs.js");
   await registerMonitorJobs();
 
+  const { registerWebhookJobs } = await import("./services/monitor/webhooks.js");
+  await registerWebhookJobs();
+
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
 

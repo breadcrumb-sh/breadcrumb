@@ -211,6 +211,13 @@
       "when": 1774930000000,
       "tag": "0029_monitor_trace_names",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1774940000000,
+      "tag": "0030_webhook_integrations",
+      "breakpoints": true
     }
   ]
 }
