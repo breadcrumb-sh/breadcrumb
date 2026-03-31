@@ -2,6 +2,7 @@
  * Production tool handlers for the scan agent.
  */
 
+import type { LanguageModel } from "ai";
 import { eq } from "drizzle-orm";
 import { boss } from "../../shared/lib/boss.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
@@ -9,6 +10,7 @@ import { db } from "../../shared/db/postgres.js";
 import { monitorItems, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { formatQueryResult } from "./format-query-result.js";
+import { checkDuplicate } from "./dedup.js";
 import type { ScanToolHandlers } from "./scan-agent.js";
 
 const log = createLogger("monitor-scan");
@@ -16,6 +18,7 @@ const log = createLogger("monitor-scan");
 export function createProductionScanHandlers(
   projectId: string,
   state: { memory: string },
+  model: LanguageModel,
 ): ScanToolHandlers {
   return {
     async runQuery(sql) {
@@ -49,6 +52,11 @@ export function createProductionScanHandlers(
     },
 
     async createTicket(title, description, delayMinutes) {
+      const dedup = await checkDuplicate(projectId, title, description, model);
+      if (dedup.blocked) {
+        return dedup.message;
+      }
+
       const [created] = await db
         .insert(monitorItems)
         .values({ projectId, title, description, source: "agent", read: false })

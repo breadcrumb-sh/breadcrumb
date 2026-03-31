@@ -2,6 +2,7 @@
  * Production tool handlers for the investigation agent.
  */
 
+import type { LanguageModel } from "ai";
 import { and, eq, inArray } from "drizzle-orm";
 import { boss } from "../../shared/lib/boss.js";
 import { runSandboxedQuery } from "../../shared/lib/sandboxed-query.js";
@@ -9,6 +10,7 @@ import { db } from "../../shared/db/postgres.js";
 import { monitorItems, monitorComments, monitorLabels, monitorItemLabels, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { formatQueryResult } from "./format-query-result.js";
+import { checkDuplicate } from "./dedup.js";
 import { emitMonitorEvent } from "./events.js";
 import { recordActivity } from "./activity.js";
 import type { InvestigateToolHandlers } from "./investigate-agent.js";
@@ -19,6 +21,7 @@ export function createProductionInvestigateHandlers(
   projectId: string,
   itemId: string,
   state: { memory: string; note: string; status: string },
+  model: LanguageModel,
 ): InvestigateToolHandlers {
   return {
     async runQuery(sql) {
@@ -132,6 +135,11 @@ export function createProductionInvestigateHandlers(
 
     async scheduleFollowup({ delayMinutes, reason, newTicket }) {
       if (newTicket) {
+        const dedup = await checkDuplicate(projectId, newTicket.title, newTicket.description, model);
+        if (dedup.blocked) {
+          return dedup.message;
+        }
+
         log.info({ itemId, delayMinutes, reason, newTitle: newTicket.title }, "creating new scheduled ticket");
         const [created] = await db
           .insert(monitorItems)

@@ -33,7 +33,7 @@ export async function runScan(projectId: string) {
     .where(eq(project.id, projectId));
 
   const state = { memory: proj?.agentMemory ?? "" };
-  const handlers = createProductionScanHandlers(projectId, state);
+  const handlers = createProductionScanHandlers(projectId, state, model);
   const { system, prompt } = buildScanPrompt({ projectMemory: state.memory });
   const tools = createScanTools(handlers);
 

@@ -66,7 +66,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     status: item.status,
   };
 
-  const handlers = createProductionInvestigateHandlers(projectId, itemId, state);
+  const handlers = createProductionInvestigateHandlers(projectId, itemId, state, model);
 
   const { system, messages } = buildInvestigatePrompt({
     projectMemory: state.memory,
