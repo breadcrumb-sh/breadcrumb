@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db } from "../../shared/db/postgres.js";
 import { monitorItems } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
+import { trackMonitorDuplicateBlocked } from "../../shared/lib/telemetry.js";
 
 const log = createLogger("monitor-dedup");
 
@@ -102,6 +103,7 @@ A ticket is a duplicate if it describes the same underlying issue, even if worde
       const matchTitle = existing.find((t) => t.id === object.existingTicketId)?.title ?? "unknown";
       const msg = `Duplicate detected (${object.confidence} confidence): matches existing ticket "${matchTitle}" [${object.existingTicketId}]. ${object.reason}`;
       log.info({ projectId, title, existingId: object.existingTicketId, confidence: object.confidence }, "duplicate blocked");
+      trackMonitorDuplicateBlocked(object.confidence);
       return { blocked: true, message: msg };
     }
 

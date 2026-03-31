@@ -20,14 +20,16 @@ Every event we track is listed on this page. If it's not here, we don't collect 
 | `api_key_created` | - | An API key was generated. |
 | `mcp_key_created` | - | An MCP key was generated. |
 | `ai_provider_configured` | `provider` | An AI provider was connected. |
-| `observation_created` | `sampling_rate`, `has_heuristics`, `trace_filter_count` | An observation rule was created. |
-| `observation_toggled` | `enabled` | An observation rule was enabled or disabled. |
-| `finding_created` | `impact` | An observation run produced a finding. |
-| `finding_dismissed` | `impact` | A finding was dismissed. |
-| `explore_message_sent` | - | A message was sent in Explore. |
-| `explore_chart_starred` | - | A chart was starred in Explore. |
 | `member_invited` | `role` | A team member was invited. |
 | `mcp_tool_used` | `tool_name` | An MCP tool was called by an LLM client. |
+| `query_rejected` | `source`, `code`, `detail_count` | A sandboxed ClickHouse query was rejected by validation. |
+| `monitor_scan_completed` | `ticket_count`, `query_count`, `cost_cents` | A monitor scan agent run finished. |
+| `monitor_investigation_completed` | `verdict`, `cost_cents` | A monitor investigation agent run finished. |
+| `monitor_item_created` | - | A user manually created a monitor ticket. |
+| `monitor_item_status_changed` | `from_status`, `to_status` | A user changed a monitor ticket's status. |
+| `monitor_user_comment` | - | A user commented on a monitor ticket. |
+| `monitor_investigation_triggered` | - | A user manually triggered an investigation. |
+| `monitor_duplicate_blocked` | `confidence` | Duplicate detection prevented a ticket from being created. |
 | `slow_trpc_request` | `procedure`, `duration_ms`, `ok` | A tRPC request took longer than 1 second. |
 | `slow_clickhouse_query` | `source`, `duration_ms` | A ClickHouse query took longer than 500ms. |
 | `slow_ingest_batch` | `table`, `row_count`, `duration_ms` | An ingest batch insert took longer than 500ms. |
@@ -40,9 +42,8 @@ All frontend events include a `theme` property (`dark` or `light`).
 | Event | Properties | Description |
 | ----- | ---------- | ----------- |
 | `app_loaded` | - | The dashboard was opened in a browser. |
-| `page_viewed` | `page_type` | A page was viewed. Only the generic type is sent (e.g. `traces`, `settings`) - never the URL. |
+| `page_viewed` | `page_type` | A page was viewed. Only the generic type is sent (e.g. `traces`, `settings`, `monitor`) - never the URL. |
 | `trace_search_used` | - | A trace search was performed. |
-| `explore_created` | - | A new Explore session was started. |
 
 ## What we never collect
 

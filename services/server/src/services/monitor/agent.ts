@@ -12,6 +12,7 @@ import { db } from "../../shared/db/postgres.js";
 import { monitorItems, monitorComments, monitorLabels, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
+import { trackMonitorInvestigationCompleted } from "../../shared/lib/telemetry.js";
 import { recordUsage } from "./usage.js";
 import { emitMonitorEvent } from "./events.js";
 import { buildInvestigatePrompt, createInvestigateTools } from "./investigate-agent.js";
@@ -112,6 +113,14 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     const output = result.usage?.outputTokens ?? 0;
     const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
     await recordUsage(projectId, input, output, costCents);
+
+    // Read final status for telemetry
+    const [final] = await db
+      .select({ status: monitorItems.status })
+      .from(monitorItems)
+      .where(eq(monitorItems.id, itemId));
+    trackMonitorInvestigationCompleted(final?.status ?? "unknown", costCents);
+
     log.info({ projectId, itemId, inputTokens: input, outputTokens: output, costCents }, "investigation complete");
   } catch (err) {
     log.error({ projectId, itemId, err }, "investigation failed");

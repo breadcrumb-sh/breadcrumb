@@ -13,6 +13,7 @@ import {
 import { db } from "../../shared/db/postgres.js";
 import { monitorItems, monitorComments, monitorActivity, monitorLabels, monitorItemLabels, project, agentUsage, user } from "../../shared/db/schema.js";
 import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
+import { trackMonitorItemCreated, trackMonitorItemStatusChanged, trackMonitorUserComment, trackMonitorInvestigationTriggered } from "../../shared/lib/telemetry.js";
 import { enqueueProcess } from "../../services/monitor/jobs.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
 import { monitorEvents, emitMonitorEvent, type MonitorEvent } from "../../services/monitor/events.js";
@@ -127,6 +128,7 @@ export const monitorRouter = router({
 
       await recordActivity(item.id, "created", "user", { actorId: ctx.user.id });
       await enqueueProcess(input.projectId, item.id);
+      trackMonitorItemCreated();
 
       return item;
     }),
@@ -168,6 +170,7 @@ export const monitorRouter = router({
         .returning();
 
       if (updates.status && updates.status !== item.status) {
+        trackMonitorItemStatusChanged(item.status, updates.status);
         await recordActivity(id, "status_change", "user", { fromStatus: item.status, toStatus: updates.status, actorId: ctx.user.id });
         if (updates.status === "queue") {
           await enqueueProcess(item.projectId, id);
@@ -315,6 +318,7 @@ export const monitorRouter = router({
 
       // Enqueue investigation so the agent can respond to the comment
       await enqueueProcess(item.projectId, input.monitorItemId, true);
+      trackMonitorUserComment();
 
       return comment;
     }),
@@ -348,6 +352,7 @@ export const monitorRouter = router({
 
       // Fire and forget
       runInvestigation({ projectId: item.projectId, itemId: item.id }).catch(() => {});
+      trackMonitorInvestigationTriggered();
     }),
 
   // ── Agent memory ──────────────────────────────────────────────────

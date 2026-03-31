@@ -15,13 +15,20 @@ import type { ScanToolHandlers } from "./scan-agent.js";
 
 const log = createLogger("monitor-scan");
 
+export interface ScanStats {
+  queryCount: number;
+  ticketCount: number;
+}
+
 export function createProductionScanHandlers(
   projectId: string,
   state: { memory: string },
   model: LanguageModel,
+  stats: ScanStats = { queryCount: 0, ticketCount: 0 },
 ): ScanToolHandlers {
   return {
     async runQuery(sql) {
+      stats.queryCount++;
       log.debug({ projectId, sql }, "scan query");
       try {
         const rows = await runSandboxedQuery(projectId, sql, "monitor-scan");
@@ -61,6 +68,7 @@ export function createProductionScanHandlers(
         .insert(monitorItems)
         .values({ projectId, title, description, source: "agent", read: false })
         .returning();
+      stats.ticketCount++;
       log.info({ projectId, itemId: created.id, title }, "scan created ticket");
 
       const delay = delayMinutes ?? 0;

@@ -12,9 +12,10 @@ import { db } from "../../shared/db/postgres.js";
 import { project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
+import { trackMonitorScanCompleted } from "../../shared/lib/telemetry.js";
 import { recordUsage } from "./usage.js";
 import { buildScanPrompt, createScanTools } from "./scan-agent.js";
-import { createProductionScanHandlers } from "./scan-handlers.js";
+import { createProductionScanHandlers, type ScanStats } from "./scan-handlers.js";
 
 const log = createLogger("monitor-scan");
 
@@ -33,7 +34,8 @@ export async function runScan(projectId: string) {
     .where(eq(project.id, projectId));
 
   const state = { memory: proj?.agentMemory ?? "" };
-  const handlers = createProductionScanHandlers(projectId, state, model);
+  const stats: ScanStats = { queryCount: 0, ticketCount: 0 };
+  const handlers = createProductionScanHandlers(projectId, state, model, stats);
   const { system, prompt } = buildScanPrompt({ projectMemory: state.memory });
   const tools = createScanTools(handlers);
 
@@ -54,6 +56,7 @@ export async function runScan(projectId: string) {
     const output = result.usage?.outputTokens ?? 0;
     const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
     await recordUsage(projectId, input, output, costCents);
+    trackMonitorScanCompleted(stats.ticketCount, stats.queryCount, costCents);
     log.info({ projectId, inputTokens: input, outputTokens: output, costCents }, "scan complete");
   } catch (err) {
     log.error({ projectId, err }, "scan failed");
