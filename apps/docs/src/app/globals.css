@@ -544,7 +544,7 @@ div:has(> [data-orientation]) figure.shiki {
   }
 
   .hero-screenshot-section {
-    padding: 3rem 0 0;
+    padding: 5rem 0 0;
     overflow-x: clip;
   }
 

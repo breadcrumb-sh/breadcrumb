@@ -72,14 +72,14 @@ export default function Home() {
         </nav>
 
         <section className="relative z-10">
-          <div className="marketing-inner pt-10 sm:pt-28">
-            <h1 className="motion-blur-in-sm motion-duration-1000 mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
+          <div className="marketing-inner pt-14 sm:pt-28">
+            <h1 className="motion-blur-in-sm motion-duration-1000 mb-6 sm:mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
               Open-source LLM tracing that catches what dashboards can't
             </h1>
-            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-200 mb-8 max-w-[540px] text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
+            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-500 mb-8 max-w-[540px] text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
               Your agent hallucinated, lost context, and returned a confident wrong answer. The error rate stayed at zero. Breadcrumb catches that.
             </p>
-            <div className="motion-blur-in-sm motion-duration-1000 motion-delay-400 flex w-full gap-3 sm:w-auto">
+            <div className="motion-blur-in-sm motion-duration-1000 motion-delay-700 flex w-full gap-3 sm:w-auto">
               <a
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
@@ -103,7 +103,7 @@ export default function Home() {
         <section className="hero-screenshot-section relative">
           <div className="hero-screenshot-gradient" />
           <div className="hero-screenshot-wrapper">
-            <div className="hero-screenshot-container motion-translate-y-in-[30px] motion-opacity-in-0 motion-blur-in-sm motion-duration-1000 motion-delay-200">
+            <div className="hero-screenshot-container motion-translate-y-in-[30px] motion-opacity-in-0 motion-blur-in-sm motion-duration-1000 motion-delay-700">
               <div className="hero-img-wrap">
                 <img
                   src="/dashboard.webp"
