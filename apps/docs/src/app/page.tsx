@@ -47,24 +47,38 @@ export default function Home() {
                 </span>
               </Link>
             </div>
-            <div className="flex flex-row items-center gap-8">
+            <div className="flex flex-row items-center gap-4 sm:gap-8">
               <Link
                 href="/docs/introduction"
-                className="hidden font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg sm:block"
+                className="font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg"
               >
                 Docs
               </Link>
               <a
+                href="https://www.producthunt.com/products/breadcrumb-2?utm_source=badge-follow&utm_medium=badge&utm_source=badge-breadcrumb-2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sm:hidden"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/follow.svg?product_id=1189959&theme=dark&size=small"
+                  alt="Breadcrumb - Open-source LLM tracing for agent visibility | Product Hunt"
+                  width="86"
+                  height="32"
+                />
+              </a>
+              <a
                 href="https://www.producthunt.com/products/breadcrumb-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-breadcrumb-3"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="hidden sm:block"
               >
                 <img
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1107414&theme=dark&t=1774619256689"
                   alt="Breadcrumb - Open-source LLM tracing for agent visibility | Product Hunt"
                   width="250"
                   height="54"
-                  className="h-8 w-auto sm:h-9"
+                  className="h-9 w-auto"
                 />
               </a>
             </div>
@@ -76,8 +90,8 @@ export default function Home() {
             <h1 className="motion-blur-in-sm motion-duration-1000 mb-6 sm:mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
               Open-source LLM tracing that catches what dashboards can't
             </h1>
-            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-500 mb-8 max-w-[540px] text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
-              Your agent hallucinated, lost context, and returned a confident wrong answer. The error rate stayed at zero. Breadcrumb catches that.
+            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-500 mb-8 max-w-[620px] text-balance text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
+              Your agent returned a confident wrong answer. The error rate stayed at zero.
             </p>
             <div className="motion-blur-in-sm motion-duration-1000 motion-delay-700 flex w-full gap-3 sm:w-auto">
               <a
@@ -119,13 +133,11 @@ export default function Home() {
         <section className="relative z-10 border-b border-border bg-bg">
           <div className="marketing-inner py-14 sm:py-20">
             <div className="mb-10 sm:mb-14">
-              <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
-                An AI that monitors your AI agents.
+              <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+                Issues found before your users find them.
               </h2>
-              <p className="max-w-[480px] text-[13px] leading-[1.8] text-fg-2 sm:text-[14px]">
-                Breadcrumb scans every incoming trace with an agent that understands what
-                your code was trying to do - not just whether it threw an error. When it
-                finds something, it investigates and reports back.
+              <p className="max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
+                A monitoring agent that reads every trace, learns your project, and surfaces what matters.
               </p>
             </div>
 
@@ -218,11 +230,11 @@ export default function Home() {
         {/* What it understands */}
         <section className="border-b border-border">
           <div className="marketing-inner py-14 sm:py-20">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
               Other tools log your traces. Breadcrumb understands them.
             </h2>
-            <p className="mb-10 max-w-[480px] text-[13px] leading-[1.8] text-fg-2 sm:mb-14 sm:text-[14px]">
-              Stop reading traces manually. Breadcrumb learns your project and flags real issues before your users hit them.
+            <p className="mb-10 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:mb-14 sm:text-[14px]">
+              Every other tracing tool expects you to find the problems yourself. Breadcrumb's agent reads every trace, builds context over time, and gets smarter about what matters in your project.
             </p>
             <div className="findings-ticker-wrap">
               <div className="findings-ticker">
@@ -335,11 +347,11 @@ export default function Home() {
         {/* SDK integration */}
         <section className="border-b border-border">
           <div className="marketing-inner py-14 sm:py-20">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
               Three lines of code. Never miss an issue.
             </h2>
-            <p className="mb-8 max-w-[480px] text-[13px] leading-[1.8] text-fg-2 sm:text-[14px]">
-              Works with the Vercel AI SDK out of the box. Import, initialize, pass telemetry, stay informed.
+            <p className="mb-8 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
+              Works with Vercel AI SDK out of the box. Import, initialize, pass telemetry, stay informed.
             </p>
             <pre className="overflow-x-auto border border-border bg-surface p-4 font-mono text-[12px] leading-[1.7] text-fg-2 sm:text-[13px]">
               <code dangerouslySetInnerHTML={{ __html: codeSnippet }} />
@@ -350,10 +362,10 @@ export default function Home() {
         {/* Open source + CTA */}
         <section className="border-b border-border">
           <div className="marketing-inner py-14 sm:py-20">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
               Open source. Self-hosted. Your data.
             </h2>
-            <p className="mb-7 max-w-[420px] text-[13px] leading-[1.8] text-fg-2 sm:text-[14px]">
+            <p className="mb-7 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
               Deploy on Railway, Fly, or your own servers. Fork it, extend it, run it
               however you want. No usage fees, no vendor lock-in.
             </p>
