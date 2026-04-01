@@ -30,9 +30,9 @@ function fillDays<T>(
 ): { date: string; value: number }[] {
   const map = new Map(rows.map((r) => [getKey(r), r]));
   const data: { date: string; value: number }[] = [];
-  const start = new Date(from);
-  const end = new Date(to);
-  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+  const start = new Date(from + "T00:00:00Z");
+  const end = new Date(to + "T00:00:00Z");
+  for (const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     data.push({ date: key, value: getValue(map.get(key)) });
   }

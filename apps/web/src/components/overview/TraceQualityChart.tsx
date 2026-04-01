@@ -157,9 +157,9 @@ export function TraceQualityChart({
       return [] as Array<QualityData["days"][number] & { total: number }>;
     const map = new Map(raw.map((d) => [d.date, d]));
     const filled: Array<QualityData["days"][number] & { total: number }> = [];
-    const start = new Date(from);
-    const end = new Date(to);
-    for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const start = new Date(from + "T00:00:00Z");
+    const end = new Date(to + "T00:00:00Z");
+    for (const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const key = d.toISOString().slice(0, 10);
       const row = map.get(key) ?? {
         date: key,
