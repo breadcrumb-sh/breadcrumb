@@ -13,9 +13,9 @@ import {
   type SpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { BreadcrumbSpanExporter, SpanIdTracker } from "./exporter.js";
-import type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message } from "./types.js";
+import type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message, SpanPayload, BeforeSendHook } from "./types.js";
 
-export type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message };
+export type { Breadcrumb, BreadcrumbSpan, SpanOptions, SpanData, Message, SpanPayload, BeforeSendHook };
 
 export interface InitOptions {
   apiKey: string;
@@ -27,6 +27,12 @@ export interface InitOptions {
         flushInterval?: number;
         maxBatchSize?: number;
       };
+  /**
+   * Called for each span before it is sent to the Breadcrumb API.
+   * Use this to redact PII, filter spans, or enrich metadata client-side.
+   * Return the (possibly modified) payload, or `null` to drop the span entirely.
+   */
+  beforeSend?: BeforeSendHook;
 }
 
 // Track the active provider so we can clean up on re-init and avoid
@@ -74,6 +80,7 @@ export function init(options: InitOptions): Breadcrumb {
     options.environment,
     undefined,
     tracker,
+    options.beforeSend,
   );
 
   const batchOpts =
@@ -205,6 +212,7 @@ export function createBreadcrumbSpanProcessor(options: {
   baseUrl: string;
   environment?: string;
   batching?: false | { flushInterval?: number; maxBatchSize?: number };
+  beforeSend?: BeforeSendHook;
 }): SpanProcessor {
   const tracker = new SpanIdTracker();
   const exporter = new BreadcrumbSpanExporter(
@@ -213,6 +221,7 @@ export function createBreadcrumbSpanProcessor(options: {
     options.environment,
     undefined,
     tracker,
+    options.beforeSend,
   );
 
   const inner: SpanProcessor =

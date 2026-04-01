@@ -1,0 +1,36 @@
+---
+title: Privacy & PII Redaction
+---
+
+Breadcrumb gives you two layers of PII protection: a client-side `beforeSend` hook that intercepts data before it leaves your infrastructure, and [server-side regex redaction](/docs/product/configuration/privacy) applied at ingestion. Use both for defense in depth.
+
+## `beforeSend` hook
+
+Runs on every span before it's sent. Modify the payload to redact data, or return `null` to drop it entirely.
+
+```ts
+const bc = init({
+  apiKey: "bc-...",
+  baseUrl: "https://your-instance.breadcrumb.dev",
+  beforeSend(payload) {
+    // Redact emails from all string fields
+    if (typeof payload.input === "string") {
+      payload.input = payload.input.replace(
+        /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,
+        "[EMAIL_REDACTED]"
+      );
+    }
+    return payload; // or return null to drop the span
+  },
+});
+```
+
+The hook receives a `SpanPayload` with `input`, `output`, `metadata`, `status_message`, `name`, `model`, `provider`, and other span fields. The full type is exported from `@breadcrumb-sdk/core`.
+
+If the hook throws, the original payload is sent unchanged — fail-open so you never lose data.
+
+## Server-side redaction
+
+Configured per project in **Settings > Privacy**. Covers emails, phone numbers, SSNs, credit cards, IP addresses, API keys, and more out of the box, plus custom regex patterns you define.
+
+See [Privacy configuration](/docs/product/configuration/privacy) for the full list of built-in patterns, custom pattern setup, and limitations.

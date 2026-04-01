@@ -37,6 +37,33 @@ export interface SpanOptions {
   type?: "llm" | "tool" | "retrieval" | "step";
 }
 
+export interface SpanPayload {
+  id: string;
+  trace_id: string;
+  parent_span_id?: string;
+  name: string;
+  type: string;
+  start_time: string;
+  end_time: string;
+  status: "ok" | "error";
+  status_message?: string;
+  input?: unknown;
+  output?: unknown;
+  provider?: string;
+  model?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  input_cost_usd?: number;
+  output_cost_usd?: number;
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Called for each span before it is sent to the Breadcrumb API.
+ * Return the (possibly modified) payload to send it, or `null` to drop the span.
+ */
+export type BeforeSendHook = (payload: SpanPayload) => SpanPayload | null | Promise<SpanPayload | null>;
+
 export interface Breadcrumb {
   trace<T>(name: string, fn: (span: BreadcrumbSpan) => Promise<T>): Promise<T>;
   span<T>(

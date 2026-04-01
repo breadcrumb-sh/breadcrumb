@@ -1,0 +1,41 @@
+---
+title: Privacy & PII Redaction
+---
+
+Traces contain what your users say to your AI — and what it says back. Breadcrumb's PII redaction strips sensitive data at ingestion, before anything hits the database. Once redacted, original values are gone for good.
+
+Configure per project in **Settings > Privacy**.
+
+## What gets scanned
+
+Every incoming trace and span is scanned across `input`, `output`, `metadata`, `status_message`, and `tags`. Matches are replaced with tokens like `[EMAIL_REDACTED]`.
+
+## Built-in patterns
+
+All enabled by default except URLs:
+
+| Pattern | Example | Replacement |
+|---------|---------|-------------|
+| Email | `user@example.com` | `[EMAIL_REDACTED]` |
+| Phone | `+1 (555) 123-4567` | `[PHONE_REDACTED]` |
+| SSN | `123-45-6789` | `[SSN_REDACTED]` |
+| Credit card | `4111 1111 1111 1111` | `[CREDIT_CARD_REDACTED]` |
+| IP address | `192.168.1.1` | `[IP_REDACTED]` |
+| Date of birth | `03/15/1990` | `[DOB_REDACTED]` |
+| US address | `123 Main Street` | `[ADDRESS_REDACTED]` |
+| API key | `sk-...`, `AKIA...`, `ghp_...` | `[API_KEY_REDACTED]` |
+| URL | `https://...` | `[URL_REDACTED]` |
+
+Toggle each one individually.
+
+## Custom patterns
+
+Add custom regex patterns for domain-specific data — each with a label, pattern (applied with `g` flag), and replacement.
+
+Examples: `CUST-\d+` → `[CUSTOMER_ID]`, `ORD-[A-Z0-9]+` → `[ORDER_ID]`
+
+## What it won't catch
+
+Regex works on structure, not meaning. It won't detect person names, freeform addresses, or numbers that happen to be sensitive in context.
+
+For those cases, use the SDK's [`beforeSend` hook](/docs/sdks/typescript/privacy) — it intercepts spans before they leave your infrastructure, so you can apply ML-based detection, custom dictionaries, or any logic you need.

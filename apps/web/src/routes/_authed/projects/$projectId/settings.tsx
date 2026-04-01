@@ -7,12 +7,13 @@ import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
 import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
 import { IntegrationsSection } from "../../../../components/settings/IntegrationsSection";
+import { PiiRedactionSection } from "../../../../components/settings/PiiRedactionSection";
 import { useOrgRole } from "../../../../hooks/useOrgRole";
 import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "integrations", "ai", "memory", "limits", "danger"]).optional(),
+  tab: z.enum(["general", "api-keys", "integrations", "privacy", "ai", "memory", "limits", "danger"]).optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -40,6 +41,7 @@ function SettingsPage() {
         <ApiKeysSection projectId={projectId} canManage={isAdmin} />
       )}
       {section === "integrations" && <IntegrationsSection projectId={projectId} />}
+      {section === "privacy" && <PiiRedactionSection projectId={projectId} />}
       {section === "ai" && <AiProviderSection projectId={projectId} />}
       {section === "memory" && <AgentMemorySection projectId={projectId} />}
       {section === "limits" && <AgentLimitsSection projectId={projectId} />}

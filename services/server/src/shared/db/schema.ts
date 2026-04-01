@@ -200,6 +200,43 @@ export const mcpKeys = pgTable("mcp_keys", {
 
 
 
+// ── PII redaction settings ─────────────────────────────────────────
+
+export const piiRedactionSettings = pgTable("pii_redaction_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: text("project_id")
+    .notNull()
+    .unique()
+    .references(() => project.id, { onDelete: "cascade" }),
+  email: boolean("email").notNull().default(true),
+  phone: boolean("phone").notNull().default(true),
+  ssn: boolean("ssn").notNull().default(true),
+  creditCard: boolean("credit_card").notNull().default(true),
+  ipAddress: boolean("ip_address").notNull().default(true),
+  dateOfBirth: boolean("date_of_birth").notNull().default(true),
+  usAddress: boolean("us_address").notNull().default(true),
+  apiKey: boolean("api_key").notNull().default(true),
+  url: boolean("url").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const piiCustomPatterns = pgTable(
+  "pii_custom_patterns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    label: varchar("label", { length: 64 }).notNull(),
+    pattern: varchar("pattern", { length: 512 }).notNull(),
+    replacement: varchar("replacement", { length: 64 }).notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("pii_custom_patterns_project_id_idx").on(t.projectId)],
+);
+
 // ── Monitor items (agent kanban) ────────────────────────────────────
 
 export const monitorItems = pgTable(

@@ -11,6 +11,7 @@ import { configRouter } from "./config.js";
 import { monitorRouter } from "./monitor.js";
 import { labelsRouter } from "./labels.js";
 import { integrationsRouter } from "./integrations.js";
+import { piiRedactionRouter } from "./pii-redaction.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -26,6 +27,7 @@ export const appRouter = router({
   monitor: monitorRouter,
   labels: labelsRouter,
   integrations: integrationsRouter,
+  piiRedaction: piiRedactionRouter,
 });
 
 export type AppRouter = typeof appRouter;

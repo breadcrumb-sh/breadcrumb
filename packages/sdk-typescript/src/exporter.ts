@@ -5,6 +5,7 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { mapAiSdk } from "./mappers/ai-sdk.js";
 import { mapBreadcrumb } from "./mappers/breadcrumb.js";
 import type { MappedSpanData } from "./mappers/types.js";
+import type { BeforeSendHook, SpanPayload } from "./types.js";
 
 // Attribute namespaces fully handled by mappers — excluded from the generic
 // pass-through that collects remaining unknown attrs into metadata.
@@ -103,6 +104,7 @@ export class BreadcrumbSpanExporter implements SpanExporter {
     private readonly environment?: string,
     private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
     tracker?: SpanIdTracker,
+    private readonly beforeSend?: BeforeSendHook,
   ) {
     this.tracker = tracker ?? new SpanIdTracker();
   }
@@ -139,7 +141,22 @@ export class BreadcrumbSpanExporter implements SpanExporter {
     const roots = spans.filter(
       (s) => !s.parentSpanId || !this.isOwnSpan(s.parentSpanId),
     );
-    const spanPayloads = spans.map((s) => this._mapSpan(s));
+
+    // Map spans and apply beforeSend hook (may transform or drop spans)
+    let spanPayloads: SpanPayload[] = spans.map((s) => this._mapSpan(s));
+    if (this.beforeSend) {
+      const processed: SpanPayload[] = [];
+      for (const payload of spanPayloads) {
+        try {
+          const result = await this.beforeSend(payload);
+          if (result !== null) processed.push(result);
+        } catch {
+          // Hook error — send original payload rather than dropping data
+          processed.push(payload);
+        }
+      }
+      spanPayloads = processed;
+    }
 
     const sends: Promise<void>[] = roots.map((s) => this._sendTrace(s));
     if (spanPayloads.length > 0) {

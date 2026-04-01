@@ -218,6 +218,13 @@
       "when": 1774940000000,
       "tag": "0030_webhook_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1774950000000,
+      "tag": "0031_pii_redaction",
+      "breakpoints": true
     }
   ]
 }
