@@ -91,7 +91,7 @@ export default function Home() {
               Open-source LLM tracing that catches what dashboards can't
             </h1>
             <p className="motion-blur-in-sm motion-duration-1000 motion-delay-500 mb-8 max-w-[620px] text-balance text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
-              Your agent returned a confident wrong answer. The error rate stayed at zero.
+              Your agent returned a confident wrong answer. The error rate stayed at zero. Breadcrumb catches these issues before your users do.
             </p>
             <div className="motion-blur-in-sm motion-duration-1000 motion-delay-700 flex w-full gap-3 sm:w-auto">
               <a
