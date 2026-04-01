@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { TimelineAnimation } from "./timeline-animation";
 
 export const metadata: Metadata = {
-  title: "Simple, Open-Source LLM Tracing",
+  title: "Open-source LLM tracing that catches what dashboards can't",
   description:
-    "Like Plausible, but for your AI agents. Self-hostable, TypeScript-native LLM tracing - track every prompt, completion, token count, and cost.",
+    "AI-powered monitoring for your agents. Breadcrumb traces every LLM call and runs an agent that finds hallucination, context loss, and reasoning drift automatically.",
   openGraph: {
     images: "/opengraph-image",
   },
@@ -37,57 +35,70 @@ export default function Home() {
     <>
       <main>
         <nav>
-          <div className="marketing-inner flex h-24 items-center justify-between">
+          <div className="marketing-inner flex h-16 items-center justify-between sm:h-24">
             <div className="flex items-center gap-7">
               <Link href="/" className="flex items-center gap-2">
                 <Logo />
                 <span className="font-display text-[16px] font-semibold tracking-tight text-fg">
                   Breadcrumb
                 </span>
-                <span className="ml-1 flex h-5 items-center border border-dashed border-white/50 px-1.5 font-display text-[12px] leading-3 tracking-tight text-white/50">
+                <span className="ml-1 font-display text-[12px] text-fg-3">
                   Beta
                 </span>
               </Link>
             </div>
-            <div className="flex flex-row items-center gap-8">
+            <div className="flex flex-row items-center gap-4 sm:gap-8">
               <Link
                 href="/docs/introduction"
-                className="hidden font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg sm:block"
+                className="font-display text-[13px] font-medium text-fg-3 transition-colors hover:text-fg"
               >
                 Docs
               </Link>
               <a
+                href="https://www.producthunt.com/products/breadcrumb-2?utm_source=badge-follow&utm_medium=badge&utm_source=badge-breadcrumb-2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sm:hidden"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/follow.svg?product_id=1189959&theme=dark&size=small"
+                  alt="Breadcrumb - Open-source LLM tracing for agent visibility | Product Hunt"
+                  width="86"
+                  height="32"
+                />
+              </a>
+              <a
                 href="https://www.producthunt.com/products/breadcrumb-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-breadcrumb-3"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="hidden sm:block"
               >
                 <img
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1107414&theme=dark&t=1774619256689"
                   alt="Breadcrumb - Open-source LLM tracing for agent visibility | Product Hunt"
                   width="250"
                   height="54"
-                  className="h-8 w-auto sm:h-9"
+                  className="h-9 w-auto"
                 />
               </a>
             </div>
           </div>
         </nav>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner pb-14 pt-14 sm:pb-20 sm:pt-20">
-            <h1 className="mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
-              Open-source LLM tracing for agent visibility
+        <section className="relative z-10">
+          <div className="marketing-inner pt-14 sm:pt-28">
+            <h1 className="motion-blur-in-sm motion-duration-1000 mb-6 sm:mb-5 max-w-4xl text-balance font-display text-[clamp(32px,5vw,58px)] leading-[1.04] font-semibold tracking-[-0.03em] text-fg">
+              Open-source LLM tracing that catches what dashboards can't
             </h1>
-            <p className="mb-8 max-w-[430px] text-[14px] leading-[1.75] text-fg-2 sm:text-[15px]">
-              Like Plausible, but for your AI agents. Stop guessing why your agent
-              failed - trace every prompt, response, and token.
+            <p className="motion-blur-in-sm motion-duration-1000 motion-delay-500 mb-8 max-w-[620px] text-balance text-[14px] leading-[1.5] text-fg-2 sm:text-[15px]">
+              Your agent returned a confident wrong answer. The error rate stayed at zero.
             </p>
-            <div className="flex w-full gap-3 sm:w-auto">
+            <div className="motion-blur-in-sm motion-duration-1000 motion-delay-700 flex w-full gap-3 sm:w-auto">
               <a
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap bg-fg px-8 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial sm:px-12"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap rounded-[2px] bg-fg px-8 py-3 font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80 sm:flex-initial sm:px-12"
               >
                 Get Early Access
               </a>
@@ -95,7 +106,7 @@ export default function Home() {
                 href="https://demo.breadcrumb.sh"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap border border-current px-8 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial sm:px-14"
+                className="inline-flex flex-1 items-center justify-center gap-3 whitespace-nowrap rounded-[2px] border border-current px-8 py-3 font-display text-[13px] font-semibold text-fg-2 transition-colors hover:text-fg sm:flex-initial sm:px-14"
               >
                 Try the Demo
               </a>
@@ -103,194 +114,272 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner">
-            <div className="border-x border-border">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-[6px] w-[6px]">
-                    <span className="live-ping absolute inset-0 rounded-full bg-[#22c08b] opacity-40" />
-                    <span className="relative h-[6px] w-[6px] rounded-full bg-[#22c08b]" />
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-fg-3">
-                    traces - live
-                  </span>
-                </div>
-                <div className="flex gap-[5px]">
-                  <span className="block h-[6px] w-[6px] bg-[#58508d]" />
-                  <span className="block h-[6px] w-[6px] bg-[#b4558d]" />
-                  <span className="block h-[6px] w-[6px] bg-[#e77371]" />
-                  <span className="block h-[6px] w-[6px] bg-[#7b6aad]" />
-                </div>
-              </div>
-              <div className="px-4 pb-6 pt-5 sm:px-5">
-                <div className="mb-[10px] flex justify-between">
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">0</span>
-                  <span className="hidden font-mono text-[9px] text-fg-3 opacity-40 sm:block">
-                    250ms
-                  </span>
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">500ms</span>
-                  <span className="hidden font-mono text-[9px] text-fg-3 opacity-40 sm:block">
-                    750ms
-                  </span>
-                  <span className="font-mono text-[9px] text-fg-3 opacity-40">1s+</span>
-                </div>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-0 flex" aria-hidden="true">
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4 border-r border-border" />
-                    <div className="h-full w-1/4" />
-                  </div>
-                  <div id="tl-rows" className="relative flex flex-col gap-[10px] sm:gap-[13px]" />
-                  <TimelineAnimation />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-border">
-          <div className="marketing-inner py-10 sm:py-12">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
-              Three lines of code. Every call traced.
-            </h2>
-            <p className="max-w-[420px] text-[13px] leading-[1.8] text-fg-2 sm:text-[14px]">
-              Initialize the SDK, pass the telemetry helper. No config files, no decorators,
-              no 30-page setup guide. Your first trace shows up in no time.
-            </p>
-          </div>
-        </section>
-
-        <section className="border-b border-border">
-          <div className="marketing-inner pt-8 sm:pt-12">
-            <div className="marketing-browser">
-              <div className="marketing-browser-toolbar">
-                <div className="marketing-browser-dots">
-                  <span className="marketing-browser-dot bg-[#ff5f57]" />
-                  <span className="marketing-browser-dot bg-[#febc2e]" />
-                  <span className="marketing-browser-dot bg-[#28c840]" />
-                </div>
-                <div className="marketing-browser-address">
-                  <span className="font-mono text-[10px] text-fg-3">app.breadcrumb.sh</span>
-                </div>
-                <div className="marketing-browser-dots invisible">
-                  <span className="marketing-browser-dot" />
-                  <span className="marketing-browser-dot" />
-                  <span className="marketing-browser-dot" />
-                </div>
-              </div>
-              <div className="marketing-browser-content">
-                <Image
-                  src="/dashboard.png"
+        <section className="hero-screenshot-section relative">
+          <div className="hero-screenshot-gradient" />
+          <div className="hero-screenshot-wrapper">
+            <div className="hero-screenshot-container motion-translate-y-in-[30px] motion-opacity-in-0 motion-blur-in-sm motion-duration-1000 motion-delay-700">
+              <div className="hero-img-wrap">
+                <img
+                  src="/dashboard.webp"
                   alt="Breadcrumb LLM tracing dashboard showing traces, token counts, latency, and costs"
-                  width={2062}
-                  height={1434}
-                  priority={false}
-                  className="block w-full"
+                  className="hero-img-sharp"
                 />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner py-10 sm:py-12">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
-              Know exactly what your AI is doing.
-            </h2>
-            <p className="max-w-[400px] text-[13px] leading-[1.8] text-fg-2 sm:text-[14px]">
-              See the actual prompt that was sent, the full response that came back, how
-              long it took, and what it cost. For every request, not a sample.
-            </p>
-          </div>
-        </section>
+        {/* Agent Monitor Section */}
+        <section className="relative z-10 border-b border-border bg-bg">
+          <div className="marketing-inner py-14 sm:py-20">
+            <div className="mb-10 sm:mb-14">
+              <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+                Issues found before your users find them.
+              </h2>
+              <p className="max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
+                A monitoring agent that reads every trace, learns your project, and surfaces what matters.
+              </p>
+            </div>
 
-        <section className="border-b border-border">
-          <div className="marketing-inner">
-            <div className="grid grid-cols-1 gap-px border-x border-border bg-border sm:grid-cols-3">
-              <div className="flex flex-col justify-between gap-8 bg-surface p-6 sm:p-8">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-fg-3">
-                  cost per trace
-                </span>
-                <div>
-                  <div className="mb-3 font-mono text-[40px] leading-none font-light tracking-tight text-fg">
-                    $0.0024
+            <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+              {/* Card 1: Queue */}
+              <div className="flex flex-1 flex-col">
+                <div className="monitor-card">
+                  <div className="flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-fg-3">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
+                    </svg>
+                    <span className="text-[11px] text-fg-3">Auto-detected</span>
                   </div>
-                  <p className="text-[13px] leading-[1.75] text-fg-2">
-                    Every trace breaks down its token usage and cost. Find the calls burning
-                    through your budget before they hit your invoice.
+                  <p className="text-[13px] font-medium leading-snug text-fg">
+                    Search agent returning confident answers from empty context window
                   </p>
+                  <div className="flex items-center gap-2">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="text-orange-400">
+                      <rect x="1" y="10" width="3" height="5" rx="0.5" opacity="1" />
+                      <rect x="6" y="6" width="3" height="9" rx="0.5" opacity="1" />
+                      <rect x="11" y="2" width="3" height="13" rx="0.5" opacity="0.2" />
+                    </svg>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/50 px-1.5 py-0.5 text-[10px] leading-none text-fg-3">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                      hallucination
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="col-span-1 flex flex-col justify-between gap-8 bg-surface p-6 sm:col-span-2 sm:p-8">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-fg-3">
-                  open source
-                </span>
-                <div>
-                  <p className="mb-2 font-display text-[17px] leading-snug font-semibold text-fg">
-                    Your data never leaves your stack.
-                  </p>
-                  <p className="mb-4 max-w-[400px] text-[13px] leading-[1.75] text-fg-2">
-                    Deploy on Railway, Fly, or your own servers. Fork it, extend it, run it
-                    however you want. No usage fees, no vendor lock-in, open source forever.
-                  </p>
-                  <a
-                    href="https://github.com/joshuaKnauber/breadcrumb"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-mono text-[10px] text-fg-3 transition-colors hover:text-fg"
-                  >
-                    ★ github.com/joshuaKnauber/breadcrumb
-                  </a>
+              {/* Card 2: Investigating (processing animation) */}
+              <div className="flex flex-1 flex-col">
+                <div className="monitor-card-processing">
+                  <div className="monitor-card-processing-border" />
+                  <div className="monitor-card-processing-inner">
+                    <div className="flex items-center gap-1.5">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-amber-400">
+                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M8 8 L8 4 A4 4 0 0 1 12 8 Z" fill="currentColor" />
+                      </svg>
+                      <span className="text-[11px] text-amber-400">Investigating</span>
+                    </div>
+                    <p className="text-[13px] font-medium leading-snug text-fg">
+                      Retrieval agent skipping 40% of available documents in summarize workflow
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="text-amber-400">
+                        <rect x="1" y="10" width="3" height="5" rx="0.5" opacity="1" />
+                        <rect x="6" y="6" width="3" height="9" rx="0.5" opacity="0.2" />
+                        <rect x="11" y="2" width="3" height="13" rx="0.5" opacity="0.2" />
+                      </svg>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/50 px-1.5 py-0.5 text-[10px] leading-none text-fg-3">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                        context loss
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="col-span-1 flex flex-col gap-6 bg-surface p-6 sm:col-span-3 sm:p-8">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-fg-3">
-                  integration
-                </span>
-                <div className="flex flex-col gap-6">
-                  <div>
-                    <p className="mb-2 font-display text-[17px] leading-snug font-semibold text-fg">
-                      Works with the Vercel AI SDK out of the box
-                    </p>
-                    <p className="max-w-[480px] text-[13px] leading-[1.75] text-fg-2">
-                      Add two imports, initialize once, and pass the telemetry helper. Every{" "}
-                      <code className="text-fg-3">generateText</code> and{" "}
-                      <code className="text-fg-3">streamText</code> call gets traced
-                      automatically.
-                    </p>
+              {/* Card 3: Needs Review */}
+              <div className="flex flex-1 flex-col">
+                <div className="monitor-card">
+                  <div className="flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-blue-400">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M8 8 L8 4 A4 4 0 1 1 4.536 10 L8 8 Z" fill="currentColor" />
+                    </svg>
+                    <span className="text-[11px] text-blue-400">Needs review</span>
                   </div>
-                  <pre className="overflow-x-auto border border-border bg-bg p-4 font-mono text-[12px] leading-[1.7] text-fg-2 sm:text-[13px]">
-                    <code dangerouslySetInnerHTML={{ __html: codeSnippet }} />
-                  </pre>
+                  <p className="text-[13px] font-medium leading-snug text-fg">
+                    Cost spike: generateText calls doubled token usage after prompt template change
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="text-red-400">
+                      <rect x="2" y="2" width="12" height="12" rx="1" />
+                      <text x="8" y="12" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">!</text>
+                    </svg>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2/50 px-1.5 py-0.5 text-[10px] leading-none text-fg-3">
+                      <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                      cost
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
+        {/* What it understands */}
         <section className="border-b border-border">
-          <div className="marketing-inner py-12 sm:py-16">
-            <h2 className="mb-3 font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[28px]">
-              Start tracing in minutes.
+          <div className="marketing-inner py-14 sm:py-20">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+              Other tools log your traces. Breadcrumb understands them.
             </h2>
-            <p className="mb-7 max-w-[340px] text-[13px] leading-[1.75] text-fg-2">
-              Install the SDK, add three lines, and see your first trace.
+            <p className="mb-10 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:mb-14 sm:text-[14px]">
+              Every other tracing tool expects you to find the problems yourself. Breadcrumb's agent reads every trace, builds context over time, and gets smarter about what matters in your project.
+            </p>
+            <div className="findings-ticker-wrap">
+              <div className="findings-ticker">
+                <div className="findings-ticker-track">
+                  <div className="findings-row">
+                    <span className="findings-dot bg-red-400" />
+                    <span className="findings-label">hallucination</span>
+                    <span className="findings-text">Agent cited policy doc not in retrieval set</span>
+                    <span className="findings-time">2m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-blue-400" />
+                    <span className="findings-label">intent mismatch</span>
+                    <span className="findings-text">Responded about order #4812 instead of #4821</span>
+                    <span className="findings-time">5m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-amber-400" />
+                    <span className="findings-label">context loss</span>
+                    <span className="findings-text">Dropped 3 of 7 source documents after tool call</span>
+                    <span className="findings-time">8m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-orange-400" />
+                    <span className="findings-label">loop detected</span>
+                    <span className="findings-text">Same failing tool call retried 4 times then abandoned</span>
+                    <span className="findings-time">12m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-violet-400" />
+                    <span className="findings-label">cost anomaly</span>
+                    <span className="findings-text">Token usage doubled across generateText after template change</span>
+                    <span className="findings-time">19m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-pink-400" />
+                    <span className="findings-label">instruction drift</span>
+                    <span className="findings-text">Correct answer but ignored user constraint on format</span>
+                    <span className="findings-time">23m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-red-400" />
+                    <span className="findings-label">hallucination</span>
+                    <span className="findings-text">Generated citation for a paper that doesn't exist</span>
+                    <span className="findings-time">31m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-amber-400" />
+                    <span className="findings-label">context loss</span>
+                    <span className="findings-text">User name forgotten mid-conversation after tool use</span>
+                    <span className="findings-time">38m ago</span>
+                  </div>
+                  {/* Duplicate for seamless loop */}
+                  <div className="findings-row">
+                    <span className="findings-dot bg-red-400" />
+                    <span className="findings-label">hallucination</span>
+                    <span className="findings-text">Agent cited policy doc not in retrieval set</span>
+                    <span className="findings-time">2m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-blue-400" />
+                    <span className="findings-label">intent mismatch</span>
+                    <span className="findings-text">Responded about order #4812 instead of #4821</span>
+                    <span className="findings-time">5m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-amber-400" />
+                    <span className="findings-label">context loss</span>
+                    <span className="findings-text">Dropped 3 of 7 source documents after tool call</span>
+                    <span className="findings-time">8m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-orange-400" />
+                    <span className="findings-label">loop detected</span>
+                    <span className="findings-text">Same failing tool call retried 4 times then abandoned</span>
+                    <span className="findings-time">12m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-violet-400" />
+                    <span className="findings-label">cost anomaly</span>
+                    <span className="findings-text">Token usage doubled across generateText after template change</span>
+                    <span className="findings-time">19m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-pink-400" />
+                    <span className="findings-label">instruction drift</span>
+                    <span className="findings-text">Correct answer but ignored user constraint on format</span>
+                    <span className="findings-time">23m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-red-400" />
+                    <span className="findings-label">hallucination</span>
+                    <span className="findings-text">Generated citation for a paper that doesn't exist</span>
+                    <span className="findings-time">31m ago</span>
+                  </div>
+                  <div className="findings-row">
+                    <span className="findings-dot bg-amber-400" />
+                    <span className="findings-label">context loss</span>
+                    <span className="findings-text">User name forgotten mid-conversation after tool use</span>
+                    <span className="findings-time">38m ago</span>
+                  </div>
+                </div>
+              </div>
+              <div className="findings-fade-top" />
+              <div className="findings-fade-bottom" />
+            </div>
+          </div>
+        </section>
+
+        {/* SDK integration */}
+        <section className="border-b border-border">
+          <div className="marketing-inner py-14 sm:py-20">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+              Three lines of code. Never miss an issue.
+            </h2>
+            <p className="mb-8 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
+              Works with Vercel AI SDK out of the box. Import, initialize, pass telemetry, stay informed.
+            </p>
+            <pre className="overflow-x-auto border border-border bg-surface p-4 font-mono text-[12px] leading-[1.7] text-fg-2 sm:text-[13px]">
+              <code dangerouslySetInnerHTML={{ __html: codeSnippet }} />
+            </pre>
+          </div>
+        </section>
+
+        {/* Open source + CTA */}
+        <section className="border-b border-border">
+          <div className="marketing-inner py-14 sm:py-20">
+            <h2 className="mb-3 text-balance font-display text-[22px] leading-snug font-semibold tracking-tight text-fg sm:text-[27px]">
+              Open source. Self-hosted. Your data.
+            </h2>
+            <p className="mb-7 max-w-[560px] text-balance text-[13px] leading-[1.6] text-fg-2 sm:text-[14px]">
+              Deploy on Railway, Fly, or your own servers. Fork it, extend it, run it
+              however you want. No usage fees, no vendor lock-in.
             </p>
             <div className="flex flex-row items-center gap-4 h-fit">
               <a
                 href="https://tally.so/r/A7xjRB"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="items-center gap-3 bg-fg px-12 py-2.5 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
+                className="items-center gap-3 rounded-[2px] bg-fg px-12 py-2.5 whitespace-nowrap justify-center flex font-display text-[13px] font-semibold text-bg transition-opacity hover:opacity-80"
               >
                 Get Early Access
               </a>
               <a target="_blank" href="https://railway.com/deploy/breadcrumb?referralCode=9MtPO4&utm_medium=integration&utm_source=template&utm_campaign=generic">
-                <img src="https://railway.com/button.svg"></img>
+                <img src="https://railway.com/button.svg" />
               </a>
             </div>
           </div>

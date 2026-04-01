@@ -1,13 +1,9 @@
 import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
 import { Check } from "@phosphor-icons/react/Check";
-import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { Copy } from "@phosphor-icons/react/Copy";
-import { ChatsCircle } from "@phosphor-icons/react/ChatsCircle";
-import { Sparkle } from "@phosphor-icons/react/Sparkle";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { useAuth } from "../../../../hooks/useAuth";
 import { trpc } from "../../../../lib/trpc";
 import {
   buildTree,
@@ -19,14 +15,12 @@ import {
 } from "../../../../lib/span-utils";
 import { SpanRow } from "../../../../components/trace-detail/SpanRow";
 import { SpanDetail } from "../../../../components/trace-detail/SpanDetail";
-import { TraceSummary } from "../../../../components/trace-detail/TraceSummary";
 
 import { fmtMs } from "../../../../components/trace-detail/helpers";
 import { usePageView } from "../../../../hooks/usePageView";
 
 const searchSchema = z.object({
   span: z.string().optional(),
-  ask: z.string().optional(),
 });
 
 export const Route = createFileRoute(
@@ -87,15 +81,13 @@ function getAncestorIds(spanId: string, parentMap: Map<string, string>): Set<str
 function TraceDetailPage() {
   usePageView("trace_detail");
   const { projectId, traceId } = Route.useParams();
-  const { span: spanParam, ask: askParam } = Route.useSearch();
+  const { span: spanParam } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate({ from: Route.fullPath });
-  const isViewer = false; // All users are authenticated; org role check is server-side
   const utils = trpc.useUtils();
   const [copied, setCopied] = useState(false);
   const [forceExpandIds, setForceExpandIds] = useState<Set<string> | undefined>();
   const treeContainerRef = useRef<HTMLDivElement>(null);
-  const hasSummary = useRef(false);
 
   // Save the TanStack Router history index on mount so we can jump back
   // past all intra-page navigations (span clicks, ask param) to the
@@ -173,45 +165,6 @@ function TraceDetailPage() {
     });
   }, [spanParam, spans.data, parentMap]);
 
-  // ── Analysis ─────────────────────────────────────────────────────────────
-  const summary = trpc.traces.summary.useQuery(
-    { projectId, traceId },
-    {
-      refetchInterval: (query) => {
-        const status = query.state.data?.status;
-        return status === "running" || status === "pending" ? 2000 : false;
-      },
-    },
-  );
-
-  // Track whether a summary exists so we can show "Back to analysis" on span detail
-  hasSummary.current = summary.data?.status === "done" && !!summary.data.markdown;
-
-  const analyzeMut = trpc.traces.analyze.useMutation({
-    onSuccess: () => {
-      utils.traces.summary.invalidate({ projectId, traceId });
-    },
-  });
-
-  // Auto-analyze on first view if the project setting is enabled
-  const project = trpc.projects.get.useQuery({ projectId });
-  const autoAnalyzeTriggered = useRef(false);
-
-  useEffect(() => {
-    if (autoAnalyzeTriggered.current) return;
-    if (isViewer) return;
-    if (!project.data?.autoAnalyze) return;
-    if (summary.isLoading) return;
-    if (summary.data) return;
-
-    autoAnalyzeTriggered.current = true;
-    analyzeMut.mutate({ projectId, traceId });
-  }, [project.data?.autoAnalyze, summary.isLoading, summary.data, isViewer, projectId, traceId]);
-
-  const isAnalyzing =
-    analyzeMut.isPending ||
-    summary.data?.status === "running" ||
-    summary.data?.status === "pending";
 
   // ── Trace stats ──────────────────────────────────────────────────────────
   const totalCost = (spans.data ?? []).reduce(
@@ -243,17 +196,8 @@ function TraceDetailPage() {
     });
   }
 
-  // When a span link in the summary is clicked, navigate to it (effect handles the rest)
-  const handleSummarySpanClick = useCallback(
-    (spanId: string) => {
-      const span = spans.data?.find((s) => s.id === spanId);
-      if (span) selectSpan(span);
-    },
-    [spans.data, selectSpan],
-  );
-
   return (
-    <div className="flex flex-col h-[calc(100vh-101px)]">
+    <div className="flex flex-col h-[calc(100vh-48px)]">
       {/* ── Header ── */}
       <div className="px-4 sm:px-8 pt-6 pb-2 shrink-0 flex items-center gap-4">
         {/* Left: back + name + copy */}
@@ -291,21 +235,6 @@ function TraceDetailPage() {
             </div>
           )}
 
-          {!isViewer && spans.data && spans.data.length > 0 && summary.data?.status !== "done" && !isAnalyzing && (
-            <button
-              onClick={() => analyzeMut.mutate({ projectId, traceId })}
-              className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 transition-colors"
-            >
-              <Sparkle size={12} />
-              Analyze
-            </button>
-          )}
-          {isAnalyzing && (
-            <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-              <CircleNotch size={12} className="animate-spin" />
-              Analyzing...
-            </span>
-          )}
         </div>
       </div>
 
@@ -355,64 +284,15 @@ function TraceDetailPage() {
               </div>
             </div>
 
-            {/* Right panel: span detail / summary / empty */}
+            {/* Right panel: span detail / empty */}
             <div className="sm:flex-1 sm:overflow-hidden bg-zinc-950">
               {selectedSpan ? (
                 <div className="h-full flex flex-col overflow-hidden">
-                  {hasSummary.current && (
-                    <div className="px-5 py-2 border-b border-zinc-800/60 shrink-0">
-                      <button
-                        onClick={() => selectSpan(null)}
-                        className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
-                      >
-                        <ArrowLeft size={11} />
-                        Back to analysis
-                      </button>
-                    </div>
-                  )}
                   <div className="flex-1 overflow-hidden">
                     <SpanDetail
                       span={selectedSpan}
-                      onAsk={!isViewer && hasSummary.current ? () => {
-                        void navigate({
-                          search: (prev) => ({
-                            ...prev,
-                            span: undefined,
-                            ask: `[Span ${selectedSpan.id}: ${selectedSpan.name}] `,
-                          }),
-                        });
-                      } : undefined}
                     />
                   </div>
-                </div>
-              ) : summary.data?.status === "done" && summary.data.markdown ? (
-                <TraceSummary
-                  markdown={summary.data.markdown}
-                  onSpanClick={handleSummarySpanClick}
-                  projectId={projectId}
-                  traceId={traceId}
-                  isViewer={isViewer}
-                  prefillAsk={askParam}
-                  onClearAsk={() => {
-                    void navigate({
-                      search: (prev) => ({ ...prev, ask: undefined }),
-                      replace: true,
-                    });
-                  }}
-                />
-              ) : isAnalyzing ? (
-                <div className="flex flex-col items-center justify-center py-10 sm:py-0 sm:h-full gap-2">
-                  <CircleNotch size={20} className="animate-spin text-zinc-500" />
-                  <span className="text-xs text-zinc-500">Analyzing trace...</span>
-                </div>
-              ) : summary.data?.status === "error" ? (
-                <div className="flex flex-col items-center justify-center py-10 sm:py-0 sm:h-full gap-2 px-6 text-center">
-                  <p className="text-xs text-red-400">Analysis failed</p>
-                  {summary.data.errorMessage && (
-                    <p className="text-xs text-zinc-500 max-w-sm">
-                      {summary.data.errorMessage}
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-10 sm:py-0 sm:h-full text-xs text-zinc-500">

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+@plugin "tailwindcss-motion";
 
 :root {
   --background: #121213;
@@ -25,8 +26,8 @@
   --color-surface: var(--brand-surface);
   --color-surface-2: var(--brand-surface-2);
   --color-bg: var(--background);
-  --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -74,7 +75,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 code,
@@ -87,7 +88,7 @@ pre,
 .prose pre,
 [data-rehype-pretty-code-fragment] pre,
 [data-rehype-pretty-code-fragment] code {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-geist-mono), monospace !important;
 }
 
 #nd-docs-layout,
@@ -204,6 +205,38 @@ pre,
   background-color: color-mix(in srgb, var(--brand-surface) 88%, var(--background));
 }
 
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  letter-spacing: -0.02em;
+}
+
+.prose h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.prose h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.prose p,
+.prose li {
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prose table {
+  font-size: 0.8125rem;
+}
+
 figure.shiki,
 [data-card],
 div:has(> [data-orientation]),
@@ -216,7 +249,7 @@ div:has(> [data-orientation]) figure.shiki {
 }
 
 .marketing-inner {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
@@ -282,9 +315,247 @@ div:has(> [data-orientation]) figure.shiki {
   }
 }
 
+.hero-screenshot-section {
+  padding: 4.5rem 0 0;
+  border-bottom: 1px solid var(--brand-border);
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.hero-screenshot-wrapper {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 1140px) {
+  .hero-screenshot-wrapper {
+    padding: 0;
+  }
+}
+
+.hero-screenshot-container {
+  position: relative;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  box-shadow:
+    1px 0 0 0 rgba(255, 255, 255, 0.12),
+    -1px 0 0 0 rgba(255, 255, 255, 0.12),
+    0 -1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.hero-screenshot-container .marketing-browser {
+  border-radius: 10px 10px 0 0;
+  border-bottom: none;
+}
+
+.hero-img-wrap {
+  position: relative;
+  line-height: 0;
+  overflow: hidden;
+  padding-top: 2px;
+  background: var(--background);
+}
+
+.hero-img-sharp {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hero-img-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(4px);
+  -webkit-mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 28%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.15) 45%,
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 0.7) 68%,
+    black 85%
+  );
+  mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 28%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.15) 45%,
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 0.7) 68%,
+    black 85%
+  );
+}
+
+.monitor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--brand-border);
+  background: var(--brand-surface);
+  padding: 12px;
+}
+
+
+.monitor-card-processing {
+  position: relative;
+  border-radius: 8px;
+  padding: 1px;
+  overflow: hidden;
+}
+
+.monitor-card-processing-border {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  aspect-ratio: 1;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.18) 75%,
+    rgba(255, 255, 255, 0.4) 85%,
+    rgba(255, 255, 255, 0.18) 92%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  transform-origin: top left;
+  animation: processing-spin 2.5s linear infinite;
+}
+
+@keyframes processing-spin {
+  from { transform: rotate(0deg) translate(-50%, -50%); }
+  to { transform: rotate(360deg) translate(-50%, -50%); }
+}
+
+.monitor-card-processing-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 7px;
+  background: var(--brand-surface);
+  padding: 12px;
+}
+
+.findings-ticker-wrap {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.findings-ticker {
+  height: 100%;
+  overflow: hidden;
+}
+
+.findings-ticker-track {
+  display: flex;
+  flex-direction: column;
+  animation: ticker-scroll 20s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.findings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--brand-border);
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.findings-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.findings-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-fg-3);
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.findings-text {
+  color: var(--brand-fg-2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.findings-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand-fg-3);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.findings-fade-top,
+.findings-fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.findings-fade-top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--background), transparent);
+}
+
+.findings-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--background), transparent);
+}
+
+.hero-screenshot-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 150%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 @media (max-width: 640px) {
   .marketing-inner {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+
+  .hero-screenshot-section {
+    padding: 5rem 0 0;
+    overflow-x: clip;
+  }
+
+  .hero-screenshot-wrapper {
+    padding: 0 0 0 1.25rem;
+  }
+
+  .hero-screenshot-container {
+    width: 160%;
+    max-width: none;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
   }
 }

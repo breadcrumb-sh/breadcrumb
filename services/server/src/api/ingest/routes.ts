@@ -4,10 +4,11 @@ import { clickhouse } from "../../shared/db/clickhouse.js";
 import { ClickHouseBatcher } from "../../shared/db/clickhouse-batcher.js";
 import { TraceSchema, SpanSchema } from "./schemas.js";
 import { toMicroDollars, toJson, toChDate } from "../../services/ingest/helpers.js";
-import { boss } from "../../shared/lib/boss.js";
-import { getObservationsForProject } from "../../services/observations/cache.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { trackTraceIngested } from "../../shared/lib/telemetry.js";
+import { enqueueScan } from "../../services/monitor/jobs.js";
+import { getRedactor } from "../../services/ingest/pii-settings-cache.js";
+import { redactString, redactRecord } from "../../services/ingest/pii-redactor.js";
 
 const log = createLogger("ingest");
 
@@ -71,6 +72,18 @@ ingestRoutes.post("/traces", async (c) => {
   }
 
   const t = parsed.data;
+  const redactor = await getRedactor(projectId);
+
+  let input = toJson(t.input);
+  let output = toJson(t.output);
+  let statusMessage = t.status_message ?? "";
+  let tags = t.tags ?? {};
+  if (redactor) {
+    input = redactString(input, redactor);
+    output = redactString(output, redactor);
+    if (statusMessage) statusMessage = redactString(statusMessage, redactor);
+    tags = redactRecord(tags, redactor);
+  }
 
   traceBatcher.add([{
     id:             t.id,
@@ -80,18 +93,18 @@ ingestRoutes.post("/traces", async (c) => {
     start_time:     toChDate(t.start_time),
     end_time:       t.end_time ? toChDate(t.end_time) : null,
     status:         t.status,
-    status_message: t.status_message ?? "",
-    input:          toJson(t.input),
-    output:         toJson(t.output),
+    status_message: statusMessage,
+    input,
+    output,
     user_id:        t.user_id ?? "",
     session_id:     t.session_id ?? "",
     environment:    t.environment ?? "",
-    tags:           t.tags ?? {},
+    tags,
   }]);
 
   if (t.end_time) {
     trackTraceIngested();
-    void scheduleObservationJobs(projectId, t.id, t.name);
+    void enqueueScan(projectId);
   }
 
   return c.json({ ok: true }, 202);
@@ -113,6 +126,7 @@ ingestRoutes.post("/spans", async (c) => {
     );
   }
 
+  const redactor = await getRedactor(projectId);
   const spans = [];
   for (const item of raw) {
     const parsed = SpanSchema.safeParse(item);
@@ -120,6 +134,18 @@ ingestRoutes.post("/spans", async (c) => {
       return c.json({ error: parsed.error.flatten() }, 400);
     }
     const s = parsed.data;
+
+    let input = toJson(s.input);
+    let output = toJson(s.output);
+    let statusMessage = s.status_message ?? "";
+    let metadata = s.metadata ?? {};
+    if (redactor) {
+      input = redactString(input, redactor);
+      output = redactString(output, redactor);
+      if (statusMessage) statusMessage = redactString(statusMessage, redactor);
+      metadata = redactRecord(metadata, redactor);
+    }
+
     spans.push({
       id:             s.id,
       trace_id:       s.trace_id,
@@ -130,16 +156,16 @@ ingestRoutes.post("/spans", async (c) => {
       start_time:     toChDate(s.start_time),
       end_time:       toChDate(s.end_time),
       status:         s.status,
-      status_message: s.status_message ?? "",
-      input:          toJson(s.input),
-      output:         toJson(s.output),
+      status_message: statusMessage,
+      input,
+      output,
       provider:       s.provider ?? "",
       model:          s.model ?? "",
       input_tokens:   s.input_tokens ?? 0,
       output_tokens:  s.output_tokens ?? 0,
       input_cost_usd:  toMicroDollars(s.input_cost_usd),
       output_cost_usd: toMicroDollars(s.output_cost_usd),
-      metadata:       s.metadata ?? {},
+      metadata,
     });
   }
 
@@ -148,31 +174,3 @@ ingestRoutes.post("/spans", async (c) => {
   return c.json({ ok: true }, 202);
 });
 
-// ── Background job scheduling ─────────────────────────────────────────────────
-
-async function scheduleObservationJobs(
-  projectId: string,
-  traceId: string,
-  traceName: string,
-) {
-  try {
-    const obs = await getObservationsForProject(projectId);
-    const matching = obs.filter(
-      (o) => o.traceNames.length === 0 || o.traceNames.includes(traceName),
-    );
-    for (const o of matching) {
-      const roll = Math.random() * 100;
-      if (roll >= o.samplingRate) continue;
-      await boss.send(
-        "evaluate-observation",
-        { projectId, traceId, observationId: o.id },
-        {
-          startAfter: 15,
-          singletonKey: `${o.id}:${traceId}`,
-        },
-      );
-    }
-  } catch (err) {
-    log.error({ err, projectId, traceId }, "scheduleObservationJobs error");
-  }
-}

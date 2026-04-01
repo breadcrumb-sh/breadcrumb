@@ -1,0 +1,8 @@
+{
+  "title": "Integrations",
+  "collapsible": true,
+  "pages": [
+    "mcp",
+    "webhooks"
+  ]
+}

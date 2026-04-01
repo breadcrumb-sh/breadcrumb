@@ -35,6 +35,13 @@ export function AiProviderSection({ projectId }: { projectId: string }) {
     }
   }, [existing.data]);
 
+  const isDirty = existing.data
+    ? provider !== existing.data.provider ||
+      modelId !== existing.data.modelId ||
+      baseUrl !== (existing.data.baseUrl ?? "") ||
+      apiKey !== ""
+    : provider !== "openai" || apiKey !== "" || modelId !== "" || baseUrl !== "";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await upsert.mutateAsync({
@@ -129,7 +136,7 @@ export function AiProviderSection({ projectId }: { projectId: string }) {
           <div className="flex items-center gap-2 pt-1">
             <button
               type="submit"
-              disabled={upsert.isPending}
+              disabled={upsert.isPending || !isDirty}
               className="rounded-md bg-zinc-100 px-4 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors disabled:opacity-50"
             >
               {existing.data ? "Update" : "Save"}

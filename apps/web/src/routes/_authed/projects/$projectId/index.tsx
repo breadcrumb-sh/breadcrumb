@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import { z } from "zod";
-import { formatCost } from "../../../../lib/span-utils";
 import {
   DateRangePopover,
   presetFrom,
@@ -8,14 +8,11 @@ import {
 } from "../../../../components/common/DateRangePopover";
 import { MultiselectCombobox } from "../../../../components/common/MultiselectCombobox";
 import { usePageView } from "../../../../hooks/usePageView";
+import { useProjectFilters } from "../../../../hooks/useProjectFilters";
+import { formatCost } from "../../../../lib/span-utils";
 import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
-import { ChartCard } from "../../../../components/overview/ChartCard";
-import { TraceQualityChart } from "../../../../components/overview/TraceQualityChart";
-import { StarredChartCard } from "../../../../components/overview/StarredChartCard";
-import { TopFailingSpansTable } from "../../../../components/overview/TopFailingSpansTable";
-import { TopSlowestSpansTable } from "../../../../components/overview/TopSlowestSpansTable";
-import { NewFindingsCards } from "../../../../components/overview/NewFindingsCards";
+import { KanbanBoard } from "../../../../components/monitor/KanbanBoard";
 
 const searchSchema = z.object({
   from: z.string().optional(),
@@ -24,6 +21,7 @@ const searchSchema = z.object({
   names: z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
   env: z.array(z.string()).optional(),
+  item: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/")({
@@ -31,37 +29,21 @@ export const Route = createFileRoute("/_authed/projects/$projectId/")({
   component: OverviewPage,
 });
 
-type Metric = "traces" | "cost" | "errors";
-
 const EMPTY_STRINGS: string[] = [];
 
 function OverviewPage() {
   usePageView("overview");
   const { projectId } = Route.useParams();
+  const { item: selectedItemId } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const search = Route.useSearch();
+  const [filters, setFilters] = useProjectFilters(projectId);
 
-  const from = search.from ?? presetFrom(30);
-  const to = search.to ?? today();
-  const preset = search.preset ?? 30;
-  const selectedNames = search.names ?? EMPTY_STRINGS;
-  const selectedModels = search.models ?? EMPTY_STRINGS;
-  const selectedEnvs = search.env ?? EMPTY_STRINGS;
-
-  const applyPreset = (days: 7 | 30 | 90) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        from: presetFrom(days),
-        to: today(),
-        preset: days,
-      }),
-    });
-
-  const handleFromChange = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, from: v, preset: undefined }) });
-  const handleToChange = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, to: v, preset: undefined }) });
+  const from = filters.from ?? presetFrom(30);
+  const to = filters.to ?? today();
+  const preset = filters.preset ?? 30;
+  const selectedNames = filters.names ?? EMPTY_STRINGS;
+  const selectedModels = filters.models ?? EMPTY_STRINGS;
+  const selectedEnvs = filters.env ?? EMPTY_STRINGS;
 
   const commonFilters = {
     projectId,
@@ -73,78 +55,25 @@ function OverviewPage() {
   };
 
   const stats = trpc.traces.stats.useQuery(commonFilters);
-  const daily = trpc.traces.dailyMetrics.useQuery(commonFilters);
-  const quality = trpc.traces.qualityTimeline.useQuery(commonFilters);
-  const failingSpans = trpc.traces.topFailingSpans.useQuery(commonFilters);
-  const slowestSpans = trpc.traces.topSlowestSpans.useQuery(commonFilters);
   const envList = trpc.traces.environments.useQuery({ projectId });
   const modelList = trpc.traces.models.useQuery({ projectId });
   const nameList = trpc.traces.names.useQuery({ projectId });
-  const starredCharts = trpc.explores.listStarred.useQuery({ projectId });
-  const newFindings = trpc.observations["findings.listNew"].useQuery(
-    { projectId },
-    { refetchInterval: 30_000 },
-  );
+
+  const statsRef = useRef<HTMLDivElement>(null);
 
   return (
-    <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-6 page-container-small">
+    <div className="flex flex-col">
+      <div className="px-5 pt-6 pb-0 sm:px-8 sm:pt-8 space-y-6 w-full page-container-small shrink-0">
       {/* ── Filter bar ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Date range */}
-        <DateRangePopover
-          from={from}
-          to={to}
-          preset={preset}
-          onPreset={applyPreset}
-          onCustom={() =>
-            navigate({ search: (prev) => ({ ...prev, preset: undefined }) })
-          }
-          onFromChange={handleFromChange}
-          onToChange={handleToChange}
-        />
-
-        {/* Divider */}
-        <div className="h-4 w-px bg-zinc-800" />
-
-        {/* Trace name multiselect */}
-        <MultiselectCombobox
-          options={nameList.data ?? []}
-          selected={selectedNames}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({ ...prev, names: v.length ? v : undefined }),
-            })
-          }
-          placeholder="All traces"
-        />
-
-        {/* Environment */}
-        <MultiselectCombobox
-          options={envList.data ?? []}
-          selected={selectedEnvs}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({ ...prev, env: v.length ? v : undefined }),
-            })
-          }
-          placeholder="All environments"
-        />
-
-        {/* Model */}
-        <MultiselectCombobox
-          options={modelList.data ?? []}
-          selected={selectedModels}
-          onChange={(v) =>
-            navigate({
-              search: (prev) => ({ ...prev, models: v.length ? v : undefined }),
-            })
-          }
-          placeholder="All models"
-        />
+        <DateRangePopover from={from} to={to} preset={preset} onPreset={(days) => setFilters((p) => ({ ...p, from: presetFrom(days), to: today(), preset: days }))} onCustom={() => setFilters((p) => ({ ...p, preset: undefined }))} onFromChange={(v) => setFilters((p) => ({ ...p, from: v, preset: undefined }))} onToChange={(v) => setFilters((p) => ({ ...p, to: v, preset: undefined }))} />
+        <MultiselectCombobox options={nameList.data ?? []} selected={selectedNames} onChange={(v) => setFilters((p) => ({ ...p, names: v.length ? v : undefined }))} placeholder="All traces" />
+        <MultiselectCombobox options={envList.data ?? []} selected={selectedEnvs} onChange={(v) => setFilters((p) => ({ ...p, env: v.length ? v : undefined }))} placeholder="All environments" />
+        <MultiselectCombobox options={modelList.data ?? []} selected={selectedModels} onChange={(v) => setFilters((p) => ({ ...p, models: v.length ? v : undefined }))} placeholder="All models" />
       </div>
 
       {/* ── Stat cards ────────────────────────────────────────── */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
+      <div ref={statsRef} className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
         <StatCell
           label="Traces"
           value={stats.data ? stats.data.traceCount.toLocaleString() : "—"}
@@ -155,7 +84,7 @@ function OverviewPage() {
           )}
         />
         <StatCell
-          className="border-l sm:border-l border-zinc-800"
+          className="border-l border-zinc-800"
           label="Total cost"
           value={stats.data ? formatCost(stats.data.totalCostUsd) : "—"}
           loading={stats.isLoading}
@@ -193,143 +122,78 @@ function OverviewPage() {
         />
       </div>
 
-      {/* ── Hero: Trace Quality ──────────────────────────────── */}
-      <TraceQualityChart
-        data={quality.data}
-        loading={quality.isLoading}
-        from={from}
-        to={to}
-      />
+      <MonitorSummary projectId={projectId} from={from} to={to} />
 
-      {/* ── New observation findings ─────────────────────────── */}
-      {(newFindings.data?.length ?? 0) > 0 && (
-        <NewFindingsCards
-          findings={newFindings.data!}
+      </div>
+      {/* ── Agent monitoring board ────────────────────────────── */}
+      <div className="pt-6 pb-4" style={{ height: "calc(100vh - 80px)" }}>
+        <KanbanBoard
           projectId={projectId}
-        />
-      )}
-
-      {/* ── Cost charts ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <ChartCard
-          label="Spend over time"
-          data={buildChartData(daily.data ?? [], from, to, "cost")}
-          loading={daily.isLoading}
-          leftMargin={50}
-          formatAxis={(v) => `$${formatAxisCost(Number(v))}`}
-          formatTooltip={(y) => formatCost(Number(y))}
-        />
-        <ChartCard
-          label="Avg cost per trace"
-          data={buildAvgCostData(daily.data ?? [], from, to)}
-          loading={daily.isLoading}
-          leftMargin={50}
-          formatAxis={(v) => `$${formatAxisCost(Number(v))}`}
-          formatTooltip={(y) => formatCost(Number(y))}
+          alignRef={statsRef}
+          selectedItemId={selectedItemId}
+          onSelectItem={(id) => navigate({ search: (prev) => ({ ...prev, item: id ?? undefined }), replace: true })}
         />
       </div>
-
-      {/* ── Reliability charts ───────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <ChartCard
-          label="Success rate"
-          data={buildSuccessRateData(daily.data ?? [], from, to)}
-          loading={daily.isLoading}
-          yDomain={[0, 100]}
-          formatAxis={(v) => `${Number(v)}%`}
-          formatTooltip={(y) => `${Number(y).toFixed(1)}%`}
-        />
-        <TopFailingSpansTable
-          data={failingSpans.data}
-          loading={failingSpans.isLoading}
-        />
-      </div>
-
-      {/* ── Latency charts ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <ChartCard
-          label="Avg duration over time"
-          data={buildAvgDurationData(daily.data ?? [], from, to)}
-          loading={daily.isLoading}
-          formatAxis={(v) => formatDurationAxis(Number(v))}
-          formatTooltip={(y) => formatDuration(Number(y))}
-        />
-        <TopSlowestSpansTable
-          data={slowestSpans.data}
-          loading={slowestSpans.isLoading}
-        />
-      </div>
-
-      {/* ── Starred Charts ──────────────────────────────────────── */}
-      {starredCharts.data && starredCharts.data.length > 0 && (
-        <div className="space-y-4">
-          <p className="text-xs font-medium text-zinc-500">Explorations</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {starredCharts.data.map((chart) => (
-              <StarredChartCard
-                key={chart.id}
-                chart={chart}
-                projectId={projectId}
-                from={from}
-                to={to}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
 
-// ── Chart helpers ──────────────────────────────────────────────────────────────
+// ── Monitor summary ─────────────────────────────────────────────────────────
 
-type DailyMetric = {
-  date: string;
-  traces: number;
-  costUsd: number;
-  errors: number;
-  avgDurationMs: number;
-};
+function MonitorSummary({ projectId, from, to }: { projectId: string; from: string; to: string }) {
+  const summary = trpc.monitor.summary.useQuery({ projectId, from, to });
+  const d = summary.data;
+  if (!d) return null;
 
-/** Fill every calendar day between `from` and `to` with a value derived from the row map. */
-function fillDays<T>(
-  rows: T[],
-  from: string,
-  to: string,
-  getKey: (row: T) => string,
-  getValue: (row: T | undefined) => number,
-): { date: string; value: number }[] {
-  const map = new Map(rows.map((r) => [getKey(r), r]));
-  const data: { date: string; value: number }[] = [];
-  const start = new Date(from);
-  const end = new Date(to);
-  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().slice(0, 10);
-    data.push({ date: key, value: getValue(map.get(key)) });
+  if (d.traceCount === 0) {
+    return (
+      <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">
+        No traces in this period. I'm ready and will start monitoring as soon as traces come in.
+      </p>
+    );
   }
-  return data;
-}
 
-function buildChartData(rows: DailyMetric[], from: string, to: string, metric: Metric) {
-  return fillDays(rows, from, to, (r) => r.date, (r) =>
-    r ? (metric === "traces" ? r.traces : metric === "cost" ? r.costUsd : r.errors) : 0,
+  const sentences: React.ReactNode[] = [];
+
+  // Trace count
+  sentences.push(
+    <span key="traces">
+      Across <span className="text-foreground">{d.traceCount.toLocaleString()} traces</span> in this period
+      {d.issuesFound > 0
+        ? <>, I found <span className="text-foreground">{d.issuesFound} {d.issuesFound === 1 ? "issue" : "issues"}</span></>
+        : <>, I found no issues</>
+      }.
+    </span>,
   );
-}
 
-function buildAvgCostData(rows: DailyMetric[], from: string, to: string) {
-  return fillDays(rows, from, to, (r) => r.date, (r) =>
-    r && r.traces > 0 ? r.costUsd / r.traces : 0,
+  // Review + closed
+  const statusParts: React.ReactNode[] = [];
+  if (d.needsReview > 0) {
+    statusParts.push(<span key="review"><span className="text-foreground">{d.needsReview}</span> {d.needsReview === 1 ? "item needs" : "items need"} your review</span>);
+  }
+  if (d.resolved > 0) {
+    statusParts.push(<span key="resolved"><span className="text-foreground">{d.resolved}</span> {d.resolved === 1 ? "was" : "were"} resolved</span>);
+  }
+  if (statusParts.length > 0) {
+    sentences.push(
+      <span key="status">
+        {statusParts.map((part, i) => (
+          <span key={i}>{i > 0 && ", "}{part}</span>
+        ))}.
+      </span>,
+    );
+  }
+
+  return (
+    <p className="text-2xl max-w-4xl mt-12 text-pretty font-medium text-muted-foreground">
+      {sentences.map((s, i) => (
+        <span key={i}>
+          {i > 0 && <br />}
+          {s}
+        </span>
+      ))}
+    </p>
   );
-}
-
-function buildSuccessRateData(rows: DailyMetric[], from: string, to: string) {
-  return fillDays(rows, from, to, (r) => r.date, (r) =>
-    r && r.traces > 0 ? ((r.traces - r.errors) / r.traces) * 100 : 100,
-  );
-}
-
-function buildAvgDurationData(rows: DailyMetric[], from: string, to: string) {
-  return fillDays(rows, from, to, (r) => r.date, (r) => (r ? r.avgDurationMs : 0));
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -344,24 +208,7 @@ function pctChange(current?: number, previous?: number): number | null {
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
-function formatAxisCost(usd: number): string {
-  if (usd === 0) return "0";
-  if (usd < 0.01) return usd.toFixed(4);
-  if (usd < 1) return usd.toFixed(3);
-  return usd.toFixed(2);
-}
 
-function formatDurationAxis(ms: number): string {
-  if (!ms || ms <= 0) return "0";
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function formatDuration(ms: number): string {
-  if (!ms || ms <= 0) return "—";
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
 
 function formatTokens(n: number): string {
   if (n === 0) return "0";
@@ -370,6 +217,13 @@ function formatTokens(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString();
 }
+
+function formatDuration(ms: number): string {
+  if (!ms || ms <= 0) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 
 function formatErrorRate(rate: number): string {
   if (rate === 0) return "0%";

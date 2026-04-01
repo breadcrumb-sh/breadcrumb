@@ -1,0 +1,29 @@
+{
+  "name": "model-version-change",
+  "description": "email-classifier switched from gpt-4o-mini to gpt-4o today. Latency increased from 500ms to 800ms, cost per trace doubled. But all traces succeed — this looks like an intentional upgrade, not a regression.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 151, "error_traces": 2, "error_rate": 0.013, "avg_duration_ms": 2870, "p95_duration_ms": 3950 },
+      { "trace_name": "email-classifier", "total_traces": 98, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 810, "p95_duration_ms": 1050 },
+      { "trace_name": "doc-summarizer", "total_traces": 50, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9300, "p95_duration_ms": 14100 }
+    ],
+    "model": [
+      { "trace_name": "email-classifier", "date": "2026-03-31", "model": "gpt-4o", "trace_count": 98, "avg_duration_ms": 810, "avg_input_tokens": 850, "avg_output_tokens": 45, "avg_cost_per_trace_usd": 0.022 },
+      { "trace_name": "email-classifier", "date": "2026-03-30", "model": "gpt-4o-mini", "trace_count": 102, "avg_duration_ms": 490, "avg_input_tokens": 840, "avg_output_tokens": 42, "avg_cost_per_trace_usd": 0.011 },
+      { "trace_name": "email-classifier", "date": "2026-03-29", "model": "gpt-4o-mini", "trace_count": 97, "avg_duration_ms": 505, "avg_input_tokens": 835, "avg_output_tokens": 44, "avg_cost_per_trace_usd": 0.011 }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 9.25, "trace_count": 299, "breakdown": { "customer-support-bot": 4.80, "email-classifier": 2.16, "doc-summarizer": 2.29 } },
+      { "date": "2026-03-30", "total_cost_usd": 7.95, "trace_count": 302, "breakdown": { "customer-support-bot": 4.75, "email-classifier": 1.12, "doc-summarizer": 2.08 } }
+    ],
+    "duration": [
+      { "trace_name": "email-classifier", "period": "today", "avg_duration_ms": 810, "p95_duration_ms": 1050, "trace_count": 98 },
+      { "trace_name": "email-classifier", "period": "yesterday", "avg_duration_ms": 490, "p95_duration_ms": 620, "trace_count": 102 }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": false,
+    "shouldUpdateMemory": true
+  }
+}

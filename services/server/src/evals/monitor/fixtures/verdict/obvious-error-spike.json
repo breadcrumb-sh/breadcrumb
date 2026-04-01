@@ -1,0 +1,34 @@
+{
+  "name": "obvious-error-spike",
+  "description": "Error rate spiked to 45% in last hour. All errors are 'context window exceeded' on customer-support-bot. 120 traces affected. Started at 14:00 UTC, ongoing.",
+  "item": {
+    "title": "High error rate on customer-support-bot",
+    "description": "Automated alert: error rate exceeded 40% threshold on customer-support-bot agent in the last hour.",
+    "status": "investigating",
+    "note": "Investigated error spike on customer-support-bot. Key findings:\n\n- Error rate hit 45% in the last hour (54 of 120 traces failed)\n- All failures share the same error: \"context window exceeded\" (OpenAI 400 error)\n- First occurrence: trace abc-1201 at 14:00:12 UTC. Most recent: trace abc-1320 at 14:58:44 UTC\n- Errors correlate with conversations >8 turns — the retrieval step injects full document chunks without truncation\n- p50 input tokens on failing traces: 127,400 (vs normal ~12,000)\n- No deployment or config changes in the last 24h per git log\n- Successful traces are all short conversations (1-3 turns)\n- The issue is ongoing — checked at 15:02 UTC and new errors are still appearing\n- Affected endpoint: /v1/chat/support, all regions\n\nThis is a clear, active incident. The context window is being exceeded because long conversations accumulate retrieved chunks without summarization or eviction."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "error": [
+      { "error_message": "context window exceeded", "count": 54, "first_seen": "2024-01-15T14:00:12Z", "last_seen": "2024-01-15T14:58:44Z", "agent": "customer-support-bot" },
+      { "error_message": "timeout", "count": 1, "first_seen": "2024-01-15T13:22:01Z", "last_seen": "2024-01-15T13:22:01Z", "agent": "customer-support-bot" }
+    ],
+    "traces": [
+      { "total_traces": 120, "failed_traces": 54, "error_rate": 0.45, "time_bucket": "2024-01-15T14:00:00Z", "agent": "customer-support-bot" },
+      { "total_traces": 85, "failed_traces": 1, "error_rate": 0.012, "time_bucket": "2024-01-15T13:00:00Z", "agent": "customer-support-bot" }
+    ],
+    "spans": [
+      { "span_name": "llm.chat_completion", "avg_input_tokens": 127400, "avg_output_tokens": 320, "error_count": 54, "status": "error", "agent": "customer-support-bot" },
+      { "span_name": "retrieval.vector_search", "avg_input_tokens": 0, "avg_output_tokens": 0, "error_count": 0, "status": "ok", "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "review": 1.0, "done": 0.0, "followup": 0.0 },
+    "shouldComment": true,
+    "commentKeywords": ["45%", "context window", "customer-support-bot"],
+    "expectedPriority": "high",
+    "expectedLabels": ["bug"]
+  }
+}

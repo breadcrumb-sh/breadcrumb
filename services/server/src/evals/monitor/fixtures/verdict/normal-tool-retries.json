@@ -1,0 +1,32 @@
+{
+  "name": "normal-tool-retries",
+  "description": "Ticket flagged high tool error rate. Investigation shows search-agent retries web searches on empty results. Shows as error spans but agent recovers. 100% trace success.",
+  "item": {
+    "title": "High tool error rate on customer-support-bot",
+    "description": "Automated alert: tool call error rate exceeded 15% on customer-support-bot in the last 4 hours.",
+    "status": "investigating",
+    "note": "Investigated the tool error rate alert. This is a false positive:\n\n- Tool-level error rate: 18% (22 of 120 tool spans have error status)\n- All 22 errors are on the \"web_search\" tool span\n- Error message: \"empty result set\" — this is returned when the search API finds no matching documents\n- In every case, the agent's orchestration logic catches the empty result and retries with a reformulated query\n- Second attempt succeeds in 20 of 22 cases; remaining 2 fall back to the knowledge base\n- Trace-level success rate: 100% (120 of 120 traces completed successfully)\n- End-user saw no errors — the retry logic is working as designed\n- This pattern has existed since the agent was deployed (checked 30-day history: tool error rate has been 12-20% consistently)\n- The alert threshold was set at the span level, not the trace level, which is why it triggered\n- Sample traces: ret-7710, ret-7725, ret-7742\n- Average retry adds ~800ms to trace latency, which is within acceptable bounds\n\nThis is expected behavior. The web_search tool returns empty results for some queries, and the agent handles it gracefully. The alerting threshold should arguably be adjusted to trace-level success, not span-level."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "spans": [
+      { "span_name": "tool.web_search", "total_count": 120, "error_count": 22, "error_rate": 0.183, "error_message": "empty result set", "avg_duration_ms": 450, "agent": "customer-support-bot" },
+      { "span_name": "tool.web_search_retry", "total_count": 22, "error_count": 2, "error_rate": 0.091, "avg_duration_ms": 520, "agent": "customer-support-bot" },
+      { "span_name": "retrieval.knowledge_base_fallback", "total_count": 2, "error_count": 0, "error_rate": 0.0, "avg_duration_ms": 180, "agent": "customer-support-bot" }
+    ],
+    "traces": [
+      { "total_traces": 120, "successful_traces": 120, "failed_traces": 0, "error_rate": 0.0, "p50_ms": 3100, "p95_ms": 5800, "time_range": "last_4h", "agent": "customer-support-bot" }
+    ],
+    "error": [
+      { "error_message": "empty result set", "count": 22, "span_name": "tool.web_search", "time_range": "last_4h", "agent": "customer-support-bot" },
+      { "error_message": "empty result set", "count": 85, "span_name": "tool.web_search", "time_range": "last_7d", "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "done": 1.0, "review": 0.0, "followup": 0.0 },
+    "shouldComment": true,
+    "commentKeywords": ["retry", "expected", "success"]
+  }
+}

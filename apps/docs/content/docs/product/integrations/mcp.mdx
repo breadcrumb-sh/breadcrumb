@@ -1,0 +1,58 @@
+---
+title: MCP
+---
+
+The MCP server gives your LLM read-only access to your trace data. Connect it to Claude, Cursor, or any MCP-compatible client to debug and improve your prompts from real production data.
+
+## Create an MCP key
+
+Go to your **user settings** and create a new MCP key. Each key grants read-only access to traces across all your projects.
+
+
+## Install
+
+<CodeBlockTabs groupId="mcp-client" defaultValue="claude-code" persist>
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="claude-code">Claude Code</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="claude-desktop">Claude Desktop</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="cursor">Cursor</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="codex">Codex CLI</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+  <CodeBlockTab value="claude-code">
+
+```bash
+claude mcp add --transport http breadcrumb https://app.breadcrumb.sh/mcp
+```
+
+  </CodeBlockTab>
+  <CodeBlockTab value="claude-desktop">
+
+```bash
+claude mcp add --transport http -s user breadcrumb https://app.breadcrumb.sh/mcp
+```
+
+  </CodeBlockTab>
+  <CodeBlockTab value="cursor">
+
+```bash
+npx @anthropic-ai/mcpx add --transport http breadcrumb https://app.breadcrumb.sh/mcp
+```
+
+  </CodeBlockTab>
+  <CodeBlockTab value="codex">
+
+```bash
+codex mcp add --transport http breadcrumb https://app.breadcrumb.sh/mcp
+```
+
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+Replace `app.breadcrumb.sh` with your instance domain if self-hosting.
+
+## What your LLM can do
+
+- **Read traces and spans** - browse, filter, and inspect the full content of any trace including prompts, completions, and metadata
+- **Find problems** - surface the slowest, most expensive, or highest-token traces across your projects
+- **Run queries** - execute read-only SQL against your trace data for custom analysis
+- **Fix your code** - read what actually happened in production and rewrite prompts or logic based on real data

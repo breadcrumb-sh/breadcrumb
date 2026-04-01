@@ -1,0 +1,19 @@
+---
+title: API Keys
+---
+
+API keys authenticate your SDK when sending traces. Each project has its own keys.
+
+## Create a key
+
+Go to your project settings and click **+ New key**. Copy it immediately - it won't be shown again.
+
+
+## Use it in your code
+
+```ts
+const bc = init({
+  apiKey: process.env.BREADCRUMB_API_KEY!,
+  baseUrl: process.env.BREADCRUMB_BASE_URL!,
+});
+```

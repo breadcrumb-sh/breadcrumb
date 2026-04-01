@@ -64,25 +64,13 @@ vi.mock("../../services/explore/ai-provider.js", () => ({
   getAiModel: vi.fn(),
 }));
 
-vi.mock("../../services/explore/query-writer.js", () => ({
-  writeSearchQuery: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation-manager.js", () => ({
-  getGeneration: vi.fn().mockReturnValue(null),
-  subscribeGeneration: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation.js", () => ({
-  runGeneration: vi.fn(),
-}));
 
 vi.mock("../../shared/lib/sandboxed-query.js", () => ({
   runSandboxedQuery: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../../services/observations/cache.js", () => ({
-  invalidateObservationsCache: vi.fn(),
+vi.mock("../../shared/lib/boss.js", () => ({
+  boss: { send: vi.fn(), insert: vi.fn(), createQueue: vi.fn(), work: vi.fn(), on: vi.fn() },
 }));
 
 vi.mock("../../shared/lib/encryption.js", () => ({
@@ -215,9 +203,9 @@ describe("projects.create", () => {
   });
 });
 
-// ── projects.rename ─────────────────────────────────────────────────────────
+// ── projects.update ─────────────────────────────────────────────────────────
 
-describe("projects.rename", () => {
+describe("projects.update", () => {
   it("requires admin role via project→org resolution", async () => {
     // resolveProject: where() terminal
     mockWhere.mockResolvedValueOnce([{ organizationId: ORG_ID }]);
@@ -226,7 +214,7 @@ describe("projects.rename", () => {
 
     const caller = appRouter.createCaller(userCtx);
     await expect(
-      caller.projects.rename({ projectId: "proj-1", name: "New Name" })
+      caller.projects.update({ projectId: "proj-1", name: "New Name" })
     ).rejects.toThrow("FORBIDDEN");
   });
 
@@ -240,7 +228,7 @@ describe("projects.rename", () => {
     mockReturning.mockResolvedValueOnce([{ id: "proj-1", name: "New Name" }]);
 
     const caller = appRouter.createCaller(userCtx);
-    const result = await caller.projects.rename({ projectId: "proj-1", name: "New Name" });
+    const result = await caller.projects.update({ projectId: "proj-1", name: "New Name" });
     expect(result).toEqual({ id: "proj-1", name: "New Name" });
   });
 });

@@ -1,6 +1,5 @@
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
-import { ChatsCircle } from "@phosphor-icons/react/ChatsCircle";
 import { XCircle } from "@phosphor-icons/react/XCircle";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -443,7 +442,7 @@ function Section({ label, content, collapsible = false }: { label: string; conte
 
 // ── Main component ──────────────────────────────────────────────────────────
 
-export function SpanDetail({ span, onAsk }: { span: SpanData; onAsk?: () => void }) {
+export function SpanDetail({ span }: { span: SpanData }) {
   const dur = fmtMs(spanDurationMs(span.startTime, span.endTime));
   const totalCost = span.inputCostUsd + span.outputCostUsd;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -482,15 +481,6 @@ export function SpanDetail({ span, onAsk }: { span: SpanData; onAsk?: () => void
           )}
           {totalCost > 0 && <span>{formatCost(totalCost)}</span>}
           <span className="font-mono">{formatTime(span.startTime)}</span>
-          {onAsk && (
-            <button
-              onClick={onAsk}
-              className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 transition-colors"
-            >
-              <ChatsCircle size={11} />
-              Ask
-            </button>
-          )}
         </div>
       </div>
       {span.status === "error" && span.statusMessage && (

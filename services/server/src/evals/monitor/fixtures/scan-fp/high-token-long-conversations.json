@@ -1,0 +1,28 @@
+{
+  "name": "high-token-long-conversations",
+  "description": "5 customer-support-bot traces have unusually high input tokens (40k+) because they are long multi-turn conversations. Duration is proportionally higher but not erroring. High tokens for long conversations is expected behavior.",
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n- **doc-summarizer**: Summarizes uploaded documents. 2-3 LLM calls, varies by doc length. Normal latency: 5-15s.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$8\n- Trace volume: ~300/day\n- customer-support-bot: ~150/day\n- email-classifier: ~100/day\n- doc-summarizer: ~50/day",
+  "queryResponses": {
+    "traces": [
+      { "trace_name": "customer-support-bot", "total_traces": 150, "error_traces": 2, "error_rate": 0.013, "avg_duration_ms": 2900, "p95_duration_ms": 4100 },
+      { "trace_name": "email-classifier", "total_traces": 99, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 490, "p95_duration_ms": 620 },
+      { "trace_name": "doc-summarizer", "total_traces": 51, "error_traces": 0, "error_rate": 0, "avg_duration_ms": 9600, "p95_duration_ms": 14300 }
+    ],
+    "input": [
+      { "trace_name": "customer-support-bot", "avg_input_tokens": 3200, "p50_input_tokens": 2800, "p95_input_tokens": 8500, "max_input_tokens": 48200, "traces_above_40k": 5, "total_traces": 150 },
+      { "trace_id": "tr_hightok_01", "trace_name": "customer-support-bot", "input_tokens": 48200, "llm_calls": 8, "conversation_turns": 12, "duration_ms": 6200, "status": "success" },
+      { "trace_id": "tr_hightok_02", "trace_name": "customer-support-bot", "input_tokens": 44100, "llm_calls": 7, "conversation_turns": 11, "duration_ms": 5800, "status": "success" },
+      { "trace_id": "tr_hightok_03", "trace_name": "customer-support-bot", "input_tokens": 42500, "llm_calls": 7, "conversation_turns": 10, "duration_ms": 5500, "status": "success" },
+      { "trace_id": "tr_hightok_04", "trace_name": "customer-support-bot", "input_tokens": 41800, "llm_calls": 6, "conversation_turns": 10, "duration_ms": 5400, "status": "success" },
+      { "trace_id": "tr_hightok_05", "trace_name": "customer-support-bot", "input_tokens": 40300, "llm_calls": 6, "conversation_turns": 9, "duration_ms": 5100, "status": "success" }
+    ],
+    "cost": [
+      { "date": "2026-03-31", "total_cost_usd": 8.45, "trace_count": 300, "cost_per_trace_usd": 0.0282 },
+      { "date": "2026-03-30", "total_cost_usd": 8.10, "trace_count": 298, "cost_per_trace_usd": 0.0272 }
+    ]
+  },
+  "expected": {
+    "shouldCreateTickets": false,
+    "shouldUpdateMemory": false
+  }
+}

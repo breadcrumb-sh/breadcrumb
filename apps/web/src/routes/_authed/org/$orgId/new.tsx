@@ -1,12 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { CaretRight } from "@phosphor-icons/react/CaretRight";
 import { Copy } from "@phosphor-icons/react/Copy";
 import { Check } from "@phosphor-icons/react/Check";
 import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
 import { trpc } from "../../../../lib/trpc";
 import { StepIndicator } from "../../../../components/common/StepIndicator";
-import { AppHeader } from "../../../../components/layout/AppHeader";
 import { TimezoneSelect } from "../../../../components/common/TimezoneSelect";
+import { Logo } from "../../../../components/common/logo/Logo";
+import { AppHeader } from "../../../../components/layout/AppHeader";
+import { OrgSwitcher } from "../../../../components/layout/OrgSwitcher";
+import { ProjectSwitcher } from "../../../../components/layout/ProjectSwitcher";
 
 export const Route = createFileRoute("/_authed/org/$orgId/new")({
   component: NewProjectPage,
@@ -20,6 +24,7 @@ const STEPS = [
 function NewProjectPage() {
   const { orgId } = Route.useParams();
   const navigate = useNavigate();
+  const org = trpc.organizations.get.useQuery({ id: orgId });
   const [step, setStep] = useState(0);
   const [projectName, setProjectName] = useState("");
   const [timezone, setTimezone] = useState(
@@ -58,9 +63,21 @@ function NewProjectPage() {
   };
 
   return (
-    <>
-      <AppHeader />
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+    <div className="flex h-screen flex-col">
+      <AppHeader>
+        <Link
+          to="/org/$orgId"
+          params={{ orgId }}
+          className="flex items-center hover:opacity-80 transition-opacity shrink-0"
+        >
+          <Logo className="size-5" />
+        </Link>
+        <OrgSwitcher currentOrgId={orgId} currentOrgName={org.data?.name} />
+        <CaretRight size={12} className="text-zinc-600 shrink-0" />
+        <ProjectSwitcher orgId={orgId} currentProjectName="New project" />
+      </AppHeader>
+
+      <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md space-y-8">
           <div className="flex items-center gap-4">
             <StepIndicator steps={STEPS} current={step} />
@@ -148,6 +165,6 @@ function NewProjectPage() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

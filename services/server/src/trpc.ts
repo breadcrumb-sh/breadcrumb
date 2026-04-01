@@ -15,7 +15,9 @@ export type TRPCContext = {
   session: { id: string; userId: string } | null;
 };
 
-const t = initTRPC.context<TRPCContext>().create({ transformer: superjson });
+const t = initTRPC.context<TRPCContext>().create({
+  transformer: superjson,
+});
 
 export const router = t.router;
 

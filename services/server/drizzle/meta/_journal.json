@@ -106,6 +106,125 @@
       "when": 1774691925739,
       "tag": "0014_round_rachel_grey",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1774697449923,
+      "tag": "0015_noisy_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1774698365131,
+      "tag": "0016_slim_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1774733291610,
+      "tag": "0017_curved_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774733754526,
+      "tag": "0018_ambitious_abomination",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774739124418,
+      "tag": "0019_bizarre_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1774810073113,
+      "tag": "0020_orange_franklin_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1774814680250,
+      "tag": "0021_numerous_aqueduct",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1774815727804,
+      "tag": "0022_slippery_ben_urich",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774823624078,
+      "tag": "0023_first_kulan_gath",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1774826209183,
+      "tag": "0024_lazy_spacker_dave",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774850000000,
+      "tag": "0025_drop_trace_analysis",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774900000000,
+      "tag": "0026_monitor_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1774910000000,
+      "tag": "0027_add_user_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774920000000,
+      "tag": "0028_monitor_labels_priority",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774930000000,
+      "tag": "0029_monitor_trace_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1774940000000,
+      "tag": "0030_webhook_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1774950000000,
+      "tag": "0031_pii_redaction",
+      "breakpoints": true
     }
   ]
 }

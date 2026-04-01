@@ -25,9 +25,6 @@ vi.mock("../shared/lib/boss.js", () => ({
   boss: { send: vi.fn().mockResolvedValue(undefined) },
 }));
 
-vi.mock("../services/observations/cache.js", () => ({
-  getObservationsForProject: vi.fn().mockResolvedValue([]),
-}));
 
 // Import routes after mocking their dependency.
 const { ingestRoutes, traceBatcher, spanBatcher } = await import("../api/ingest/routes.js");

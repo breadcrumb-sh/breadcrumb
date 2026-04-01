@@ -18,11 +18,18 @@ async function main() {
   await initQueryValidator();
 
   await boss.start();
-  const { registerWorkers } = await import("./services/observations/evaluate-job.js");
-  await registerWorkers();
+
+  const { registerMonitorJobs } = await import("./services/monitor/jobs.js");
+  await registerMonitorJobs();
+
+  const { registerWebhookJobs } = await import("./services/monitor/webhooks.js");
+  await registerWebhookJobs();
 
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
+
+  const { initBreadcrumb } = await import("./shared/lib/breadcrumb.js");
+  await initBreadcrumb();
 
   await initTelemetry();
   void trackServerStarted();

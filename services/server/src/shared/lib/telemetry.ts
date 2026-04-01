@@ -128,34 +128,6 @@ export function trackAiProviderConfigured(provider: string) {
   trackEvent("ai_provider_configured", { provider });
 }
 
-export function trackObservationCreated(opts: {
-  sampling_rate: number;
-  has_heuristics: boolean;
-  trace_filter_count: number;
-}) {
-  trackEvent("observation_created", opts);
-}
-
-export function trackObservationToggled(enabled: boolean) {
-  trackEvent("observation_toggled", { enabled });
-}
-
-export function trackFindingDismissed(impact: string) {
-  trackEvent("finding_dismissed", { impact });
-}
-
-export function trackFindingCreated(impact: string) {
-  trackEvent("finding_created", { impact });
-}
-
-export function trackExploreMessageSent() {
-  trackEvent("explore_message_sent");
-}
-
-export function trackExploreChartStarred() {
-  trackEvent("explore_chart_starred");
-}
-
 export function trackMemberInvited(role: string) {
   trackEvent("member_invited", { role });
 }
@@ -166,6 +138,36 @@ export function trackMcpToolUsed(toolName: string) {
 
 export function trackQueryRejected(source: string, code: string, details: string[]) {
   trackEvent("query_rejected", { source, code, detail_count: details.length });
+}
+
+// ── Monitor events ─────────────────────────────────────────────────
+
+export function trackMonitorScanCompleted(ticketCount: number, queryCount: number, costCents: number) {
+  trackEvent("monitor_scan_completed", { ticket_count: ticketCount, query_count: queryCount, cost_cents: costCents });
+}
+
+export function trackMonitorInvestigationCompleted(verdict: string, costCents: number) {
+  trackEvent("monitor_investigation_completed", { verdict, cost_cents: costCents });
+}
+
+export function trackMonitorItemCreated() {
+  trackEvent("monitor_item_created");
+}
+
+export function trackMonitorItemStatusChanged(fromStatus: string, toStatus: string) {
+  trackEvent("monitor_item_status_changed", { from_status: fromStatus, to_status: toStatus });
+}
+
+export function trackMonitorUserComment() {
+  trackEvent("monitor_user_comment");
+}
+
+export function trackMonitorInvestigationTriggered() {
+  trackEvent("monitor_investigation_triggered");
+}
+
+export function trackMonitorDuplicateBlocked(confidence: string) {
+  trackEvent("monitor_duplicate_blocked", { confidence });
 }
 
 // ── Performance events ──────────────────────────────────────────────

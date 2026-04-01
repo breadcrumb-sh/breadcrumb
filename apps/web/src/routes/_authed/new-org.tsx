@@ -1,7 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { trpc } from "../../lib/trpc";
+import { Logo } from "../../components/common/logo/Logo";
 import { AppHeader } from "../../components/layout/AppHeader";
+import { OrgSwitcher } from "../../components/layout/OrgSwitcher";
 
 export const Route = createFileRoute("/_authed/new-org")({
   component: NewOrgPage,
@@ -25,9 +27,15 @@ function NewOrgPage() {
   };
 
   return (
-    <>
-      <AppHeader />
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+    <div className="flex h-screen flex-col">
+      <AppHeader>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity shrink-0">
+          <Logo className="size-5" />
+        </Link>
+        <OrgSwitcher currentOrgName="New organization" />
+      </AppHeader>
+
+      <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md space-y-6">
           <div className="space-y-1">
             <h2 className="text-xl font-semibold">Create an organization</h2>
@@ -52,9 +60,7 @@ function NewOrgPage() {
               />
             </div>
             {createOrg.error && (
-              <p className="text-sm text-red-400">
-                {createOrg.error.message}
-              </p>
+              <p className="text-sm text-red-400">{createOrg.error.message}</p>
             )}
             <button
               type="submit"
@@ -66,6 +72,6 @@ function NewOrgPage() {
           </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }

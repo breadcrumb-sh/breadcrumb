@@ -7,9 +7,11 @@ import { tracesRouter } from "./traces/router.js";
 import { membersRouter } from "./members.js";
 import { invitationsRouter } from "./invitations.js";
 import { aiProvidersRouter } from "./ai-providers.js";
-import { exploresRouter } from "./explore.js";
 import { configRouter } from "./config.js";
-import { observationsRouter } from "./observations.js";
+import { monitorRouter } from "./monitor.js";
+import { labelsRouter } from "./labels.js";
+import { integrationsRouter } from "./integrations.js";
+import { piiRedactionRouter } from "./pii-redaction.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -22,15 +24,11 @@ export const appRouter = router({
   members: membersRouter,
   invitations: invitationsRouter,
   aiProviders: aiProvidersRouter,
-  explores: exploresRouter,
-  observations: observationsRouter,
+  monitor: monitorRouter,
+  labels: labelsRouter,
+  integrations: integrationsRouter,
+  piiRedaction: piiRedactionRouter,
 });
 
 export type AppRouter = typeof appRouter;
 
-export type {
-  LegendEntry,
-  ChartSpec,
-  DisplayPart,
-  StreamEvent,
-} from "../../services/explore/types.js";

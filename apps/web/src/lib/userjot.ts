@@ -1,4 +1,4 @@
-import type { Theme } from "../hooks/useTheme";
+import type { ResolvedTheme as Theme } from "../hooks/useTheme";
 
 const USERJOT_PROJECT_ID = "cmmmah5da051v0imyvrh353q6";
 const USERJOT_SDK_URL = "https://cdn.userjot.com/sdk/v2/uj.js";

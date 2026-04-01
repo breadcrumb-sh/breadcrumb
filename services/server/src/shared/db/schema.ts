@@ -121,9 +121,32 @@ export const project = pgTable("project", {
   name: text("name").notNull(),
   slug: text("slug").unique(),
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-  autoAnalyze: boolean("auto_analyze").notNull().default(false),
+  agentMemory: text("agent_memory").notNull().default(""),
+  agentMonthlyCostLimitCents: integer("agent_monthly_cost_limit_cents").notNull().default(1000), // stored in cents, default $10
+  agentScanIntervalSeconds: integer("agent_scan_interval_seconds").notNull().default(300), // minimum seconds between auto scans, default 5 min
   createdAt: timestamp("created_at").notNull(),
 });
+
+// ── Agent usage tracking ────────────────────────────────────────────
+
+export const agentUsage = pgTable(
+  "agent_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    month: varchar("month", { length: 7 }).notNull(), // YYYY-MM
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    costCents: integer("cost_cents").notNull().default(0), // cost in cents
+    calls: integer("calls").notNull().default(0),
+  },
+  (t) => [
+    unique("agent_usage_project_month").on(t.projectId, t.month),
+    index("agent_usage_project_id_idx").on(t.projectId),
+  ],
+);
 
 // ── Application tables ───────────────────────────────────────────────
 
@@ -175,118 +198,155 @@ export const mcpKeys = pgTable("mcp_keys", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// ── Explores (conversation-based) ───────────────────────────────────
 
-export const explores = pgTable("explores", {
+
+// ── PII redaction settings ─────────────────────────────────────────
+
+export const piiRedactionSettings = pgTable("pii_redaction_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: text("project_id")
     .notNull()
+    .unique()
     .references(() => project.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),
-  traceId: text("trace_id"),
-  messages: jsonb("messages").default([]).notNull(), // AI SDK CoreMessage[]
+  email: boolean("email").notNull().default(true),
+  phone: boolean("phone").notNull().default(true),
+  ssn: boolean("ssn").notNull().default(true),
+  creditCard: boolean("credit_card").notNull().default(true),
+  ipAddress: boolean("ip_address").notNull().default(true),
+  dateOfBirth: boolean("date_of_birth").notNull().default(true),
+  usAddress: boolean("us_address").notNull().default(true),
+  apiKey: boolean("api_key").notNull().default(true),
+  url: boolean("url").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-},
-  (t) => [
-    index("explores_project_id_idx").on(t.projectId),
-    index("explores_trace_id_idx").on(t.traceId),
-  ],
-);
+});
 
-export const observations = pgTable(
-  "observations",
+export const piiCustomPatterns = pgTable(
+  "pii_custom_patterns",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: text("project_id")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }).notNull(),
-    traceNames: jsonb("trace_names").$type<string[]>().default([]).notNull(),
-    samplingRate: integer("sampling_rate").notNull().default(100), // 1-100
-    traceLimit: integer("trace_limit"), // optional stop-after-N-traces
-    tracesEvaluated: integer("traces_evaluated").notNull().default(0),
-    heuristics: text("heuristics"),
+    label: varchar("label", { length: 64 }).notNull(),
+    pattern: varchar("pattern", { length: 512 }).notNull(),
+    replacement: varchar("replacement", { length: 64 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [index("observations_project_id_idx").on(t.projectId)],
+  (t) => [index("pii_custom_patterns_project_id_idx").on(t.projectId)],
 );
 
-export const observationViews = pgTable("observation_views", {
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => project.id, { onDelete: "cascade" }),
-  lastViewedAt: timestamp("last_viewed_at").notNull(),
-}, (t) => [
-  { name: "observation_views_pkey", columns: [t.userId, t.projectId] },
-]);
+// ── Monitor items (agent kanban) ────────────────────────────────────
 
-export const observationFindings = pgTable(
-  "observation_findings",
+export const monitorItems = pgTable(
+  "monitor_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    observationId: uuid("observation_id")
-      .references(() => observations.id, { onDelete: "set null" }),
     projectId: text("project_id")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
-    referenceTraceId: text("reference_trace_id").notNull(),
-    impact: varchar("impact", { length: 16 }).notNull(), // 'low' | 'medium' | 'high'
     title: text("title").notNull(),
-    description: text("description").notNull(),
-    suggestion: text("suggestion"),
+    description: text("description").notNull().default(""),
+    source: varchar("source", { length: 16 }).notNull().default("user"), // user | agent
+    status: varchar("status", { length: 32 }).notNull().default("queue"), // queue | investigating | review | done
+    priority: varchar("priority", { length: 16 }).notNull().default("none"), // none | low | medium | high | critical
+    traceNames: jsonb("trace_names").$type<string[]>().notNull().default([]), // linked trace name identifiers
+    note: text("note").notNull().default(""), // agent's working scratchpad
+    processing: boolean("processing").notNull().default(false),
+    read: boolean("read").notNull().default(true),
     dismissed: boolean("dismissed").notNull().default(false),
+    createdById: text("created_by_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [
-    index("findings_project_id_idx").on(t.projectId),
-    index("findings_observation_id_idx").on(t.observationId),
-  ],
+  (t) => [index("monitor_items_project_id_idx").on(t.projectId)],
 );
 
-export const traceSummaries = pgTable(
-  "trace_summaries",
+export const monitorComments = pgTable(
+  "monitor_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    source: varchar("source", { length: 16 }).notNull(), // user | agent
+    authorId: text("author_id"),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("monitor_comments_item_id_idx").on(t.monitorItemId)],
+);
+
+// ── Monitor labels ─────────────────────────────────────────────────
+
+export const monitorLabels = pgTable(
+  "monitor_labels",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: text("project_id")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
-    traceId: text("trace_id").notNull(),
-    markdown: text("markdown").notNull().default(""),
-    status: varchar("status", { length: 16 }).notNull().default("pending"), // pending | running | done | error
-    errorMessage: text("error_message"),
+    name: varchar("name", { length: 64 }).notNull(),
+    color: varchar("color", { length: 7 }).notNull(), // hex e.g. #ef4444
+  },
+  (t) => [index("monitor_labels_project_id_idx").on(t.projectId)],
+);
+
+export const monitorItemLabels = pgTable(
+  "monitor_item_labels",
+  {
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    monitorLabelId: uuid("monitor_label_id")
+      .notNull()
+      .references(() => monitorLabels.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    index("monitor_item_labels_item_idx").on(t.monitorItemId),
+    index("monitor_item_labels_label_idx").on(t.monitorLabelId),
+  ],
+);
+
+// ── Monitor activity ──────────────────────────────────────────────
+
+export const monitorActivity = pgTable(
+  "monitor_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    monitorItemId: uuid("monitor_item_id")
+      .notNull()
+      .references(() => monitorItems.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 32 }).notNull(), // created | status_change | processing_started | processing_finished | dismissed
+    fromStatus: varchar("from_status", { length: 32 }),
+    toStatus: varchar("to_status", { length: 32 }),
+    actor: varchar("actor", { length: 16 }).notNull().default("system"), // user | agent | system
+    actorId: text("actor_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("monitor_activity_item_id_idx").on(t.monitorItemId)],
+);
+
+// ── Webhook integrations ────────────────────────────────────────────
+
+export const webhookIntegrations = pgTable(
+  "webhook_integration",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    channel: varchar("channel", { length: 16 }).notNull(), // slack | discord
+    url: text("url").notNull(),
+    minPriority: varchar("min_priority", { length: 16 }).notNull().default("all"), // all | low | medium | high | critical
+    enabled: boolean("enabled").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (t) => [
-    unique("trace_summaries_project_trace_unique").on(t.projectId, t.traceId),
-    index("trace_summaries_project_id_idx").on(t.projectId),
+    unique("webhook_integration_project_channel_uniq").on(t.projectId, t.channel),
+    index("webhook_integration_project_idx").on(t.projectId),
   ],
 );
 
-export const starredCharts = pgTable("starred_charts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  exploreId: uuid("explore_id")
-    .notNull()
-    .references(() => explores.id, { onDelete: "cascade" }),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => project.id, { onDelete: "cascade" }),
-  title: varchar("title", { length: 255 }),
-  chartType: varchar("chart_type", { length: 32 }),
-  sql: text("sql"),
-  xKey: varchar("x_key", { length: 64 }),
-  yKeys: jsonb("y_keys"),
-  legend: jsonb("legend"),
-  /** Default lookback window in days (7, 30, or 90) set by the AI. Users can override on the dashboard. */
-  defaultDays: integer("default_days"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-},
-  (t) => [index("starred_charts_project_id_idx").on(t.projectId)],
-);

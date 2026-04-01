@@ -4,6 +4,7 @@
   "pages": [
     "installation",
     "tracing",
-    "agents"
+    "agents",
+    "privacy"
   ]
 }

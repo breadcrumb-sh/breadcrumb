@@ -58,26 +58,15 @@ vi.mock("../../services/explore/ai-provider.js", () => ({
   getAiModel: vi.fn(),
 }));
 
-vi.mock("../../services/explore/query-writer.js", () => ({
-  writeSearchQuery: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation-manager.js", () => ({
-  getGeneration: vi.fn().mockReturnValue(null),
-  subscribeGeneration: vi.fn(),
-}));
-
-vi.mock("../../services/explore/generation.js", () => ({
-  runGeneration: vi.fn(),
-}));
 
 vi.mock("../../shared/lib/sandboxed-query.js", () => ({
   runSandboxedQuery: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../../services/observations/cache.js", () => ({
-  invalidateObservationsCache: vi.fn(),
+vi.mock("../../shared/lib/boss.js", () => ({
+  boss: { send: vi.fn(), insert: vi.fn(), createQueue: vi.fn(), work: vi.fn(), on: vi.fn() },
 }));
+
 
 vi.mock("../../shared/lib/encryption.js", () => ({
   encrypt: vi.fn().mockReturnValue("encrypted"),

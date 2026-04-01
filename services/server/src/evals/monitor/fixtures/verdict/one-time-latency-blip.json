@@ -1,0 +1,31 @@
+{
+  "name": "one-time-latency-blip",
+  "description": "One trace took 25s due to external web-search timeout. All other 49 traces normal (p95: 6.2s). One-time blip.",
+  "item": {
+    "title": "Latency anomaly detected on customer-support-bot",
+    "description": "Automated alert: trace latency exceeded 20s threshold on customer-support-bot.",
+    "status": "investigating",
+    "note": "Investigated the latency alert. Findings:\n\n- Single trace (trace-id: lat-8842) took 25.3s at 11:14:22 UTC\n- Root cause: the web-search tool call in span ws-0042 timed out after 20.1s before returning partial results\n- The agent retried with cached results and completed successfully\n- All other 49 traces in the same hour had normal latency: p50 2.8s, p95 6.2s, max (excluding outlier) 7.1s\n- No other traces triggered the web-search tool in this period — this was the only one with external dependency\n- Checked the web-search provider status page: they reported a brief connectivity issue at 11:14 UTC, resolved by 11:16 UTC\n- No errors in the trace — it completed with status OK, just slow\n- Historical check: no similar timeouts in the past 7 days\n\nThis appears to be a one-off external dependency timeout. No action needed."
+  },
+  "projectMemory": "## Project Agents\n- **customer-support-bot**: Handles customer inquiries via RAG. Typical trace has 3-5 LLM calls, 1-2 retrieval steps. Normal latency: 2-4s per trace.\n- **email-classifier**: Classifies incoming emails. Single LLM call per trace, ~500ms.\n\n## Baselines\n- Error rate: <2%\n- Daily cost: ~$5\n- Trace volume: ~200/day",
+  "comments": [],
+  "availableLabels": ["bug", "performance", "cost", "quality", "pattern", "security"],
+  "queryResponses": {
+    "duration": [
+      { "trace_id": "lat-8842", "duration_ms": 25300, "status": "ok", "timestamp": "2024-01-15T11:14:22Z", "agent": "customer-support-bot" },
+      { "p50_ms": 2800, "p95_ms": 6200, "max_ms": 7100, "trace_count": 49, "time_range": "2024-01-15T11:00:00Z/2024-01-15T12:00:00Z", "agent": "customer-support-bot" }
+    ],
+    "spans": [
+      { "span_id": "ws-0042", "span_name": "tool.web_search", "duration_ms": 20100, "status": "ok", "trace_id": "lat-8842", "parent_span": "agent.plan" },
+      { "span_id": "llm-0043", "span_name": "llm.chat_completion", "duration_ms": 3200, "status": "ok", "trace_id": "lat-8842", "parent_span": "agent.plan" }
+    ],
+    "error": [
+      { "error_count": 0, "total_traces": 50, "time_range": "2024-01-15T11:00:00Z/2024-01-15T12:00:00Z", "agent": "customer-support-bot" }
+    ]
+  },
+  "expected": {
+    "verdicts": { "done": 1.0, "review": 0.0, "followup": 0.3 },
+    "shouldComment": true,
+    "commentKeywords": ["one", "normal"]
+  }
+}

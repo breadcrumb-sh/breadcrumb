@@ -1,12 +1,12 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 
-const geistSans = Geist({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
+  variable: "--font-inter",
 });
 
 const geistMono = Geist_Mono({
@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://breadcrumb.sh"),
   title: {
-    default: "Breadcrumb",
+    default: "Breadcrumb - Open-source LLM tracing with AI monitoring",
     template: "%s | Breadcrumb",
   },
-  description: "Open-source LLM tracing and observability for TypeScript.",
+  description: "Open-source LLM tracing that catches what dashboards can't. AI-powered monitoring for your agents.",
   applicationName: "Breadcrumb",
   icons: {
     icon: "/bread_favicon.svg",
@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${geistMono.variable} antialiased`}
       >
         <Script
           defer

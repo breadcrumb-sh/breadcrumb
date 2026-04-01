@@ -1,0 +1,9 @@
+{
+  "title": "Monitoring",
+  "collapsible": true,
+  "pages": [
+    "overview",
+    "tickets",
+    "memory"
+  ]
+}
