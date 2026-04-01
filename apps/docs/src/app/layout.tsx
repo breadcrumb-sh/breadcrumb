@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://breadcrumb.sh"),
   title: {
-    default: "Breadcrumb",
+    default: "Breadcrumb - Open-source LLM tracing with AI monitoring",
     template: "%s | Breadcrumb",
   },
-  description: "Open-source LLM tracing and observability for TypeScript.",
+  description: "Open-source LLM tracing that catches what dashboards can't. AI-powered monitoring for your agents.",
   applicationName: "Breadcrumb",
   icons: {
     icon: "/bread_favicon.svg",

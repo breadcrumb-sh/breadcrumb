@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Simple, Open-Source LLM Tracing",
+  title: "Open-source LLM tracing that catches what dashboards can't",
   description:
-    "Like Plausible, but for your AI agents. Self-hostable, TypeScript-native LLM tracing - track every prompt, completion, token count, and cost.",
+    "AI-powered monitoring for your agents. Breadcrumb traces every LLM call and runs an agent that finds hallucination, context loss, and reasoning drift automatically.",
   openGraph: {
     images: "/opengraph-image",
   },
