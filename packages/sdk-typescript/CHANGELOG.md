@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.9
+
+### Patch Changes
+
+- b8dd02d: added beforeSend hook for pii redaction
+
 ## 0.0.8
 
 ### Patch Changes
