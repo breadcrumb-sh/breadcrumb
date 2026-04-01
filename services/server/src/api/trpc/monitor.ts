@@ -7,6 +7,7 @@ import {
   router,
   authedProcedure,
   projectMemberProcedure,
+  projectViewerProcedure,
   projectAdminProcedure,
   checkOrgRole,
 } from "../../trpc.js";
@@ -23,7 +24,7 @@ import { recordActivity } from "../../services/monitor/activity.js";
 const statusEnum = z.enum(["queue", "investigating", "review", "done"]);
 
 export const monitorRouter = router({
-  list: projectMemberProcedure
+  list: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const rows = await db
@@ -63,7 +64,7 @@ export const monitorRouter = router({
       }));
     }),
 
-  summary: projectMemberProcedure
+  summary: projectViewerProcedure
     .input(z.object({
       projectId: z.string(),
       from: z.string(), // YYYY-MM-DD
@@ -361,7 +362,7 @@ export const monitorRouter = router({
 
   // ── Agent memory ──────────────────────────────────────────────────
 
-  getMemory: projectMemberProcedure
+  getMemory: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const [p] = await db
@@ -382,7 +383,7 @@ export const monitorRouter = router({
 
   // ── Limits ────────────────────────────────────────────────────────
 
-  getLimits: projectMemberProcedure
+  getLimits: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const [p] = await db
@@ -429,7 +430,7 @@ export const monitorRouter = router({
 
   // ── SSE subscription ──────────────────────────────────────────────
 
-  onEvent: projectMemberProcedure
+  onEvent: projectViewerProcedure
     .input(z.object({ projectId: z.string() }))
     .subscription(async function* (opts) {
       const { projectId } = opts.input;
