@@ -1,6 +1,5 @@
 ---
 title: Organizations
-description: Manage organizations, projects, and team access.
 ---
 
 Organizations group projects and team members. Each project has its own API keys, traces, and monitor configuration.
@@ -9,4 +8,4 @@ Create organizations and projects from the sidebar. Invite team members from org
 
 ## Self-hosted
 
-The first signup becomes the **global admin** with access to everything. After that, new signups require an invitation unless `ALLOW_OPEN_SIGNUP=true` is set. Control organization creation with `ALLOW_ORG_CREATION`.
+By default, new signups require an invitation. Set `ALLOW_OPEN_SIGNUP=true` to let anyone create an account. Control who can create organizations with `ALLOW_ORG_CREATION`.

@@ -1,30 +1,32 @@
 ---
 title: Introduction
 icon: BookOpen
-description: Open-source LLM tracing with AI-powered monitoring.
 ---
 
-Breadcrumb is an open-source tracing platform for LLM applications. It captures every model call your app makes - prompts, completions, tokens, latency, and cost - and runs an AI agent that monitors your traces for issues that dashboards can't catch.
+Your agents can hallucinate, lose context, and drift from their goal - all while returning a 200. Breadcrumb traces every LLM call and monitors your traces with an AI agent that catches what dashboards can't.
+
+Open source. Self-hosted. [Get started in minutes](/docs/introduction/quick-start).
+
+![Breadcrumb dashboard](/docs/homepage.webp)
+
+## Setup
 
 <Steps>
   <Step>
-    ### Set up hosting
+    ### Deploy Breadcrumb
 
-    [Self-host](/docs/setup/self-hosting) Breadcrumb on your own infrastructure, or [sign up for updates](https://tally.so/r/2Er8NL) on the hosted version.
+    [Railway](/docs/setup/self-hosting/railway) (one click) or [Docker Compose](/docs/setup/self-hosting/docker-compose) (your server). [Hosted version](https://tally.so/r/A7xjRB) coming soon.
   </Step>
   <Step>
-    ### Start tracing
+    ### Add the SDK
 
-    Follow the [quick start](/docs/introduction/quick-start) to install the SDK and send your first trace.
+    Works with [Vercel AI SDK](/docs/sdks/ai-sdk) or the [TypeScript SDK](/docs/sdks/typescript/installation) for manual instrumentation.
   </Step>
   <Step>
-    ### Monitor your agents
+    ### Enable monitoring
 
-    Configure an [AI provider](/docs/product/configuration/ai-provider) and the [monitor](/docs/introduction/monitoring) starts watching your traces automatically.
+    Set an [AI provider](/docs/product/configuration/ai-provider). The [monitor](/docs/introduction/monitoring) scans traces and creates tickets when it finds problems.
   </Step>
 </Steps>
 
-## Stay in the loop
-
-- [Contribute on GitHub](https://github.com/joshuaKnauber/breadcrumb)
-- [Follow on X](https://x.com/joshuaKnauber) for updates
+Questions? [Talk to us on X](https://x.com/joshuaKnauber).

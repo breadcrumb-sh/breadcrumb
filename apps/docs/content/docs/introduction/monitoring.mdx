@@ -1,24 +1,24 @@
 ---
 title: Monitoring
 icon: Shield
-description: An AI agent that watches your traces and surfaces real issues.
 ---
 
-LLM failures don't look like regular failures. Your agent can hallucinate, lose context, or drift from its goal — all while returning a 200. Breadcrumb's monitor catches these.
+Other tracing tools give you logs and expect you to find the problems yourself. Breadcrumb runs an AI agent that reads your traces, understands what your code was trying to do, and tells you when something went wrong.
+
+![Trace detail view](/docs/trace.webp)
 
 ## How it works
 
-Two agents work as a pipeline:
+1. **You ship code.** Traces flow in automatically via the SDK.
+2. **Breadcrumb finds issues.** The monitor scans your traces and opens tickets on a [kanban board](/docs/product/monitoring/overview) when something looks wrong.
+3. **You review.** Each ticket has a verdict, priority, linked traces, and evidence. Ask follow-up questions in comments and the agent investigates further.
 
-1. **Scan agent** — runs periodically on incoming traces, learns your project's patterns, and opens tickets when something looks wrong
-2. **Investigation agent** — digs into flagged tickets, queries your traces, and writes a verdict with evidence
-
-Findings appear on a [kanban board](/docs/product/monitoring/overview) in your project overview: Queue → Investigating → Review → Done.
+The monitor [learns your project](/docs/product/monitoring/memory) over time - what's normal, what's expected, what's noise - so it gets better the longer you use it.
 
 ## What it catches
 
-Hallucination, context loss, intent mismatches, retry loops, cost anomalies, instruction drift — the kind of issues that return 200 OK but produce wrong results.
+Hallucination, context loss, intent mismatches, retry loops, cost anomalies, instruction drift - the kind of issues that return 200 OK but produce wrong results.
 
 ## Setup
 
-Configure an [AI provider](/docs/product/configuration/ai-provider) and the monitor starts automatically. Adjust scan intervals and cost limits in [agent settings](/docs/product/configuration/agent).
+Configure an [AI provider](/docs/product/configuration/ai-provider) and the monitor starts automatically. Adjust scan intervals and cost limits in [agent settings](/docs/product/configuration/agent). Get notified via [Slack or Discord](/docs/product/integrations/webhooks).

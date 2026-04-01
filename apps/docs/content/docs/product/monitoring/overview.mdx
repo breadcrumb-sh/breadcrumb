@@ -1,14 +1,13 @@
 ---
 title: Overview
-description: AI-powered monitoring for your LLM agents.
 ---
 
 The monitor is a kanban board on your project overview. An AI agent scans your traces and creates tickets when something looks wrong.
 
-{/* TODO: Screenshot of the kanban board */}
+![Project overview with kanban board](/docs/homepage.webp)
 
 Tickets move through four columns: **Queue** → **Investigating** → **Review** → **Done**. You can also create tickets manually for things you want the agent to look into.
 
 Click a ticket to see the agent's findings, leave comments to ask follow-up questions, and manage priority and labels.
 
-The monitor requires an [AI provider](/docs/product/configuration/ai-provider). Configure scan intervals and cost limits in [agent settings](/docs/product/configuration/agent).
+The monitor requires an [AI provider](/docs/product/configuration/ai-provider). Configure scan intervals and cost limits in [agent settings](/docs/product/configuration/agent). Get notified about findings via [Slack or Discord](/docs/product/integrations/webhooks).

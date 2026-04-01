@@ -1,10 +1,11 @@
 ---
 title: Project Memory
-description: How the monitor learns your project over time.
 ---
 
-The monitor maintains persistent memory about your project, shared between the scan and investigation agents. As they analyze traces, they write observations — what's normal, expected retry patterns, typical cost ranges.
+The monitor gets smarter the longer you use it. As it analyzes your traces, it builds up memory about your project - what's normal, what's noise, what you actually care about.
 
-This reduces false positives over time. You can view and edit memory in your project settings to add context or correct assumptions.
+A retry loop in your search agent might be expected. A cost spike after a deploy might be intentional. The monitor learns these patterns so it stops flagging them and focuses on real problems.
 
-{/* TODO: Screenshot of project memory editor */}
+You can view and edit memory in your project settings. Add context the monitor hasn't learned yet, correct things it got wrong, or tell it what to pay attention to.
+
+![Project memory editor](/docs/memory.webp)
