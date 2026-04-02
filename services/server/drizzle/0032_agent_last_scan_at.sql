@@ -1,0 +1,1 @@
+ALTER TABLE "project" ADD COLUMN "agent_last_scan_at" timestamp;

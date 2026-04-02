@@ -13,6 +13,7 @@ import { CLICKHOUSE_SCHEMA } from "../explore/clickhouse-schema.js";
 
 export interface ScanInput {
   projectMemory: string;
+  lastScanAt?: Date | null;
 }
 
 export interface ScanToolHandlers {
@@ -64,27 +65,47 @@ Query notes:
 
 Your job:
 1. Query recent traces to understand what's happening in the project.
-2. Update project knowledge (memory) with anything new you learn about the project's agents.
-3. If you find something worth investigating, create a ticket for it.
-4. If everything looks healthy, just update memory and finish.
+2. ALWAYS sample actual span content (input/output fields) — metrics alone are not enough. Many real issues (prompt regressions, instruction drift, output quality degradation) only show up in the content while metrics look normal.
+3. Update project knowledge (memory) with anything new you learn about the project's agents.
+4. If you find something worth investigating, create a ticket for it.
+5. If everything looks healthy after content inspection, update memory and finish.
 
 Approach:
 - Start by understanding what types of traces exist and their recent patterns.
 - Look for anomalies across multiple traces — not single outliers.
-- Check content quality: sample actual span inputs/outputs to look for malformatted content, accidentally large payloads, duplicate data, or template issues.
+- Sample span inputs/outputs for every agent type you see. Look for:
+  - Prompt quality: empty or degraded system prompts, missing instructions, unsubstituted template variables
+  - Output quality: vague/generic responses when specific answers are expected, agents not following their instructions, not citing sources when they should
+  - Content issues: HTML entities, encoding artifacts, accidentally large payloads, duplicate retrieval results
+  - Behavioral drift: compare current content against what you know from project memory about how agents should behave
 - Use project knowledge to understand what's normal vs abnormal.
 - Keep scans efficient — a few targeted queries, not exhaustive exploration.
 - When creating tickets, write clear titles and descriptions so the investigation agent knows what to look into.`;
 
 export function buildScanPrompt(input: ScanInput) {
-  const context = [
-    `## Project Knowledge`,
-    input.projectMemory || "(no project knowledge yet — use write_file with target 'memory' to record what you learn about this project's agents, their purpose, and how they work)",
-  ].join("\n");
+  const parts: string[] = [];
+
+  if (input.lastScanAt) {
+    // Format as ClickHouse-compatible datetime (no T, no Z)
+    const ts = input.lastScanAt.toISOString().replace("T", " ").replace("Z", "");
+    parts.push(`## Last Scan\n${ts}\nOnly query traces with start_time > '${ts}'. Do NOT look further back unless new traces show a problem that needs historical context.`);
+  }
+
+  parts.push(`## Project Knowledge`);
+  parts.push(input.projectMemory || "(no project knowledge yet — use write_file with target 'memory' to record what you learn about this project's agents, their purpose, and how they work)");
+
+  const context = parts.join("\n\n");
+
+  const instruction = input.lastScanAt
+    ? `Scan traces since your last check. Be efficient:
+- If there are no new traces, just confirm and finish immediately.
+- If there are new traces, check metrics AND sample their content (inputs/outputs). Do not skip content inspection just because metrics look normal.
+- Do not re-query old errors or historical patterns unless new traces show a problem that needs context.`
+    : `Scan recent traces for this project. Query the data to understand what's happening, sample content, update project knowledge, and create tickets for any issues worth investigating.`;
 
   return {
     system: SCAN_SYSTEM,
-    prompt: `${context}\n\nScan recent traces for this project. Query the data to understand what's happening, update project knowledge, and create tickets for any issues worth investigating.`,
+    prompt: `${context}\n\n${instruction}`,
   };
 }
 

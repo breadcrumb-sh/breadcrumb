@@ -11,19 +11,21 @@ import { evalite } from "evalite";
 import { evalModel } from "./model.js";
 import { buildScanPrompt, createScanTools } from "../../services/monitor/scan-agent.js";
 import { createEvalScanHandlers } from "./eval-handlers.js";
-import { ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency } from "./scorers.js";
+import { ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency, contentSampling } from "./scorers.js";
 import type { ScanFixture, MonitorEvalOutcome } from "./types.js";
 
 import repeatedTimeout from "./fixtures/scan-tp/repeated-timeout-pattern.json" with { type: "json" };
 import templateVariable from "./fixtures/scan-tp/template-variable-unsubstituted.json" with { type: "json" };
 import encodingArtifacts from "./fixtures/scan-tp/encoding-artifacts.json" with { type: "json" };
 import retrievalDegradation from "./fixtures/scan-tp/retrieval-quality-degradation.json" with { type: "json" };
+import hiddenPromptRegression from "./fixtures/scan-tp/hidden-prompt-regression.json" with { type: "json" };
 
 const fixtures: ScanFixture[] = [
   repeatedTimeout as ScanFixture,
   templateVariable as ScanFixture,
   encodingArtifacts as ScanFixture,
   retrievalDegradation as ScanFixture,
+  hiddenPromptRegression as ScanFixture,
 ];
 
 evalite<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>("Scan Pattern Detection", {
@@ -45,5 +47,5 @@ evalite<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>("Scan Pattern 
 
     return outcome;
   },
-  scorers: [ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency],
+  scorers: [ticketDecision, ticketCount, ticketRelevance, ticketQuality, scanQueryEfficiency, contentSampling],
 });

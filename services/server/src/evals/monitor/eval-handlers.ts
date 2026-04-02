@@ -5,24 +5,48 @@
  * but return fixture data and capture operations into MonitorEvalOutcome.
  */
 
+import { generateObject } from "ai";
+import { z } from "zod";
 import { formatQueryResult } from "../../services/monitor/format-query-result.js";
+import { evalModel } from "./model.js";
 import type { ScanToolHandlers } from "../../services/monitor/scan-agent.js";
 import type { InvestigateToolHandlers } from "../../services/monitor/investigate-agent.js";
 import type { ScanFixture, InvestigateFixture, MonitorEvalOutcome } from "./types.js";
 import { emptyOutcome } from "./types.js";
 
 /**
- * Match a SQL query against fixture query responses.
- * Keys in queryResponses are substrings — first match wins.
- * Returns formatted string identical to the production handler.
+ * Match a SQL query against fixture query responses using an LLM judge.
+ * The judge picks the best-matching response key for the given SQL, or "none".
  */
-function matchQuery(sql: string, responses: Record<string, unknown[]>): string {
-  for (const [pattern, rows] of Object.entries(responses)) {
-    if (sql.includes(pattern)) {
-      return formatQueryResult(rows);
-    }
+async function matchQuery(sql: string, responses: Record<string, unknown[]>): Promise<string> {
+  const keys = Object.keys(responses);
+  if (keys.length === 0) return formatQueryResult([]);
+
+  const previews = keys.map((k) => {
+    const rows = responses[k];
+    const sample = JSON.stringify(rows[0] ?? {}).slice(0, 200);
+    return `- "${k}": ${rows.length} rows, sample: ${sample}`;
+  }).join("\n");
+
+  const { object } = await generateObject({
+    model: evalModel,
+    temperature: 0,
+    schema: z.object({
+      key: z.string().describe("The best matching response key, or 'none' if no response fits"),
+    }),
+    prompt: `Given this SQL query and the available fixture responses, which response best matches what the query is asking for? Pick the key whose data the query would logically return. If none fit, return "none".
+
+SQL:
+${sql}
+
+Available responses:
+${previews}`,
+  });
+
+  if (object.key === "none" || !responses[object.key]) {
+    return formatQueryResult([]);
   }
-  return formatQueryResult([]);
+  return formatQueryResult(responses[object.key]);
 }
 
 export function createEvalScanHandlers(fixture: ScanFixture): {

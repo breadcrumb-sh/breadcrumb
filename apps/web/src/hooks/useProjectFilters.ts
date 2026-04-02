@@ -32,9 +32,13 @@ function read(projectId: string): ProjectFilters {
 
 function write(projectId: string, filters: ProjectFilters) {
   const clean: ProjectFilters = {};
-  if (filters.from) clean.from = filters.from;
-  if (filters.to) clean.to = filters.to;
-  if (filters.preset) clean.preset = filters.preset;
+  // Only persist from/to for custom ranges — presets recompute on load
+  if (filters.preset) {
+    clean.preset = filters.preset;
+  } else {
+    if (filters.from) clean.from = filters.from;
+    if (filters.to) clean.to = filters.to;
+  }
   if (filters.names?.length) clean.names = filters.names;
   if (filters.models?.length) clean.models = filters.models;
   if (filters.env?.length) clean.env = filters.env;

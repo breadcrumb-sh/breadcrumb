@@ -12,10 +12,10 @@ import {
   checkOrgRole,
 } from "../../trpc.js";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems, monitorComments, monitorActivity, monitorLabels, monitorItemLabels, project, agentUsage, user } from "../../shared/db/schema.js";
+import { monitorItems, monitorComments, monitorActivity, monitorLabels, monitorItemLabels, monitorScanRuns, project, agentUsage, user } from "../../shared/db/schema.js";
 import { readonlyClickhouse } from "../../shared/db/clickhouse.js";
 import { trackMonitorItemCreated, trackMonitorItemStatusChanged, trackMonitorUserComment, trackMonitorInvestigationTriggered } from "../../shared/lib/telemetry.js";
-import { enqueueProcess } from "../../services/monitor/jobs.js";
+import { enqueueProcess, forceEnqueueScan } from "../../services/monitor/jobs.js";
 import { enqueueWebhooks } from "../../services/monitor/webhooks.js";
 import { runInvestigation } from "../../services/monitor/agent.js";
 import { monitorEvents, emitMonitorEvent, type MonitorEvent } from "../../services/monitor/events.js";
@@ -73,6 +73,14 @@ export const monitorRouter = router({
     .query(async ({ input }) => {
       const since = new Date(input.from);
 
+      // Last scan run
+      const [lastRun] = await db
+        .select()
+        .from(monitorScanRuns)
+        .where(eq(monitorScanRuns.projectId, input.projectId))
+        .orderBy(desc(monitorScanRuns.startedAt))
+        .limit(1);
+
       // Postgres counts
       const items = await db
         .select()
@@ -106,7 +114,47 @@ export const monitorRouter = router({
       const rows = (await result.json()) as Array<{ cnt: string }>;
       const traceCount = Number(rows[0]?.cnt ?? 0);
 
-      return { issuesFound, needsReview, resolved, traceCount };
+      return {
+        issuesFound,
+        needsReview,
+        resolved,
+        traceCount,
+        lastRun: lastRun ? {
+          status: lastRun.status as "running" | "success" | "empty" | "skipped" | "error",
+          ticketsCreated: lastRun.ticketsCreated,
+          costCents: lastRun.costCents,
+          errorMessage: lastRun.errorMessage,
+          startedAt: lastRun.startedAt.toISOString(),
+          finishedAt: lastRun.finishedAt?.toISOString() ?? null,
+        } : null,
+      };
+    }),
+
+  triggerScan: projectMemberProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ input }) => {
+      await forceEnqueueScan(input.projectId);
+    }),
+
+  scanRuns: projectViewerProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ input }) => {
+      const runs = await db
+        .select()
+        .from(monitorScanRuns)
+        .where(eq(monitorScanRuns.projectId, input.projectId))
+        .orderBy(desc(monitorScanRuns.startedAt))
+        .limit(50);
+
+      return runs.map((r) => ({
+        id: r.id,
+        status: r.status as "running" | "success" | "empty" | "skipped" | "error",
+        ticketsCreated: r.ticketsCreated,
+        costCents: r.costCents,
+        errorMessage: r.errorMessage,
+        startedAt: r.startedAt.toISOString(),
+        finishedAt: r.finishedAt?.toISOString() ?? null,
+      }));
     }),
 
   create: projectMemberProcedure
@@ -438,7 +486,7 @@ export const monitorRouter = router({
         signal: opts.signal,
       })) {
         const e = event as MonitorEvent;
-        yield tracked(e.itemId, e);
+        yield tracked(e.itemId || `scan-${Date.now()}`, e);
       }
     }),
 });

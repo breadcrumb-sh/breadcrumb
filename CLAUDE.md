@@ -32,6 +32,8 @@ npm run db:generate  # Generate Drizzle migration files
 npm run db:migrate   # Apply Postgres migrations
 ```
 
+**IMPORTANT**: Never run `drizzle-kit generate` directly — it may prompt interactively for table rename disambiguation, which will hang. Instead, ask the user to run it themselves, or write the migration SQL by hand (e.g. `ALTER TABLE "x" ADD COLUMN "y" type;`).
+
 ### SDK Packages (from packages/*)
 ```bash
 npm run build        # Bundle with tsdown

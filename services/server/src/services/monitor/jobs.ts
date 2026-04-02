@@ -5,7 +5,7 @@
 import { boss } from "../../shared/lib/boss.js";
 import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/postgres.js";
-import { monitorItems } from "../../shared/db/schema.js";
+import { monitorItems, monitorScanRuns } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { runInvestigation } from "./agent.js";
 import { runScan } from "./scan.js";
@@ -95,17 +95,55 @@ export async function enqueueScan(projectId: string) {
   if (jobId) log.info({ projectId, jobId, intervalSeconds: interval }, "enqueued monitor-scan");
 }
 
+/** Enqueue a scan bypassing the singleton debounce — for manual triggers. */
+export async function forceEnqueueScan(projectId: string) {
+  await boss.insert([{ name: SCAN_JOB, data: { projectId } }]);
+  log.info({ projectId }, "force-enqueued monitor-scan");
+}
+
 /** @internal Exported for testing */
 export async function handleScan(job: { data: ScanJobData }) {
   const { projectId } = job.data;
 
   if (!(await checkBudget(projectId))) {
-    log.info({ projectId }, "skipping scan — daily token limit reached");
+    log.info({ projectId }, "skipping scan — budget limit reached");
+    await db.insert(monitorScanRuns).values({
+      projectId,
+      status: "skipped",
+      errorMessage: "Monthly budget limit reached",
+      finishedAt: new Date(),
+    });
+    emitMonitorEvent({ projectId, itemId: "", type: "scan" });
     return;
   }
 
-  log.info({ projectId }, "running scan");
-  await runScan(projectId);
+  const [run] = await db.insert(monitorScanRuns).values({
+    projectId,
+    status: "running",
+  }).returning();
+
+  emitMonitorEvent({ projectId, itemId: "", type: "scan" });
+  log.info({ projectId, runId: run.id }, "running scan");
+
+  try {
+    const result = await runScan(projectId);
+    await db.update(monitorScanRuns).set({
+      status: result.status,
+      ticketsCreated: result.ticketsCreated,
+      costCents: result.costCents,
+      errorMessage: result.errorMessage ?? null,
+      finishedAt: new Date(),
+    }).where(eq(monitorScanRuns.id, run.id));
+  } catch (err) {
+    await db.update(monitorScanRuns).set({
+      status: "error",
+      errorMessage: err instanceof Error ? err.message : "Unknown error",
+      finishedAt: new Date(),
+    }).where(eq(monitorScanRuns.id, run.id));
+    throw err;
+  } finally {
+    emitMonitorEvent({ projectId, itemId: "", type: "scan" });
+  }
 }
 
 export async function registerMonitorJobs() {

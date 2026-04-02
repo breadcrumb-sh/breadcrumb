@@ -254,7 +254,13 @@ export function KanbanBoard({
       if (event.type === "comment") {
         utils.monitor.listComments.invalidate({ monitorItemId: event.itemId });
       }
-      utils.monitor.listActivity.invalidate({ monitorItemId: event.itemId });
+      if (event.type === "scan") {
+        utils.monitor.summary.invalidate();
+        utils.monitor.scanRuns.invalidate({ projectId });
+      }
+      if (event.itemId) {
+        utils.monitor.listActivity.invalidate({ monitorItemId: event.itemId });
+      }
     },
   });
 

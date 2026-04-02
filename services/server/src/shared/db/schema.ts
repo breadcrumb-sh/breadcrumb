@@ -127,6 +127,25 @@ export const project = pgTable("project", {
   createdAt: timestamp("created_at").notNull(),
 });
 
+// ── Agent scan runs ─────────────────────────────────────────────────
+
+export const monitorScanRuns = pgTable(
+  "monitor_scan_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16 }).notNull(), // running | success | empty | skipped | error
+    ticketsCreated: integer("tickets_created").notNull().default(0),
+    costCents: integer("cost_cents").notNull().default(0),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    finishedAt: timestamp("finished_at"),
+  },
+  (t) => [index("monitor_scan_runs_project_idx").on(t.projectId)],
+);
+
 // ── Agent usage tracking ────────────────────────────────────────────
 
 export const agentUsage = pgTable(

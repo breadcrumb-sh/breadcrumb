@@ -225,6 +225,20 @@
       "when": 1774950000000,
       "tag": "0031_pii_redaction",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775154562530,
+      "tag": "0032_agent_last_scan_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1775156673998,
+      "tag": "0033_agent_monitor_runs",
+      "breakpoints": true
     }
   ]
 }

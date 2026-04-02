@@ -109,6 +109,19 @@ Rate the tickets on each dimension from 0 to 1.`,
   },
 });
 
+export const contentSampling = createScorer<ScanFixture, MonitorEvalOutcome, ScanFixture["expected"]>({
+  name: "Content Sampling",
+  description: "Did the agent query span input/output content, not just metadata?",
+  scorer: ({ output }) => {
+    const contentQueries = output.queriesRun.filter(
+      (q) => /\binput\b/.test(q) || /\boutput\b/.test(q),
+    );
+    if (contentQueries.length >= 2) return 1;
+    if (contentQueries.length === 1) return 0.5;
+    return 0;
+  },
+});
+
 // ── Investigation scorers ───────────────────────────────────────────────────
 
 type InvestigateExpected = InvestigateFixture["expected"];

@@ -100,6 +100,30 @@ describe("phone redaction", () => {
   it("redacts phone with extension", () => {
     expect(redactString("Call 555-123-4567 ext 1234", r)).toBe("Call [PHONE_REDACTED]");
   });
+
+  it("redacts phone with dots", () => {
+    expect(redactString("Call 555.123.4567", r)).toBe("Call [PHONE_REDACTED]");
+  });
+
+  it("redacts phone with spaces", () => {
+    expect(redactString("Call 555 123 4567", r)).toBe("Call [PHONE_REDACTED]");
+  });
+
+  it("does not redact UUIDs", () => {
+    expect(redactString("019d4fd685dca74bd0084f59d1273400", r)).toBe("019d4fd685dca74bd0084f59d1273400");
+  });
+
+  it("does not redact tool call IDs", () => {
+    expect(redactString("toolu_bdrk_014pGeWXhD2Tgfd9JSmEzkuN", r)).toBe("toolu_bdrk_014pGeWXhD2Tgfd9JSmEzkuN");
+  });
+
+  it("does not redact hex strings", () => {
+    expect(redactString("abc1234567890def", r)).toBe("abc1234567890def");
+  });
+
+  it("does not redact bare 10-digit numbers without separators", () => {
+    expect(redactString("ID: 5551234567", r)).toBe("ID: 5551234567");
+  });
 });
 
 // ── SSN ─────────────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import EventEmitter from "events";
 export type MonitorEvent = {
   projectId: string;
   itemId: string;
-  type: "comment" | "status" | "processing";
+  type: "comment" | "status" | "processing" | "scan";
 };
 
 export const monitorEvents = new EventEmitter();

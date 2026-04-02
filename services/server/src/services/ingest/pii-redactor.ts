@@ -27,7 +27,8 @@ const BUILT_IN_PATTERNS: Record<BuiltInPiiType, PatternDef> = {
     replacement: "[EMAIL_REDACTED]",
   },
   phone: {
-    regex: /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}(\s*(ext|x|ext\.)\s*\d{1,5})?/g,
+    // Require at least one separator (dash, dot, space, parens) or leading +/1 to avoid matching hex strings in UUIDs/IDs
+    regex: /(?:\+1[-.\s]?|1[-.\s])\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}(?:\s*(?:ext|x|ext\.)\s*\d{1,5})?|\(?\d{3}\)[-.\s]\d{3}[-.\s]?\d{4}(?:\s*(?:ext|x|ext\.)\s*\d{1,5})?|\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?:\s*(?:ext|x|ext\.)\s*\d{1,5})?/g,
     replacement: "[PHONE_REDACTED]",
   },
   ssn: {
