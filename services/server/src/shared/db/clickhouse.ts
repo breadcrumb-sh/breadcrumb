@@ -51,6 +51,26 @@ export const readonlyClickhouse = createClient({
   },
 });
 
+// Sandboxed client for user-provided SQL (MCP run_query, monitor agents).
+// Connects as the breadcrumb_sandbox user which has:
+//   - readonly=1: no DDL, DML, or setting overrides
+//   - Row policies: every SELECT is filtered by SQL_project_id
+//   - Resource limits baked into the role (timeouts, row caps, memory)
+// The caller passes SQL_project_id per-query via clickhouse_settings.
+export const sandboxedClickhouse = createClient({
+  url: env.clickhouseUrl,
+  username: env.clickhouseSandboxUser,
+  password: env.clickhouseSandboxPassword,
+  database: env.clickhouseDb,
+  application: "breadcrumb-server-sandbox",
+  max_open_connections: 10,
+  request_timeout: 60_000,
+  keep_alive: {
+    enabled: true,
+    idle_socket_ttl: 2500,
+  },
+});
+
 // Separate client without a database selected, used only during migration
 // setup when the database may not exist yet.
 const adminClient = createClient({
@@ -168,8 +188,18 @@ export async function runClickhouseMigrations() {
     // migration is partially applied. Keep each migration file to a
     // single logical change and use IF NOT EXISTS / IF EXISTS guards
     // to make statements idempotent where possible.
-    for (const stmt of statements) {
-      await clickhouse.command({ query: stmt });
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i];
+      try {
+        await clickhouse.command({ query: stmt });
+      } catch (err) {
+        const preview = stmt.length > 120 ? stmt.slice(0, 120) + "…" : stmt;
+        log.error(
+          { file, statement: i + 1, total: statements.length, sql: preview, err },
+          "clickhouse migration statement failed",
+        );
+        throw err;
+      }
     }
 
     // Record the migration as applied

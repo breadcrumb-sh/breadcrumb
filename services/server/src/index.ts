@@ -2,8 +2,7 @@ import { serve } from "@hono/node-server";
 import { app } from "./app.js";
 import { boss } from "./shared/lib/boss.js";
 import { runMigrations } from "./shared/db/postgres.js";
-import { runClickhouseMigrations, clickhouse, readonlyClickhouse } from "./shared/db/clickhouse.js";
-import { initQueryValidator } from "./shared/lib/query-validator.js";
+import { runClickhouseMigrations, clickhouse, readonlyClickhouse, sandboxedClickhouse } from "./shared/db/clickhouse.js";
 import { traceBatcher, spanBatcher } from "./api/ingest/routes.js";
 import { env } from "./env.js";
 import { createLogger } from "./shared/lib/logger.js";
@@ -15,7 +14,6 @@ const log = createLogger("server");
 async function main() {
   await runMigrations();
   await runClickhouseMigrations();
-  await initQueryValidator();
 
   await boss.start();
 
@@ -52,6 +50,7 @@ async function shutdown() {
   await Promise.all([
     clickhouse.close(),
     readonlyClickhouse.close(),
+    sandboxedClickhouse.close(),
   ]);
   process.exit(0);
 }

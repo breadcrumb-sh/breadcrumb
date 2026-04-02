@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
-import { init } from "@polyglot-sql/sdk";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockReadonlyQuery = vi.fn();
+const mockSandboxedQuery = vi.fn();
 
 vi.mock("../../shared/db/clickhouse.js", () => ({
-  readonlyClickhouse: { query: mockReadonlyQuery },
+  sandboxedClickhouse: { query: mockSandboxedQuery },
 }));
 
 vi.mock("../../shared/lib/telemetry.js", () => ({
@@ -21,92 +20,88 @@ vi.mock("../../shared/lib/logger.js", () => ({
   }),
 }));
 
-beforeAll(async () => {
-  await init();
-});
-
 const { runSandboxedQuery } = await import(
   "../../shared/lib/sandboxed-query.js"
 );
 
 beforeEach(() => {
-  mockReadonlyQuery.mockReset();
-  mockReadonlyQuery.mockResolvedValue({ json: () => Promise.resolve([]) });
+  mockSandboxedQuery.mockReset();
+  mockSandboxedQuery.mockResolvedValue({ json: () => Promise.resolve([]) });
 });
 
 describe("runSandboxedQuery", () => {
-  it("uses readonlyClickhouse for all queries", async () => {
+  it("uses sandboxedClickhouse for all queries", async () => {
     await runSandboxedQuery("proj-1", "SELECT 1");
-    expect(mockReadonlyQuery).toHaveBeenCalledOnce();
+    expect(mockSandboxedQuery).toHaveBeenCalledOnce();
   });
 
-  it("includes projectId in query_params", async () => {
+  it("passes SQL_project_id as a clickhouse setting", async () => {
     await runSandboxedQuery("my-project-id", "SELECT 1");
-    expect(mockReadonlyQuery.mock.calls[0][0].query_params).toMatchObject({
-      projectId: "my-project-id",
+    expect(mockSandboxedQuery.mock.calls[0][0].clickhouse_settings).toMatchObject({
+      SQL_project_id: "my-project-id",
     });
   });
 
-  it("includes extraParams in query_params", async () => {
+  it("does not include projectId in query_params", async () => {
+    await runSandboxedQuery("my-project-id", "SELECT 1");
+    expect(mockSandboxedQuery.mock.calls[0][0].query_params).toBeUndefined();
+  });
+
+  it("passes extraParams as query_params", async () => {
     await runSandboxedQuery("proj-1", "SELECT 1", "explore", {
       tz: "UTC",
       days: 30,
     });
-    expect(mockReadonlyQuery.mock.calls[0][0].query_params).toMatchObject({
-      projectId: "proj-1",
+    expect(mockSandboxedQuery.mock.calls[0][0].query_params).toMatchObject({
       tz: "UTC",
       days: 30,
     });
   });
 
-  it("requests JSONEachRow format", async () => {
+  it("does not pass resource limit settings (baked into role)", async () => {
     await runSandboxedQuery("proj-1", "SELECT 1");
-    expect(mockReadonlyQuery.mock.calls[0][0].format).toBe("JSONEachRow");
+    const settings = mockSandboxedQuery.mock.calls[0][0].clickhouse_settings;
+    expect(settings).not.toHaveProperty("max_execution_time");
+    expect(settings).not.toHaveProperty("max_result_rows");
+    expect(settings).not.toHaveProperty("max_memory_usage");
   });
 
-  it("throws QueryValidationError for invalid SQL", async () => {
+  it("sends the query as-is (no rewriting)", async () => {
+    const sql = "SELECT * FROM spans WHERE name = 'test'";
+    await runSandboxedQuery("proj-1", sql);
+    expect(mockSandboxedQuery.mock.calls[0][0].query).toBe(sql);
+  });
+
+  it("requests JSONEachRow format", async () => {
+    await runSandboxedQuery("proj-1", "SELECT 1");
+    expect(mockSandboxedQuery.mock.calls[0][0].format).toBe("JSONEachRow");
+  });
+
+  it("throws QueryValidationError for non-SELECT SQL", async () => {
     await expect(
       runSandboxedQuery("proj-1", "DROP TABLE traces"),
     ).rejects.toThrow("Only SELECT statements are allowed");
   });
 
-  it("throws QueryValidationError for disallowed tables", async () => {
+  it("throws QueryValidationError for SETTINGS clause", async () => {
     await expect(
-      runSandboxedQuery("proj-1", "SELECT * FROM system.processes"),
-    ).rejects.toThrow();
-  });
-
-  it("injects project_id filter into the query", async () => {
-    await runSandboxedQuery("proj-1", "SELECT * FROM spans");
-    const executedSql = mockReadonlyQuery.mock.calls[0][0].query;
-    expect(executedSql).toContain("project_id");
-    expect(executedSql).toContain("{projectId: UUID}");
-  });
-
-  it("passes resource limit settings to ClickHouse", async () => {
-    await runSandboxedQuery("proj-1", "SELECT * FROM spans");
-    const settings = mockReadonlyQuery.mock.calls[0][0].clickhouse_settings;
-    expect(settings).toMatchObject({
-      max_execution_time: 30,
-      max_result_rows: "10000",
-      result_overflow_mode: "throw",
-      max_result_bytes: "1048576",
-      max_rows_to_read: "1000000",
-      max_bytes_to_read: "25000000",
-      max_memory_usage: "500000000",
-    });
+      runSandboxedQuery(
+        "proj-1",
+        "SELECT 1 FROM spans SETTINGS SQL_project_id = 'evil'",
+      ),
+    ).rejects.toThrow("SETTINGS");
   });
 
   it("passes abort_signal to ClickHouse when provided", async () => {
     const controller = new AbortController();
     await runSandboxedQuery(
       "proj-1",
-      "SELECT * FROM spans",
+      "SELECT 1",
       "explore",
       undefined,
       { abortSignal: controller.signal },
     );
-    expect(mockReadonlyQuery.mock.calls[0][0].abort_signal).toBe(
+    expect(mockSandboxedQuery.mock.calls[0][0].abort_signal).toBe(
       controller.signal,
     );
   });

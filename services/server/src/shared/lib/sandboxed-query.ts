@@ -1,6 +1,6 @@
-import { readonlyClickhouse } from "../db/clickhouse.js";
+import { sandboxedClickhouse } from "../db/clickhouse.js";
 import {
-  validateAndRewriteQuery,
+  validateQuery,
   QueryValidationError,
 } from "./query-validator.js";
 import { trackSlowClickhouseQuery, trackQueryRejected } from "./telemetry.js";
@@ -10,38 +10,30 @@ const log = createLogger("sandboxed-query");
 
 export { QueryValidationError };
 
-/** ClickHouse resource limits for sandboxed queries.
- *  Type notes: Seconds = number, UInt64 = string, OverflowMode = 'throw'|'break' */
-const SANDBOXED_QUERY_SETTINGS = {
-  /** Kill query after 30 seconds (Seconds = number) */
+/** ClickHouse resource limits for server-authored queries that want
+ *  the same caps as sandboxed queries (e.g. traces.list).
+ *  Sandboxed queries get these limits from the ClickHouse role instead. */
+export const SANDBOXED_QUERY_SETTINGS = {
   max_execution_time: 30,
-  /** Return at most 10 000 rows (UInt64 = string) */
   max_result_rows: "10000",
-  /** Throw if result exceeds max_result_rows */
   result_overflow_mode: "throw" as const,
-  /** Cap the serialized result payload to 1 MiB (UInt64 = string) */
   max_result_bytes: "1048576",
-  /** Scan at most 1 million rows from tables (UInt64 = string) */
   max_rows_to_read: "1000000",
-  /** Scan at most 25 MiB from storage (UInt64 = string) */
   max_bytes_to_read: "25000000",
-  /** Cap per-query memory to 500 MB (UInt64 = string) */
   max_memory_usage: "500000000",
 };
-
-export { SANDBOXED_QUERY_SETTINGS };
 
 interface RunSandboxedQueryOptions {
   abortSignal?: AbortSignal;
 }
 
 /**
- * Execute a SQL query with project isolation.
+ * Execute a user-provided SQL query with project isolation.
  *
- * Every query is parsed into an AST, validated against allowlists (tables,
- * functions, statement types), and rewritten to inject project_id filters on
- * every table reference. The validated SQL is then executed via the readonly
- * ClickHouse client.
+ * The query is validated (SELECT-only, no SETTINGS, no blocked functions)
+ * then executed via the sandboxed ClickHouse client. Project isolation
+ * is enforced by ClickHouse row policies — the SQL_project_id setting
+ * tells ClickHouse which project's data to return.
  */
 export async function runSandboxedQuery(
   projectId: string,
@@ -52,9 +44,8 @@ export async function runSandboxedQuery(
 ): Promise<Record<string, unknown>[]> {
   const start = performance.now();
 
-  let validatedSql: string;
   try {
-    validatedSql = validateAndRewriteQuery(sql, projectId);
+    validateQuery(sql);
   } catch (err) {
     if (err instanceof QueryValidationError) {
       trackQueryRejected(source, err.code, err.details);
@@ -66,12 +57,11 @@ export async function runSandboxedQuery(
     throw err;
   }
 
-  const result = await readonlyClickhouse.query({
-    query: validatedSql,
-    // projectId MUST come last so extraParams can never override it
-    query_params: { ...extraParams, projectId },
+  const result = await sandboxedClickhouse.query({
+    query: sql,
+    query_params: extraParams,
     format: "JSONEachRow",
-    clickhouse_settings: SANDBOXED_QUERY_SETTINGS,
+    clickhouse_settings: { SQL_project_id: projectId },
     abort_signal: options?.abortSignal,
   });
   const rows = (await result.json()) as Record<string, unknown>[];
