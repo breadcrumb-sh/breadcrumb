@@ -38,7 +38,7 @@ export default function Home() {
           <div className="marketing-inner flex h-16 items-center justify-between sm:h-24">
             <div className="flex items-center gap-7">
               <Link href="/" className="flex items-center gap-2">
-                <Logo />
+                <Logo size={24} />
                 <span className="font-display text-[16px] font-semibold tracking-tight text-fg">
                   Breadcrumb
                 </span>
