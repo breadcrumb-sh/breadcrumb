@@ -123,7 +123,7 @@ export const project = pgTable("project", {
   timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
   agentMemory: text("agent_memory").notNull().default(""),
   agentMonthlyCostLimitCents: integer("agent_monthly_cost_limit_cents").notNull().default(1000), // stored in cents, default $10
-  agentScanIntervalSeconds: integer("agent_scan_interval_seconds").notNull().default(300), // minimum seconds between auto scans, default 5 min
+  agentScanIntervalSeconds: integer("agent_scan_interval_seconds").notNull().default(3600), // minimum seconds between auto scans, default 60 min
   createdAt: timestamp("created_at").notNull(),
 });
 
