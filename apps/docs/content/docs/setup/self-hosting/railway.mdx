@@ -16,6 +16,16 @@ This creates three services in a new Railway project:
 - **PostgreSQL** - stores projects, users, and API keys
 - **ClickHouse** - stores trace and span data
 
+### ClickHouse configuration
+
+The ClickHouse service requires a custom settings prefix for row-level security. The Railway template includes this in the ClickHouse start command:
+
+```bash
+bash -c 'echo "<clickhouse><custom_settings_prefixes>SQL_</custom_settings_prefixes></clickhouse>" > /etc/clickhouse-server/config.d/custom.xml && /entrypoint.sh'
+```
+
+If you're setting up the template yourself, add this as the **start command** on your ClickHouse service in Railway.
+
 ## After Deploying
 
 <Steps>

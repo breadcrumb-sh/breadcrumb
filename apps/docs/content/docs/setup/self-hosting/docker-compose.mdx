@@ -50,6 +50,29 @@ NODE_ENV=production
   Change the default Postgres password in both your `.env` and `docker-compose.prod.yml` for production deployments.
 </Callout>
 
+### ClickHouse sandbox user
+
+Breadcrumb uses a dedicated ClickHouse user with [row-level security](https://clickhouse.com/docs/en/guides/sre/user-management/row-policies) to isolate user-provided SQL queries. The sandbox user, role, and row policies are created automatically by the server on first startup.
+
+If you're using the provided Docker Compose setup, this works out of the box — the required `custom_settings_prefixes` configuration is mounted automatically.
+
+If you're connecting to an **external ClickHouse instance**, you need to add the following to your ClickHouse server config (e.g. `config.d/custom.xml`):
+
+```xml
+<clickhouse>
+    <custom_settings_prefixes>SQL_</custom_settings_prefixes>
+</clickhouse>
+```
+
+The ClickHouse user specified by `CLICKHOUSE_USER` must have permission to create roles, users, and row policies (this is the default for the `default` user).
+
+You can override the sandbox credentials in your `.env`:
+
+```bash
+CLICKHOUSE_SANDBOX_USER=breadcrumb_sandbox
+CLICKHOUSE_SANDBOX_PASSWORD=breadcrumb_sandbox_local
+```
+
 ### Start the services
 
 The repo includes a `docker-compose.prod.yml` with healthchecks and restart policies preconfigured.
