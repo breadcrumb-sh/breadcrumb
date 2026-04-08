@@ -8,6 +8,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { CLICKHOUSE_SCHEMA } from "../explore/clickhouse-schema.js";
+import { createRepoTools, type RepoToolHandlers } from "../github/repo-tools.js";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,12 @@ export interface InvestigateInput {
   item: { title: string; description: string; status: string; note: string };
   comments: Array<{ source: "user" | "agent"; content: string }>;
   availableLabels: string[];
+  /**
+   * Tracked GitHub repos for this project. When non-empty, the prompt
+   * includes a "Source code access" section and the runner attaches
+   * repo-reading tools.
+   */
+  connectedRepos?: Array<{ fullName: string }>;
 }
 
 export interface InvestigateToolHandlers {
@@ -34,6 +41,12 @@ export interface InvestigateToolHandlers {
     reason: string;
     newTicket?: { title: string; description: string };
   }): Promise<string>;
+  /**
+   * Optional repo-reading handlers. Set when the project has at least one
+   * connected GitHub installation with tracked repos. When null/undefined,
+   * the repo tools are not exposed to the agent at all.
+   */
+  repo?: RepoToolHandlers | null;
 }
 
 // ── Prompt ──────────────────────────────────────────────────────────────────
@@ -108,11 +121,49 @@ Comment style:
 - Reference specific trace IDs and span names. Include numbers.
 - Keep it short — a few sentences to a short paragraph. Tables only if essential (5 rows max).`;
 
+// Appended to the system prompt only when the project has connected GitHub
+// repositories. Kept as a separate constant so the base prompt is unchanged
+// for projects without GitHub.
+const CODE_ACCESS_PROMPT = `
+
+## Source code access
+
+This project has connected GitHub repositories. The list is in the "Connected Repositories" section of your context — pass the full \`owner/name\` as the \`repo\` argument to these tools:
+
+- **list_files(repo, path)** — list files and directories at a path. Use this to explore structure.
+- **glob_files(repo, pattern)** — find files by glob pattern (e.g. \`**/*.ts\`, \`src/**/agent*.ts\`). Use when you know roughly what you're looking for but not the exact path.
+- **grep_repo(repo, query)** — literal text search across the default branch. Use to find identifiers, imports, or short literal phrases. Not regex.
+- **read_file(repo, path, offset?, limit?)** — read a file or a slice. Default 200 lines per call, max 2000.
+
+USE THESE TOOLS. Trace data shows the symptom; the source shows the cause. Before recommending a fix, READ the actual implementation. Before claiming an issue exists, verify it in the code. A comment that references specific file paths and line numbers is far more useful than one that speculates from trace data alone.
+
+Typical investigation flow with code access:
+1. Identify the agent or workflow involved from the trace name.
+2. Use \`glob_files\` or \`grep_repo\` to find where it's defined.
+3. \`read_file\` the implementation. Cross-check the trace evidence against the actual logic.
+4. If the issue is real, find the specific lines responsible. Suggest a concrete fix referencing those lines.
+5. If the trace evidence doesn't match the code (e.g. the code already handles the case), the trace pattern might be expected behavior — say so.
+
+Only the repos listed under "Connected Repositories" are accessible. Don't try other repo names.`;
+
 export function buildInvestigatePrompt(input: InvestigateInput) {
-  const ticketContext = [
+  const hasRepos = (input.connectedRepos?.length ?? 0) > 0;
+
+  const contextParts: string[] = [
     `## Project Knowledge`,
     input.projectMemory || "(no project knowledge yet — use write_file with target 'memory' to record what you learn about this project's agents, their purpose, and how they work)",
     ``,
+  ];
+
+  if (hasRepos) {
+    contextParts.push(
+      `## Connected Repositories`,
+      input.connectedRepos!.map((r) => `- ${r.fullName}`).join("\n"),
+      ``,
+    );
+  }
+
+  contextParts.push(
     `## Ticket`,
     `**${input.item.title}**`,
     input.item.description || "(no description)",
@@ -122,7 +173,10 @@ export function buildInvestigatePrompt(input: InvestigateInput) {
     ``,
     `## Ticket Note`,
     input.item.note || "(empty — start by creating a research plan)",
-  ].join("\n");
+  );
+
+  const ticketContext = contextParts.join("\n");
+  const system = hasRepos ? `${SYSTEM_PROMPT}${CODE_ACCESS_PROMPT}` : SYSTEM_PROMPT;
 
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [
     { role: "user", content: ticketContext },
@@ -148,7 +202,7 @@ export function buildInvestigatePrompt(input: InvestigateInput) {
     });
   }
 
-  return { system: SYSTEM_PROMPT, messages };
+  return { system, messages };
 }
 
 // ── Tools ───────────────────────────────────────────────────────────────────
@@ -223,5 +277,10 @@ export function createInvestigateTools(handlers: InvestigateToolHandlers) {
       execute: async ({ delayMinutes, reason, newTicket }) =>
         handlers.scheduleFollowup({ delayMinutes, reason, newTicket }),
     }),
+
+    // Repo tools are spread in only when the project has at least one
+    // connected GitHub installation with tracked repos. The model never
+    // sees these tool names if they're absent.
+    ...(handlers.repo ? createRepoTools(handlers.repo) : {}),
   };
 }

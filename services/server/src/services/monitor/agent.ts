@@ -16,7 +16,11 @@ import { trackMonitorInvestigationCompleted } from "../../shared/lib/telemetry.j
 import { recordUsage } from "./usage.js";
 import { emitMonitorEvent } from "./events.js";
 import { buildInvestigatePrompt, createInvestigateTools } from "./investigate-agent.js";
-import { createProductionInvestigateHandlers } from "./investigate-handlers.js";
+import {
+  createProductionInvestigateHandlers,
+  tryCreateRepoHandlers,
+} from "./investigate-handlers.js";
+import { getInstallationForProject } from "../github/installations.js";
 
 const log = createLogger("monitor-agent");
 
@@ -67,7 +71,23 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     status: item.status,
   };
 
-  const handlers = createProductionInvestigateHandlers(projectId, itemId, state, model);
+  // Try to attach repo-reading tools. If the project hasn't connected
+  // GitHub (or the installation is suspended), this returns null and the
+  // tools simply aren't exposed to the agent.
+  const repoHandlers = await tryCreateRepoHandlers(projectId);
+  const installation = repoHandlers
+    ? await getInstallationForProject(projectId)
+    : null;
+  const connectedRepos =
+    installation?.trackedRepos.map((r) => ({ fullName: r.fullName })) ?? [];
+
+  const handlers = createProductionInvestigateHandlers(
+    projectId,
+    itemId,
+    state,
+    model,
+    repoHandlers,
+  );
 
   const { system, messages } = buildInvestigatePrompt({
     projectMemory: state.memory,
@@ -79,6 +99,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
     },
     comments: comments.map((c) => ({ source: c.source as "user" | "agent", content: c.content })),
     availableLabels: labels.map((l) => l.name),
+    connectedRepos,
   });
 
   const tools = createInvestigateTools(handlers);
@@ -92,7 +113,7 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
       messages,
       temperature: 0,
       stopWhen: [
-        stepCountIs(20),
+        stepCountIs(30),
         async () => {
           const [current] = await db
             .select({ status: monitorItems.status })

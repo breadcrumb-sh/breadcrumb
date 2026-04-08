@@ -14,17 +14,41 @@ import { checkDuplicate } from "./dedup.js";
 import { emitMonitorEvent } from "./events.js";
 import { recordActivity } from "./activity.js";
 import { enqueueWebhooks } from "./webhooks.js";
+import { createRepoToolHandlers } from "../github/repo-tool-handlers.js";
+import type { RepoToolHandlers } from "../github/repo-tools.js";
 import type { InvestigateToolHandlers } from "./investigate-agent.js";
 
 const log = createLogger("monitor-agent");
+
+/**
+ * Build repo tool handlers if the project has a usable GitHub installation.
+ * Returns null on any failure (no installation, suspended, no tracked repos,
+ * misconfigured app) — the caller treats null as "no code access" and the
+ * tools are simply not exposed to the agent.
+ */
+export async function tryCreateRepoHandlers(
+  projectId: string,
+): Promise<RepoToolHandlers | null> {
+  try {
+    return await createRepoToolHandlers(projectId);
+  } catch (err) {
+    log.debug(
+      { projectId, err: err instanceof Error ? err.message : String(err) },
+      "no repo tools for this investigation",
+    );
+    return null;
+  }
+}
 
 export function createProductionInvestigateHandlers(
   projectId: string,
   itemId: string,
   state: { memory: string; note: string; status: string },
   model: LanguageModel,
+  repo: RepoToolHandlers | null = null,
 ): InvestigateToolHandlers {
   return {
+    repo,
     async runQuery(sql) {
       log.debug({ projectId, sql }, "running query");
       try {
