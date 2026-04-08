@@ -42,6 +42,7 @@
     "hono": "^4",
     "hono-rate-limiter": "^0.4.2",
     "jose": "^6.2.2",
+    "picomatch": "^4.0.4",
     "pg-boss": "^10.4.2",
     "pino": "^10.3.1",
     "postgres": "^3",
@@ -52,6 +53,7 @@
   "devDependencies": {
     "@types/cron": "^2.0.1",
     "@types/node": "^22",
+    "@types/picomatch": "^4.0.3",
     "drizzle-kit": "^0.31.9",
     "evalite": "^0.19.0",
     "pino-pretty": "^13.1.3",
