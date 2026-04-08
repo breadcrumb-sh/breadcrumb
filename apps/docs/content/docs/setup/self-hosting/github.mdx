@@ -1,0 +1,88 @@
+---
+title: GitHub
+---
+
+Connect GitHub repositories to give agents code context and file issues from traces. This integration is optional. If the env vars below are unset, the GitHub section in project settings is disabled and the rest of Breadcrumb works normally.
+
+Breadcrumb uses a [GitHub App](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/about-creating-github-apps) you create once per instance. Users install it on the repos they want to connect. Tokens are short-lived and never stored.
+
+## 1. Create the app
+
+Go to [github.com/settings/apps/new](https://github.com/settings/apps/new) (or your org's app settings) and fill in:
+
+| Field | Value |
+| --- | --- |
+| GitHub App name | Any name, e.g. `Breadcrumb (self-hosted)` |
+| Homepage URL | Your Breadcrumb URL |
+| Setup URL (post installation) | `https://your-breadcrumb-url/integrations/github/callback` |
+| Redirect on update | ✅ checked |
+| Callback URL | Leave blank — unused |
+| Webhook URL | `https://your-breadcrumb-url/integrations/github/webhook` (optional) |
+| Webhook secret | Any random string (optional) |
+
+The **Setup URL** is what GitHub redirects users to after they install the app. Don't confuse it with the Callback URL field above it — that's for OAuth identity flows, which Breadcrumb doesn't use.
+
+Set **Repository permissions**:
+
+| Permission | Access |
+| --- | --- |
+| Contents | Read-only |
+| Metadata | Read-only |
+| Issues | Read and write |
+| Pull requests | Read and write |
+
+Under **Where can this GitHub App be installed?**, pick **Any account** to let external users install it, or **Only on this account** to keep it internal.
+
+Click **Create GitHub App**.
+
+## 2. Grab the credentials
+
+On the app's settings page:
+
+- Copy the **App ID** and **Client ID**.
+- Click **Generate a new client secret**, copy it.
+- Under **Private keys**, click **Generate a private key**. GitHub downloads a `.pem` file.
+- Note the public page URL, e.g. `https://github.com/apps/breadcrumb-self-hosted`. The last segment is your **slug**.
+
+## 3. Set env vars
+
+```bash
+GITHUB_APP_ID=123456
+GITHUB_APP_SLUG=breadcrumb-self-hosted
+GITHUB_APP_CLIENT_ID=Iv1.abc123...
+GITHUB_APP_CLIENT_SECRET=abcdef1234567890...
+
+# Paste the full PEM. In single-line .env files, escape newlines as \n:
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEo...\n-----END RSA PRIVATE KEY-----\n"
+
+# Optional: only needed if you enabled webhooks
+GITHUB_APP_WEBHOOK_SECRET=your-webhook-secret
+```
+
+Restart the server. The GitHub section under any project's **Integrations** tab is now live.
+
+## GitHub Enterprise Server
+
+Point at your GHE instance's API:
+
+```bash
+GITHUB_API_URL=https://github.your-company.com/api/v3
+```
+
+Create the app on your GHE instance instead of github.com. Everything else is the same.
+
+## Disabling
+
+Unset `GITHUB_APP_ID` and restart. Existing installations are ignored until the app is configured again.
+
+## Reference
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `GITHUB_APP_ID` | Yes | App identifier |
+| `GITHUB_APP_SLUG` | Yes | Links users to the install page |
+| `GITHUB_APP_PRIVATE_KEY` | Yes | Signs JWTs to mint installation tokens |
+| `GITHUB_APP_CLIENT_ID` | Yes | OAuth client ID for the install flow |
+| `GITHUB_APP_CLIENT_SECRET` | Yes | OAuth client secret for the install flow |
+| `GITHUB_APP_WEBHOOK_SECRET` | No | Verifies incoming webhook deliveries |
+| `GITHUB_API_URL` | No | Defaults to `https://api.github.com` |

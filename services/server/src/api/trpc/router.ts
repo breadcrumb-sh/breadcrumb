@@ -11,6 +11,7 @@ import { configRouter } from "./config.js";
 import { monitorRouter } from "./monitor.js";
 import { labelsRouter } from "./labels.js";
 import { integrationsRouter } from "./integrations.js";
+import { githubRouter } from "./github/router.js";
 import { piiRedactionRouter } from "./pii-redaction.js";
 
 export const appRouter = router({
@@ -27,6 +28,7 @@ export const appRouter = router({
   monitor: monitorRouter,
   labels: labelsRouter,
   integrations: integrationsRouter,
+  github: githubRouter,
   piiRedaction: piiRedactionRouter,
 });
 

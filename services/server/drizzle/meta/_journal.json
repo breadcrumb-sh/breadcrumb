@@ -239,6 +239,13 @@
       "when": 1775156673998,
       "tag": "0033_agent_monitor_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1775682270214,
+      "tag": "0034_glorious_red_wolf",
+      "breakpoints": true
     }
   ]
 }

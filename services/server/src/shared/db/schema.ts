@@ -369,3 +369,55 @@ export const webhookIntegrations = pgTable(
   ],
 );
 
+// ── GitHub integration ──────────────────────────────────────────────
+
+// One GitHub App installation linked per project. The same GitHub
+// installation_id can appear in rows for different projects (one project
+// per row, enforced by the unique constraint on project_id).
+export const githubInstallations = pgTable(
+  "github_installations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .unique()
+      .references(() => project.id, { onDelete: "cascade" }),
+    installationId: integer("installation_id").notNull(), // GitHub installation id
+    accountLogin: varchar("account_login", { length: 255 }).notNull(),
+    accountType: varchar("account_type", { length: 16 }).notNull(), // User | Organization
+    accountId: integer("account_id").notNull(),
+    accountAvatarUrl: text("account_avatar_url"),
+    repositorySelection: varchar("repository_selection", { length: 16 }).notNull(), // all | selected
+    suspendedAt: timestamp("suspended_at"),
+    createdById: text("created_by_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("github_installations_installation_idx").on(t.installationId)],
+);
+
+// Repos the project has actively chosen to track. Capped at 3 per
+// installation row at the application layer (validated in the
+// setTrackedRepos mutation).
+export const githubTrackedRepos = pgTable(
+  "github_tracked_repos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    installationRowId: uuid("installation_row_id")
+      .notNull()
+      .references(() => githubInstallations.id, { onDelete: "cascade" }),
+    repoId: integer("repo_id").notNull(), // GitHub numeric repo id
+    ownerLogin: varchar("owner_login", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    fullName: varchar("full_name", { length: 512 }).notNull(),
+    defaultBranch: varchar("default_branch", { length: 255 }),
+    isPrivate: boolean("is_private").notNull(),
+    htmlUrl: text("html_url").notNull(),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+  },
+  (t) => [
+    unique("github_tracked_repos_install_repo_uniq").on(t.installationRowId, t.repoId),
+    index("github_tracked_repos_install_idx").on(t.installationRowId),
+  ],
+);
+

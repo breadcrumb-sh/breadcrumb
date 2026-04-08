@@ -6,7 +6,8 @@ import { AiProviderSection } from "../../../../components/settings/AiProviderSec
 import { ApiKeysSection } from "../../../../components/settings/ApiKeysSection";
 import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
-import { IntegrationsSection } from "../../../../components/settings/IntegrationsSection";
+import { NotificationsSection } from "../../../../components/settings/NotificationsSection";
+import { GitHubSection } from "../../../../components/settings/GitHubSection";
 import { PiiRedactionSection } from "../../../../components/settings/PiiRedactionSection";
 import { useOrgRole } from "../../../../hooks/useOrgRole";
 import { usePageView } from "../../../../hooks/usePageView";
@@ -14,6 +15,10 @@ import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
   tab: z.enum(["general", "api-keys", "integrations", "privacy", "ai", "memory", "limits", "danger"]).optional(),
+  // GitHub callback flags (consumed by GitHubSection):
+  connected: z.string().optional(),
+  error: z.string().optional(),
+  info: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_authed/projects/$projectId/settings")({
@@ -28,7 +33,7 @@ function SettingsPage() {
   const orgId = project.data?.organizationId ?? "";
   const { isAdmin, isOwner } = useOrgRole(orgId);
 
-  const { tab } = Route.useSearch();
+  const { tab, connected, error, info } = Route.useSearch();
   const defaultSection = isAdmin ? "general" : "api-keys";
   const section = tab ?? defaultSection;
 
@@ -40,7 +45,16 @@ function SettingsPage() {
       {section === "api-keys" && (
         <ApiKeysSection projectId={projectId} canManage={isAdmin} />
       )}
-      {section === "integrations" && <IntegrationsSection projectId={projectId} />}
+      {section === "integrations" && (
+        <div className="space-y-10">
+          <GitHubSection
+            projectId={projectId}
+            canManage={isAdmin}
+            callback={{ connected, error, info }}
+          />
+          <NotificationsSection projectId={projectId} />
+        </div>
+      )}
       {section === "privacy" && <PiiRedactionSection projectId={projectId} />}
       {section === "ai" && <AiProviderSection projectId={projectId} />}
       {section === "memory" && <AgentMemorySection projectId={projectId} />}

@@ -22,6 +22,14 @@ const envSchema = z.object({
   DISABLE_TELEMETRY: z.string().default("false"),
   BREADCRUMB_API_KEY: z.string().optional(),
   BREADCRUMB_BASE_URL: z.string().optional(),
+  // GitHub App (optional — integration is disabled if unset)
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_SLUG: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_APP_CLIENT_ID: z.string().optional(),
+  GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+  GITHUB_APP_WEBHOOK_SECRET: z.string().optional(),
+  GITHUB_API_URL: z.string().default("https://api.github.com"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -59,4 +67,11 @@ export const env = {
   disableTelemetry: p.DISABLE_TELEMETRY === "true",
   breadcrumbApiKey: p.BREADCRUMB_API_KEY,
   breadcrumbBaseUrl: p.BREADCRUMB_BASE_URL,
+  githubAppId: p.GITHUB_APP_ID,
+  githubAppSlug: p.GITHUB_APP_SLUG,
+  githubAppPrivateKey: p.GITHUB_APP_PRIVATE_KEY,
+  githubAppClientId: p.GITHUB_APP_CLIENT_ID,
+  githubAppClientSecret: p.GITHUB_APP_CLIENT_SECRET,
+  githubAppWebhookSecret: p.GITHUB_APP_WEBHOOK_SECRET,
+  githubApiUrl: p.GITHUB_API_URL,
 };

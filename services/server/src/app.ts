@@ -10,6 +10,7 @@ import { requireApiKey } from "./shared/auth/api-key.js";
 import { requireMcpKey } from "./shared/auth/mcp-key.js";
 import { trpcHandler } from "./api/trpc/handler.js";
 import { ingestRoutes } from "./api/ingest/routes.js";
+import { githubIntegrationRoutes } from "./api/integrations/github-routes.js";
 import { env } from "./env.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { buildMcpServer } from "./api/mcp/server.js";
@@ -115,6 +116,12 @@ app.route("/v1", ingestRoutes);
 
 // ── tRPC ────────────────────────────────────────────────────────────────────
 app.use("/trpc/*", trpcHandler);
+
+// ── GitHub integration callback ─────────────────────────────────────────────
+// Handles the redirect back from github.com after a user installs the
+// GitHub App. The handler reads its own session via better-auth and
+// runs project-admin checks inline (it's not behind tRPC).
+app.route("/integrations/github", githubIntegrationRoutes);
 
 // ── MCP ─────────────────────────────────────────────────────────────────────
 app.all("/mcp", requireMcpKey, async (c) => {

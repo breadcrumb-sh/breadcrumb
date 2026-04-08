@@ -35,7 +35,7 @@ function defaultConfig(): WebhookConfig {
 
 /* ── Main section ─────────────────────────────────── */
 
-export function IntegrationsSection({ projectId }: { projectId: string }) {
+export function NotificationsSection({ projectId }: { projectId: string }) {
   const utils = trpc.useUtils();
   const existing = trpc.integrations.list.useQuery({ projectId });
   const upsert = trpc.integrations.upsert.useMutation({
@@ -111,7 +111,7 @@ export function IntegrationsSection({ projectId }: { projectId: string }) {
   return (
     <section className="space-y-4 max-w-md">
       <div>
-        <h3 className="text-sm font-semibold mb-1">Integrations</h3>
+        <h3 className="text-sm font-semibold mb-1">Notifications</h3>
         <p className="text-xs text-zinc-500">
           Get notified when the monitor agent finds issues.
         </p>
