@@ -1,13 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { CostSection } from "../../../../components/traces/CostSection";
+import { InsightsSection } from "../../../../components/traces/InsightsSection";
 import { McpCallout } from "../../../../components/traces/McpCallout";
 import { RawTracesSection } from "../../../../components/traces/RawTracesSection";
-import { ReliabilitySection } from "../../../../components/traces/ReliabilitySection";
 import { usePageView } from "../../../../hooks/usePageView";
 
 const searchSchema = z.object({
-  tab: z.enum(["reliability", "raw", "performance"]).optional(),
+  tab: z.enum(["insights", "raw"]).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
   preset: z.union([z.literal(7), z.literal(30), z.literal(90)]).optional(),
@@ -39,14 +38,13 @@ export const Route = createFileRoute("/_authed/projects/$projectId/traces")({
 function TracesPage() {
   usePageView("traces");
   const { tab } = Route.useSearch();
-  const section = tab ?? "reliability";
+  const section = tab ?? "insights";
 
   return (
     <div className="px-5 py-6 sm:px-8 sm:py-8 page-container-small">
       <McpCallout />
-      {section === "reliability" && <ReliabilitySection />}
+      {section === "insights" && <InsightsSection />}
       {section === "raw" && <RawTracesSection />}
-      {section === "performance" && <CostSection />}
     </div>
   );
 }

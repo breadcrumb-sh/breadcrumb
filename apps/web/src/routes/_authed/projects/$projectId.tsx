@@ -40,8 +40,7 @@ function buildNavItems(
       label: "Traces",
       icon: ChartBar,
       children: [
-        { label: "Reliability", id: "traces:reliability" },
-        { label: "Performance", id: "traces:performance" },
+        { label: "Insights", id: "traces:insights" },
         { label: "Raw Traces", id: "traces:raw" },
       ],
     },
@@ -79,8 +78,7 @@ function navIdToRoute(projectId: string) {
   return (id: string) => {
     const routes: Record<string, { to: string; search?: Record<string, string> }> = {
       "overview": { to: "/projects/$projectId" },
-      "traces:reliability": { to: "/projects/$projectId/traces", search: { tab: "reliability" } },
-      "traces:performance": { to: "/projects/$projectId/traces", search: { tab: "performance" } },
+      "traces:insights": { to: "/projects/$projectId/traces", search: { tab: "insights" } },
       "traces:raw": { to: "/projects/$projectId/traces", search: { tab: "raw" } },
       "settings:general": { to: "/projects/$projectId/settings", search: { tab: "general" } },
       "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
@@ -103,7 +101,7 @@ function getActiveId(pathname: string, base: string, tab?: string): string {
     return `settings:${tab ?? "general"}`;
   }
   if (rel.startsWith("/traces") || rel.startsWith("/trace/")) {
-    return `traces:${tab ?? "reliability"}`;
+    return `traces:${tab ?? "insights"}`;
   }
   return "overview";
 }

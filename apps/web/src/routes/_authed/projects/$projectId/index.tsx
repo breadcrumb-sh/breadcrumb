@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import {
   DateRangePopover,
   presetFrom,
@@ -13,6 +12,7 @@ import { useProjectFilters } from "../../../../hooks/useProjectFilters";
 import { formatCost } from "../../../../lib/span-utils";
 import { trpc } from "../../../../lib/trpc";
 import { StatCell } from "../../../../components/overview/StatCell";
+import { TraceQualityChart } from "../../../../components/overview/TraceQualityChart";
 import { KanbanBoard } from "../../../../components/monitor/KanbanBoard";
 import { ScanHistorySheet } from "../../../../components/monitor/ScanHistorySheet";
 
@@ -64,21 +64,6 @@ function OverviewPage() {
 
   const statsRef = useRef<HTMLDivElement>(null);
 
-  const sparklineDays = useMemo(() => {
-    const raw = quality.data?.days ?? [];
-    if (!raw.length) return [];
-    const map = new Map(raw.map((d) => [d.date, d]));
-    const filled: Array<{ date: string; total: number }> = [];
-    const start = new Date(from + "T00:00:00Z");
-    const end = new Date(to + "T00:00:00Z");
-    for (const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
-      const row = map.get(key);
-      filled.push({ date: key, total: row ? row.healthy + row.expensive + row.failed : 0 });
-    }
-    return filled;
-  }, [quality.data?.days, from, to]);
-
   return (
     <div className="flex flex-col">
       <div className="px-5 pt-6 pb-0 sm:px-8 sm:pt-8 space-y-6 w-full page-container-small shrink-0">
@@ -92,30 +77,15 @@ function OverviewPage() {
 
       {/* ── Stat cards ────────────────────────────────────────── */}
       <div ref={statsRef} className="rounded-lg border border-zinc-800 bg-zinc-900 grid grid-cols-2 sm:grid-cols-5">
-        {/* Traces sparkline cell */}
-        <div className="px-5 py-4 space-y-2">
-          <p className="text-xs text-zinc-500">Traces</p>
-          <div className="flex items-end gap-3">
-            <p className={`text-2xl font-semibold tracking-tight tabular-nums ${stats.isLoading ? "text-zinc-700 animate-pulse" : "text-zinc-100"}`}>
-              {stats.isLoading ? "———" : stats.data?.traceCount.toLocaleString() ?? "-"}
-            </p>
-            {sparklineDays.length > 0 && (
-              <div className="flex-1 h-10 min-w-0 -mb-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={sparklineDays} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
-                    <defs>
-                      <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-viz-1)" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="var(--color-viz-1)" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <Area dataKey="total" stroke="var(--color-viz-1)" strokeWidth={1.5} fill="url(#sparkFill)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        </div>
+        <StatCell
+          label="Traces"
+          value={stats.data ? stats.data.traceCount.toLocaleString() : "-"}
+          loading={stats.isLoading}
+          delta={pctChange(
+            stats.data?.traceCount,
+            stats.data?.prev?.traceCount,
+          )}
+        />
         <StatCell
           className="border-l border-zinc-800"
           label="Total cost"
@@ -154,6 +124,14 @@ function OverviewPage() {
           delta={pctChange(stats.data?.errorRate, stats.data?.prev?.errorRate)}
         />
       </div>
+
+      {/* ── Trace Quality ─────────────────────────────────────── */}
+      <TraceQualityChart
+        data={quality.data}
+        loading={quality.isLoading}
+        from={from}
+        to={to}
+      />
 
       <MonitorSummary projectId={projectId} from={from} to={to} />
 
