@@ -33,6 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@octokit/app": "^16.1.2",
     "@octokit/core": "^7.0.6",
+    "@openrouter/ai-sdk-provider": "^2.5.1",
     "@trpc/server": "^11",
     "ai": "^6.0.97",
     "better-auth": "^1.4.18",

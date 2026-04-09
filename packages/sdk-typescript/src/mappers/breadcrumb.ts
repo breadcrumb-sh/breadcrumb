@@ -42,6 +42,19 @@ export function mapBreadcrumb(span: ReadableSpan): Partial<MappedSpanData> {
   const output_tokens = intAttr(attrs, "breadcrumb.output_tokens");
   if (output_tokens != null) result.output_tokens = output_tokens;
 
+  const cached_input_tokens = intAttr(attrs, "breadcrumb.cached_input_tokens");
+  if (cached_input_tokens != null) result.cached_input_tokens = cached_input_tokens;
+
+  const cache_creation_input_tokens = intAttr(
+    attrs,
+    "breadcrumb.cache_creation_input_tokens",
+  );
+  if (cache_creation_input_tokens != null)
+    result.cache_creation_input_tokens = cache_creation_input_tokens;
+
+  const reasoning_tokens = intAttr(attrs, "breadcrumb.reasoning_tokens");
+  if (reasoning_tokens != null) result.reasoning_tokens = reasoning_tokens;
+
   // ── Cost ──────────────────────────────────────────────────────────────────
   const input_cost_usd = floatAttr(attrs, "breadcrumb.input_cost_usd");
   if (input_cost_usd != null) result.input_cost_usd = input_cost_usd;

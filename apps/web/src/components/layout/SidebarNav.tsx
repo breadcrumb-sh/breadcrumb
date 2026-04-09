@@ -8,6 +8,9 @@ export type NavSubItem = {
   label: string;
   id?: string;
   children?: NavSubItem[];
+  /** When true, render a small red dot next to the label. Used for
+   * "needs attention" indicators (e.g. unset model rates). */
+  badge?: boolean;
 };
 
 export type NavLeafItem = {
@@ -22,6 +25,9 @@ export type NavGroupItem = {
   label: string;
   icon: Icon;
   children: NavSubItem[];
+  /** Same semantics as NavSubItem.badge — bubbles up from a child so the
+   * indicator stays visible when the group is collapsed. */
+  badge?: boolean;
 };
 
 export type NavEntry = NavLeafItem | NavGroupItem;
@@ -103,7 +109,7 @@ function SubItems({
             key={child.id}
             onClick={() => onSelect(child.id!)}
             className={`
-              block w-full text-left rounded-md px-2.5 py-1.5 text-[13px]
+              flex w-full items-center gap-2 text-left rounded-md px-2.5 py-1.5 text-[13px]
               transition-colors duration-150
               ${isActive
                 ? "text-zinc-100 bg-zinc-800/40 font-medium"
@@ -111,7 +117,14 @@ function SubItems({
               }
             `}
           >
-            {child.label}
+            <span className="flex-1">{child.label}</span>
+            {child.badge && (
+              <span
+                aria-label="Needs attention"
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: "var(--color-viz-1)" }}
+              />
+            )}
           </button>
         );
       })}
@@ -183,6 +196,13 @@ export function SidebarNav({
             >
               <Icon size={16} className="shrink-0 text-zinc-500" />
               <span className="flex-1 text-left">{entry.label}</span>
+              {entry.badge && !isOpen && (
+                <span
+                  aria-label="Needs attention"
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--color-viz-1)" }}
+                />
+              )}
               <CaretDown
                 size={12}
                 className={`shrink-0 text-zinc-600 transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}

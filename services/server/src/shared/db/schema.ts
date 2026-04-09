@@ -9,6 +9,7 @@ import {
   jsonb,
   index,
   integer,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 // ── Instance settings (KV) ───────────────────────────────────────────
@@ -418,6 +419,44 @@ export const githubTrackedRepos = pgTable(
   (t) => [
     unique("github_tracked_repos_install_repo_uniq").on(t.installationRowId, t.repoId),
     index("github_tracked_repos_install_idx").on(t.installationRowId),
+  ],
+);
+
+// ── Model rates (per-project cost table) ───────────────────────────
+
+// Per-project pricing overrides. Populated lazily as models are seen:
+//   - `catalog` — auto-filled from our vendored pricing catalog
+//   - `user`    — user-edited value (including explicit $0 for free models)
+//   - `unset`   — auto-created placeholder when we saw a model but had no
+//                 rate for it. Shows a warning in the UI until the user
+//                 enters rates or the auto-promote step finds it in the
+//                 catalog.
+//
+// Rates are stored per million tokens for readability (matches what the UI
+// shows). The ingest pipeline divides by 1_000_000 when computing per-span
+// cost. Provider-reported costs (e.g. OpenRouter's usage.cost) are written
+// directly to the span at ingest time and never touch this table.
+export const modelRates = pgTable(
+  "model_rates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    model: varchar("model", { length: 255 }).notNull(), // normalized model name
+    provider: varchar("provider", { length: 32 }), // nullable; display-only hint
+    inputPerMillionUsd: numeric("input_per_million_usd").notNull().default("0"),
+    outputPerMillionUsd: numeric("output_per_million_usd").notNull().default("0"),
+    cacheReadPerMillionUsd: numeric("cache_read_per_million_usd"), // nullable, falls back to input rate
+    cacheWritePerMillionUsd: numeric("cache_write_per_million_usd"), // nullable, falls back to input rate
+    reasoningPerMillionUsd: numeric("reasoning_per_million_usd"), // nullable, falls back to output rate
+    source: varchar("source", { length: 16 }).notNull(), // catalog | user | unset
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    unique("model_rates_project_model_uniq").on(t.projectId, t.model),
+    index("model_rates_project_idx").on(t.projectId),
   ],
 );
 

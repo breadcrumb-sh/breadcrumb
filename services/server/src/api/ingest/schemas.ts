@@ -93,6 +93,12 @@ export const SpanSchema = z.object({
   model:           z.string().max(MAX_MODEL_LENGTH).optional(),
   input_tokens:    z.number().int().nonnegative().optional(),
   output_tokens:   z.number().int().nonnegative().optional(),
+  // Breakdown of cache and reasoning tokens. These are subtotals already
+  // included in input_tokens / output_tokens — populated by providers that
+  // report them separately so we can bill at the correct per-bucket rate.
+  cached_input_tokens:          z.number().int().nonnegative().optional(),
+  cache_creation_input_tokens:  z.number().int().nonnegative().optional(),
+  reasoning_tokens:             z.number().int().nonnegative().optional(),
   // Float USD from the SDK — converted to micro-dollars before storage.
   input_cost_usd:  z.number().nonnegative().optional(),
   output_cost_usd: z.number().nonnegative().optional(),

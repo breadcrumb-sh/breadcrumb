@@ -7,13 +7,15 @@
 
 import { generateText, stepCountIs } from "ai";
 import { eq } from "drizzle-orm";
-import { getAiModel } from "../explore/ai-provider.js";
+import { getAiModelWithMeta } from "../explore/ai-provider.js";
 import { db } from "../../shared/db/postgres.js";
 import { monitorItems, monitorComments, monitorLabels, project } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
 import { trackMonitorInvestigationCompleted } from "../../shared/lib/telemetry.js";
 import { recordUsage } from "./usage.js";
+import { computeRunCostCents } from "../cost/rate-lookup.js";
+import { extractUsage } from "../cost/usage-extract.js";
 import { emitMonitorEvent } from "./events.js";
 import { buildInvestigatePrompt, createInvestigateTools } from "./investigate-agent.js";
 import {
@@ -41,8 +43,11 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
   }
 
   let model;
+  let modelId: string;
   try {
-    model = await getAiModel(projectId);
+    const meta = await getAiModelWithMeta(projectId);
+    model = meta.model;
+    modelId = meta.modelId;
   } catch {
     log.warn({ projectId }, "no AI provider configured — skipping investigation");
     await addAgentComment(projectId, itemId, "Cannot investigate — no AI provider configured for this project.");
@@ -130,10 +135,9 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
       tools,
     });
 
-    const input = result.usage?.inputTokens ?? 0;
-    const output = result.usage?.outputTokens ?? 0;
-    const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
-    await recordUsage(projectId, input, output, costCents);
+    const usage = extractUsage(result.usage);
+    const costCents = await computeRunCostCents(projectId, modelId, usage);
+    await recordUsage(projectId, usage.inputTokens, usage.outputTokens, costCents);
 
     // Read final status for telemetry
     const [final] = await db
@@ -142,7 +146,17 @@ export async function runInvestigation({ projectId, itemId }: InvestigateOptions
       .where(eq(monitorItems.id, itemId));
     trackMonitorInvestigationCompleted(final?.status ?? "unknown", costCents);
 
-    log.info({ projectId, itemId, inputTokens: input, outputTokens: output, costCents }, "investigation complete");
+    log.info(
+      {
+        projectId,
+        itemId,
+        modelId,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        costCents,
+      },
+      "investigation complete",
+    );
   } catch (err) {
     log.error({ projectId, itemId, err }, "investigation failed");
     await addAgentComment(

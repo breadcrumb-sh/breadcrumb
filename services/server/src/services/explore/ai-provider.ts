@@ -1,5 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/postgres.js";
@@ -18,6 +19,17 @@ interface AiProviderRow {
  * AI SDK LanguageModel. Throws if no config is found.
  */
 export async function getAiModel(projectId: string): Promise<LanguageModel> {
+  const { model } = await getAiModelWithMeta(projectId);
+  return model;
+}
+
+/**
+ * Same as `getAiModel` but also returns the model id and provider so the
+ * caller can do rate-table lookups after an LLM run without re-querying.
+ */
+export async function getAiModelWithMeta(
+  projectId: string,
+): Promise<{ model: LanguageModel; modelId: string; provider: string }> {
   const [row] = await db
     .select({
       provider: aiProviders.provider,
@@ -32,7 +44,11 @@ export async function getAiModel(projectId: string): Promise<LanguageModel> {
     throw new Error("No AI provider configured for this project");
   }
 
-  return buildModel(row);
+  return {
+    model: buildModel(row),
+    modelId: row.modelId,
+    provider: row.provider,
+  };
 }
 
 function buildModel(row: AiProviderRow): LanguageModel {
@@ -48,11 +64,11 @@ function buildModel(row: AiProviderRow): LanguageModel {
       return anthropic(row.modelId);
     }
     case "openrouter": {
-      const openrouter = createOpenAI({
-        apiKey,
-        baseURL: "https://openrouter.ai/api/v1",
-      });
-      return openrouter.chat(row.modelId);
+      // Use the dedicated provider (not createOpenAI) so OpenRouter's
+      // non-standard usage.cost field surfaces via
+      // providerMetadata.openrouter.usage.cost, which our span mapper reads.
+      const openrouter = createOpenRouter({ apiKey });
+      return openrouter(row.modelId, { usage: { include: true } });
     }
     case "custom": {
       const custom = createOpenAI({

@@ -9,6 +9,7 @@ import { trackTraceIngested } from "../../shared/lib/telemetry.js";
 import { enqueueScan } from "../../services/monitor/jobs.js";
 import { getRedactor } from "../../services/ingest/pii-settings-cache.js";
 import { redactString, redactRecord } from "../../services/ingest/pii-redactor.js";
+import { lookupRate, computeSpanCost, type ModelRate } from "../../services/cost/rate-lookup.js";
 
 const log = createLogger("ingest");
 
@@ -127,6 +128,9 @@ ingestRoutes.post("/spans", async (c) => {
   }
 
   const redactor = await getRedactor(projectId);
+  // Per-request rate cache so a batch of N spans for the same model hits
+  // the DB once, not N times. `null` means "we looked and couldn't price it."
+  const rateCache = new Map<string, ModelRate | null>();
   const spans = [];
   for (const item of raw) {
     const parsed = SpanSchema.safeParse(item);
@@ -146,6 +150,32 @@ ingestRoutes.post("/spans", async (c) => {
       metadata = redactRecord(metadata, redactor);
     }
 
+    // Cost fill: if the SDK already supplied cost (e.g. OpenRouter native
+    // provider metadata), trust it. Otherwise try to price it from the
+    // project's rate table. Unknown models create an 'unset' placeholder
+    // row which the UI surfaces as "needs rates".
+    let inputCostUsd = s.input_cost_usd;
+    let outputCostUsd = s.output_cost_usd;
+    const noCostSupplied = !inputCostUsd && !outputCostUsd;
+    if (s.type === "llm" && s.model && noCostSupplied) {
+      let rate = rateCache.get(s.model);
+      if (rate === undefined) {
+        rate = await lookupRate(projectId, s.model);
+        rateCache.set(s.model, rate);
+      }
+      if (rate) {
+        const cost = computeSpanCost(rate, {
+          inputTokens: s.input_tokens ?? 0,
+          outputTokens: s.output_tokens ?? 0,
+          cachedInputTokens: s.cached_input_tokens,
+          cacheCreationInputTokens: s.cache_creation_input_tokens,
+          reasoningTokens: s.reasoning_tokens,
+        });
+        inputCostUsd = cost.inputCostUsd;
+        outputCostUsd = cost.outputCostUsd;
+      }
+    }
+
     spans.push({
       id:             s.id,
       trace_id:       s.trace_id,
@@ -163,8 +193,11 @@ ingestRoutes.post("/spans", async (c) => {
       model:          s.model ?? "",
       input_tokens:   s.input_tokens ?? 0,
       output_tokens:  s.output_tokens ?? 0,
-      input_cost_usd:  toMicroDollars(s.input_cost_usd),
-      output_cost_usd: toMicroDollars(s.output_cost_usd),
+      cached_input_tokens:         s.cached_input_tokens ?? 0,
+      cache_creation_input_tokens: s.cache_creation_input_tokens ?? 0,
+      reasoning_tokens:            s.reasoning_tokens ?? 0,
+      input_cost_usd:  toMicroDollars(inputCostUsd),
+      output_cost_usd: toMicroDollars(outputCostUsd),
       metadata,
     });
   }

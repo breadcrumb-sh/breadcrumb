@@ -24,6 +24,23 @@ export interface SpanData {
   provider?: string;
   input_tokens?: number;
   output_tokens?: number;
+  /**
+   * Tokens served from prompt cache. Counted within `input_tokens` (the
+   * total) — populate this when the provider reports a cache-read breakdown
+   * so Breadcrumb can compute cost at the cheaper cache-read rate.
+   */
+  cached_input_tokens?: number;
+  /**
+   * Tokens written to prompt cache. Counted within `input_tokens`.
+   * Billed at the more expensive cache-write rate by Anthropic.
+   */
+  cache_creation_input_tokens?: number;
+  /**
+   * Reasoning / thinking tokens (o-series, Claude extended thinking).
+   * Counted within `output_tokens`. Billed at the output rate unless the
+   * rate table specifies a separate reasoning rate.
+   */
+  reasoning_tokens?: number;
   input_cost_usd?: number;
   output_cost_usd?: number;
   metadata?: Record<string, string | number | boolean>;
@@ -53,6 +70,9 @@ export interface SpanPayload {
   model?: string;
   input_tokens?: number;
   output_tokens?: number;
+  cached_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  reasoning_tokens?: number;
   input_cost_usd?: number;
   output_cost_usd?: number;
   metadata?: Record<string, string>;

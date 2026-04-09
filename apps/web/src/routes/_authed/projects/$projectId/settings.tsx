@@ -8,13 +8,26 @@ import { DangerSection } from "../../../../components/settings/DangerSection";
 import { GeneralSection } from "../../../../components/settings/GeneralSection";
 import { NotificationsSection } from "../../../../components/settings/NotificationsSection";
 import { GitHubSection } from "../../../../components/settings/GitHubSection";
+import { ModelPricingSection } from "../../../../components/settings/ModelPricingSection";
 import { PiiRedactionSection } from "../../../../components/settings/PiiRedactionSection";
 import { useOrgRole } from "../../../../hooks/useOrgRole";
 import { usePageView } from "../../../../hooks/usePageView";
 import { trpc } from "../../../../lib/trpc";
 
 const searchSchema = z.object({
-  tab: z.enum(["general", "api-keys", "integrations", "privacy", "ai", "memory", "limits", "danger"]).optional(),
+  tab: z
+    .enum([
+      "general",
+      "api-keys",
+      "integrations",
+      "model-pricing",
+      "privacy",
+      "ai",
+      "memory",
+      "limits",
+      "danger",
+    ])
+    .optional(),
   // GitHub callback flags (consumed by GitHubSection):
   connected: z.string().optional(),
   error: z.string().optional(),
@@ -54,6 +67,9 @@ function SettingsPage() {
           />
           <NotificationsSection projectId={projectId} />
         </div>
+      )}
+      {section === "model-pricing" && (
+        <ModelPricingSection projectId={projectId} canManage={isAdmin} />
       )}
       {section === "privacy" && <PiiRedactionSection projectId={projectId} />}
       {section === "ai" && <AiProviderSection projectId={projectId} />}

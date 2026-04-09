@@ -7,13 +7,15 @@
 
 import { generateText, stepCountIs } from "ai";
 import { eq, desc, and, ne } from "drizzle-orm";
-import { getAiModel } from "../explore/ai-provider.js";
+import { getAiModelWithMeta } from "../explore/ai-provider.js";
 import { db } from "../../shared/db/postgres.js";
 import { project, monitorScanRuns } from "../../shared/db/schema.js";
 import { createLogger } from "../../shared/lib/logger.js";
 import { getTelemetry } from "../../shared/lib/breadcrumb.js";
 import { trackMonitorScanCompleted } from "../../shared/lib/telemetry.js";
 import { recordUsage } from "./usage.js";
+import { computeRunCostCents } from "../cost/rate-lookup.js";
+import { extractUsage } from "../cost/usage-extract.js";
 import { buildScanPrompt, createScanTools } from "./scan-agent.js";
 import { createProductionScanHandlers, type ScanStats } from "./scan-handlers.js";
 
@@ -28,8 +30,11 @@ export interface ScanResult {
 
 export async function runScan(projectId: string): Promise<ScanResult> {
   let model;
+  let modelId: string;
   try {
-    model = await getAiModel(projectId);
+    const meta = await getAiModelWithMeta(projectId);
+    model = meta.model;
+    modelId = meta.modelId;
   } catch {
     log.warn({ projectId }, "no AI provider configured — skipping scan");
     return { status: "skipped", ticketsCreated: 0, costCents: 0, errorMessage: "No AI provider configured" };
@@ -73,12 +78,20 @@ export async function runScan(projectId: string): Promise<ScanResult> {
       tools,
     });
 
-    const input = result.usage?.inputTokens ?? 0;
-    const output = result.usage?.outputTokens ?? 0;
-    const costCents = Math.ceil((input * 3 + output * 15) / 1_000_000 * 100);
-    await recordUsage(projectId, input, output, costCents);
+    const usage = extractUsage(result.usage);
+    const costCents = await computeRunCostCents(projectId, modelId, usage);
+    await recordUsage(projectId, usage.inputTokens, usage.outputTokens, costCents);
     trackMonitorScanCompleted(stats.ticketCount, stats.queryCount, costCents);
-    log.info({ projectId, inputTokens: input, outputTokens: output, costCents }, "scan complete");
+    log.info(
+      {
+        projectId,
+        modelId,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        costCents,
+      },
+      "scan complete",
+    );
 
     return {
       status: stats.ticketCount > 0 ? "success" : "empty",

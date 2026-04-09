@@ -23,7 +23,11 @@ export const Route = createFileRoute(
 
 // ── Nav helpers ─────────────────────────────────────────────────────────────
 
-function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
+function buildNavItems(
+  isAdmin: boolean,
+  isOwner: boolean,
+  unsetModelRates: number,
+): NavEntry[] {
   return [
     {
       kind: "leaf",
@@ -45,10 +49,16 @@ function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
       kind: "group",
       label: "Settings",
       icon: Gear,
+      badge: unsetModelRates > 0,
       children: [
         ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
         { label: "API Keys", id: "settings:api-keys" },
         ...(isAdmin ? [{ label: "Integrations", id: "settings:integrations" }] : []),
+        {
+          label: "Model Pricing",
+          id: "settings:model-pricing",
+          badge: unsetModelRates > 0,
+        },
         ...(isAdmin ? [{ label: "Privacy", id: "settings:privacy" }] : []),
         ...(isAdmin ? [{
           label: "AI",
@@ -75,6 +85,7 @@ function navIdToRoute(projectId: string) {
       "settings:general": { to: "/projects/$projectId/settings", search: { tab: "general" } },
       "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
       "settings:integrations": { to: "/projects/$projectId/settings", search: { tab: "integrations" } },
+      "settings:model-pricing": { to: "/projects/$projectId/settings", search: { tab: "model-pricing" } },
       "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
       "settings:memory": { to: "/projects/$projectId/settings", search: { tab: "memory" } },
       "settings:limits": { to: "/projects/$projectId/settings", search: { tab: "limits" } },
@@ -124,11 +135,19 @@ function ProjectLayout() {
     { enabled: !!orgId, placeholderData: (prev) => prev },
   );
   const { isAdmin, isOwner } = useOrgRole(orgId ?? "");
+  const unsetModelRates = trpc.modelRates.unsetCount.useQuery(
+    { projectId },
+    { placeholderData: (prev) => prev },
+  );
 
   const base = `/projects/${projectId}`;
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   const activeId = getActiveId(pathname, base, tab);
-  const navItems = useMemo(() => buildNavItems(isAdmin, isOwner), [isAdmin, isOwner]);
+  const unsetCount = unsetModelRates.data ?? 0;
+  const navItems = useMemo(
+    () => buildNavItems(isAdmin, isOwner, unsetCount),
+    [isAdmin, isOwner, unsetCount],
+  );
   const defaultOpen = useMemo(() => getDefaultOpen(pathname, base, tab), [pathname, base, tab]);
 
   const resolver = useMemo(() => navIdToRoute(projectId), [projectId]);

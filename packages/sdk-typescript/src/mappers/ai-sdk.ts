@@ -48,6 +48,16 @@ const HANDLED = new Set([
   "ai.usage.completionTokens",
   "gen_ai.usage.input_tokens",
   "gen_ai.usage.output_tokens",
+  "ai.usage.cachedInputTokens",
+  "ai.usage.cached_input_tokens",
+  "ai.usage.cacheCreationInputTokens",
+  "ai.usage.cache_creation_input_tokens",
+  "ai.usage.reasoningTokens",
+  "ai.usage.reasoning_tokens",
+  "gen_ai.usage.cache_read_input_tokens",
+  "gen_ai.usage.cached_tokens",
+  "gen_ai.usage.cache_creation_input_tokens",
+  "gen_ai.usage.reasoning_tokens",
   "ai.response.providerMetadata",
   "ai.response.finishReason",
   // Metadata with prefix stripped — handled in the metadata loop below
@@ -198,6 +208,36 @@ export function mapAiSdk(span: ReadableSpan): Partial<MappedSpanData> {
       "gen_ai.usage.output_tokens",
     );
     if (output_tokens != null) result.output_tokens = output_tokens;
+
+    // Cache read / write and reasoning breakdown. These are subtotals
+    // already included in input_tokens / output_tokens — providers report
+    // them separately so downstream consumers can apply the correct
+    // per-bucket pricing.
+    const cached_input_tokens = intAttr(
+      attrs,
+      "ai.usage.cachedInputTokens",
+      "ai.usage.cached_input_tokens",
+      "gen_ai.usage.cache_read_input_tokens",
+      "gen_ai.usage.cached_tokens",
+    );
+    if (cached_input_tokens != null) result.cached_input_tokens = cached_input_tokens;
+
+    const cache_creation_input_tokens = intAttr(
+      attrs,
+      "ai.usage.cacheCreationInputTokens",
+      "ai.usage.cache_creation_input_tokens",
+      "gen_ai.usage.cache_creation_input_tokens",
+    );
+    if (cache_creation_input_tokens != null)
+      result.cache_creation_input_tokens = cache_creation_input_tokens;
+
+    const reasoning_tokens = intAttr(
+      attrs,
+      "ai.usage.reasoningTokens",
+      "ai.usage.reasoning_tokens",
+      "gen_ai.usage.reasoning_tokens",
+    );
+    if (reasoning_tokens != null) result.reasoning_tokens = reasoning_tokens;
 
     const providerMeta = attrs["ai.response.providerMetadata"];
     if (typeof providerMeta === "string") {

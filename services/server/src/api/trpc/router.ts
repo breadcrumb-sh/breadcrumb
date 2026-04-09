@@ -12,6 +12,7 @@ import { monitorRouter } from "./monitor.js";
 import { labelsRouter } from "./labels.js";
 import { integrationsRouter } from "./integrations.js";
 import { githubRouter } from "./github/router.js";
+import { modelRatesRouter } from "./model-rates.js";
 import { piiRedactionRouter } from "./pii-redaction.js";
 
 export const appRouter = router({
@@ -29,6 +30,7 @@ export const appRouter = router({
   labels: labelsRouter,
   integrations: integrationsRouter,
   github: githubRouter,
+  modelRates: modelRatesRouter,
   piiRedaction: piiRedactionRouter,
 });
 

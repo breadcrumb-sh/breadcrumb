@@ -9,6 +9,9 @@ export interface MappedSpanData {
   provider?: string;
   input_tokens?: number;
   output_tokens?: number;
+  cached_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  reasoning_tokens?: number;
   input_cost_usd?: number;
   output_cost_usd?: number;
   metadata?: Record<string, string>;

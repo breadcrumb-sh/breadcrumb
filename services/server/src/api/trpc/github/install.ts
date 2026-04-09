@@ -4,6 +4,7 @@ import { router, projectAdminProcedure } from "../../../trpc.js";
 import { getGitHubAppConfig } from "../../../shared/lib/github-app.js";
 import { signStateToken } from "../../../shared/lib/state-token.js";
 import { buildInstallUrl, deleteInstallationLink } from "../../../services/github/installations.js";
+import { runRepoScan } from "../../../services/github/scan.js";
 
 function requireConfig() {
   const config = getGitHubAppConfig();
@@ -47,5 +48,17 @@ export const githubInstallRouter = router({
       requireConfig();
       await deleteInstallationLink(ctx.projectId);
       return { ok: true as const };
+    }),
+
+  /**
+   * Manually kick off a repo scan agent run. Synchronous — blocks until
+   * the scan completes (typically 1-2 minutes). No triggers wire this up
+   * yet; it's invoked by hand for testing.
+   */
+  runScan: projectAdminProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ ctx }) => {
+      requireConfig();
+      return await runRepoScan(ctx.projectId);
     }),
 });

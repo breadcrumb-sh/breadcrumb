@@ -249,12 +249,13 @@ function ConnectedCard({
   onEdit: () => void;
 }) {
   const tracked = installation.trackedRepos;
+  const hasTracked = tracked.length > 0;
   return (
     <CardShell>
       <div className="space-y-3">
         <InstallationHeader installation={installation} />
 
-        {tracked.length === 0 ? (
+        {!hasTracked ? (
           <p className="text-xs text-zinc-500">
             No repositories tracked yet.{" "}
             {canManage && (
@@ -295,10 +296,60 @@ function ConnectedCard({
           >
             Edit selection
           </button>
+          {canManage && hasTracked && (
+            <RunScanButton projectId={projectId} />
+          )}
           {canManage && <DisconnectButton projectId={projectId} />}
         </div>
       </div>
     </CardShell>
+  );
+}
+
+// ── Run scan ────────────────────────────────────────────────────────
+
+function RunScanButton({ projectId }: { projectId: string }) {
+  const runScan = trpc.github.runScan.useMutation();
+  const toasts = useToastManager();
+
+  const onClick = async () => {
+    try {
+      const result = await runScan.mutateAsync({ projectId });
+      if (result.status === "success") {
+        const dollars = (result.costCents / 100).toFixed(2);
+        toasts.add({
+          title: "Repo scan complete",
+          description: `Project memory updated. Cost: $${dollars}`,
+        });
+      } else if (result.status === "skipped") {
+        toasts.add({
+          title: "Scan skipped",
+          description: result.errorMessage ?? "Unknown reason",
+        });
+      } else {
+        toasts.add({
+          title: "Scan failed",
+          description: result.errorMessage ?? "Unknown error",
+        });
+      }
+    } catch (err) {
+      toasts.add({
+        title: "Scan failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={runScan.isPending}
+      title="Explore the tracked repositories and update project memory. Takes ~1-2 minutes."
+      className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+    >
+      {runScan.isPending ? "Scanning…" : "Run scan"}
+    </button>
   );
 }
 
