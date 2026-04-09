@@ -1,5 +1,11 @@
 # @breadcrumb/sdk
 
+## 0.0.10
+
+### Patch Changes
+
+- c0db23c: added cache tokens
+
 ## 0.0.9
 
 ### Patch Changes
