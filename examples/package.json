@@ -17,14 +17,14 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
     "@ai-sdk/openai": "^3.0.30",
-    "@openrouter/ai-sdk-provider": "^2.2.3",
     "@ai-sdk/react": "^3.0.99",
     "@breadcrumb-sdk/ai-sdk": "*",
     "@breadcrumb-sdk/core": "*",
     "@hono/node-server": "^1",
+    "@openrouter/ai-sdk-provider": "^2.2.3",
     "ai": "^6.0.0",
     "dotenv": "^16",
-    "hono": "^4",
+    "hono": "^4.12.18",
     "react": "^19",
     "react-dom": "^19",
     "zod": "^3"
