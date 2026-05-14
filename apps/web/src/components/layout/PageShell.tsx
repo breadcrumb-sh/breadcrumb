@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { List } from "@phosphor-icons/react/List";
-import { SidebarSimple } from "@phosphor-icons/react/SidebarSimple";
 import { X } from "@phosphor-icons/react/X";
 import { type ReactNode, useState } from "react";
 import { Logo } from "../common/logo/Logo";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { AppHeader } from "./AppHeader";
+import { SidebarFooter } from "./SidebarFooter";
 
 /**
  * Full page shell with sidebar + header + scrollable content area.
@@ -44,7 +44,7 @@ export function PageShell({
   const linkParams = orgId ? { orgId } : {};
 
   const sidebarHeader = (
-    <div className="h-12 flex items-center gap-2.5 px-3.5 border-b border-zinc-800/70">
+    <div className="h-[52px] flex items-center gap-2.5 px-4 border-b border-zinc-800/70">
       <Link
         to={linkTo}
         params={linkParams}
@@ -61,11 +61,12 @@ export function PageShell({
       {/* Desktop sidebar */}
       <aside
         className={`hidden sm:flex shrink-0 flex-col border-r border-zinc-800/70 bg-zinc-950 z-20 transition-[width] duration-200 ease-out overflow-hidden ${
-          collapsed ? "w-0 border-r-0" : "w-56"
+          collapsed ? "w-0 border-r-0" : "w-48"
         }`}
       >
         {sidebarHeader}
         {sidebar}
+        <SidebarFooter />
       </aside>
 
       {/* Main column */}
@@ -84,13 +85,6 @@ export function PageShell({
           >
             <Logo className="size-5" />
           </Link>
-          <button
-            onClick={toggleCollapsed}
-            className="hidden sm:flex p-1 -ml-1 mr-1 text-zinc-400 hover:text-zinc-200 transition-colors"
-            title={collapsed ? "Show sidebar" : "Hide sidebar"}
-          >
-            <SidebarSimple size={18} />
-          </button>
           {header}
         </AppHeader>
 
@@ -113,7 +107,7 @@ export function PageShell({
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="px-3.5 h-12 flex items-center justify-between border-b border-zinc-800/70">
+        <div className="px-3.5 h-[52px] flex items-center justify-between border-b border-zinc-800/70">
           <div className="flex items-center gap-2.5 min-w-0">
             <Link
               to={linkTo}
@@ -132,6 +126,7 @@ export function PageShell({
           </button>
         </div>
         {sidebar}
+        <SidebarFooter />
       </div>
     </div>
   );

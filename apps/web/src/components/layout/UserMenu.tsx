@@ -30,7 +30,7 @@ export function UserMenu() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="User menu"
-        className="flex items-center justify-center size-8 overflow-hidden hover:opacity-80 transition-opacity"
+        className="flex cursor-pointer items-center justify-center size-8 overflow-hidden hover:opacity-80 transition-opacity"
       >
         <div className="size-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-xs font-medium text-zinc-300">
           {(user?.name ?? user?.email ?? "U").charAt(0).toUpperCase()}
@@ -38,7 +38,7 @@ export function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-44 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl z-[100] overflow-hidden py-1.5 motion-preset-fade motion-preset-slide-down-sm motion-duration-150">
+        <div className="absolute right-0 top-[calc(100%+8px)] w-44 rounded-lg border border-zinc-800/70 bg-zinc-950 shadow-xl z-[100] p-1">
           <button
             type="button"
             title="Give feedback"
@@ -46,26 +46,28 @@ export function UserMenu() {
               void openUserJotFeedback();
               setOpen(false);
             }}
-            className="flex sm:hidden items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
+            className="flex cursor-pointer sm:hidden items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40 transition-colors text-left"
           >
-            <ChatCircleDots size={14} weight="bold" />
+            <ChatCircleDots size={13} className="shrink-0 text-zinc-500" />
             Feedback
           </button>
 
           <Link
             to="/settings"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
+            className="flex cursor-pointer items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40 transition-colors text-left"
           >
-            <Gear size={14} weight="bold" />
+            <Gear size={13} className="shrink-0 text-zinc-500" />
             Settings
           </Link>
 
+          <div className="-mx-1 my-1 border-t border-zinc-800/70" />
+
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 text-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors text-left"
+            className="flex cursor-pointer items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40 transition-colors text-left"
           >
-            <SignOut size={14} weight="bold" />
+            <SignOut size={13} className="shrink-0 text-zinc-500" />
             Sign out
           </button>
         </div>

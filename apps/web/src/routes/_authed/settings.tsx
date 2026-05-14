@@ -23,7 +23,7 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <AppHeader />
-      <main className="px-4 py-8 sm:px-8 page-container-small">
+      <main className="px-4 py-6 sm:px-6 page-container-small">
         <h1 className="text-lg font-semibold mb-8">Settings</h1>
         <div className="space-y-10">
           <ThemeSection />

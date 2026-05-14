@@ -51,7 +51,7 @@ function SettingsPage() {
   const section = tab ?? defaultSection;
 
   return (
-    <div className="px-5 py-6 sm:px-8 sm:py-8 page-container-small">
+    <div className="px-5 py-6 sm:px-6 sm:py-6 page-container-small">
       {section === "general" && (
         <GeneralSection projectId={projectId} canRename={isAdmin} />
       )}

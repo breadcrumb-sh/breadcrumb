@@ -64,7 +64,7 @@ function SubItems({
               <button
                 onClick={() => toggleSection(child.label)}
                 className={`
-                  flex items-center gap-2 w-full text-left rounded-md px-2.5 py-1.5 text-[13px]
+                  flex cursor-pointer items-center gap-2 w-full text-left rounded-md px-2.5 py-1.5 text-[12px]
                   transition-colors duration-150
                   ${hasActiveChild
                     ? "text-zinc-200"
@@ -85,7 +85,7 @@ function SubItems({
                 }`}
               >
                 <div className="overflow-hidden">
-                  <div className="mt-0.5 ml-2 border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
+                  <div className="mt-0.5 ml-4 border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
                     <SubItems
                       items={child.children}
                       activeId={activeId}
@@ -109,10 +109,10 @@ function SubItems({
             key={child.id}
             onClick={() => onSelect(child.id!)}
             className={`
-              flex w-full items-center gap-2 text-left rounded-md px-2.5 py-1.5 text-[13px]
+              relative cursor-pointer flex w-full items-center gap-2 text-left rounded-l-md px-2.5 py-1.5 text-[12px]
               transition-colors duration-150
               ${isActive
-                ? "text-zinc-100 bg-zinc-800/40 font-medium"
+                ? "text-zinc-100 bg-zinc-800/40 font-medium border-r-2 border-r-zinc-100"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30"
               }
             `}
@@ -161,7 +161,7 @@ export function SidebarNav({
   };
 
   return (
-    <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
+    <nav className="flex-1 pl-4 py-6 space-y-1 overflow-y-auto">
       {items.map((entry) => {
         const Icon = entry.icon;
 
@@ -172,15 +172,15 @@ export function SidebarNav({
               key={entry.id}
               onClick={() => onSelect(entry.id)}
               className={`
-                flex items-center gap-2.5 w-full rounded-md px-3 py-1.5 text-[13px]
+                relative cursor-pointer flex items-center gap-2.5 w-full rounded-l-md px-2 py-1.5 text-[12px]
                 transition-colors duration-150
                 ${isActive
-                  ? "text-zinc-100 bg-zinc-800/40 font-medium"
+                  ? "text-zinc-100 bg-zinc-800/40 font-medium border-r-2 border-zinc-100"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
                 }
               `}
             >
-              <Icon size={16} className={`shrink-0 ${isActive ? "text-zinc-300" : "text-zinc-500"}`} />
+              <Icon size={16} className={`shrink-0 ${isActive ? "text-zinc-200" : "text-zinc-500"}`} />
               {entry.label}
             </button>
           );
@@ -192,7 +192,7 @@ export function SidebarNav({
           <div key={entry.label}>
             <button
               onClick={() => toggleSection(entry.label)}
-              className="flex items-center gap-2.5 w-full rounded-md px-3 py-1.5 text-[13px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 transition-colors duration-150"
+              className="flex cursor-pointer items-center gap-2.5 w-full rounded-l-md px-2 py-1.5 text-[12px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 transition-colors duration-150"
             >
               <Icon size={16} className="shrink-0 text-zinc-500" />
               <span className="flex-1 text-left">{entry.label}</span>
@@ -216,7 +216,7 @@ export function SidebarNav({
                 }`}
               >
                 <div className="overflow-hidden">
-                  <div className="mt-0.5 ml-[19px] border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
+                  <div className="mt-0.5 ml-4 border-l border-zinc-800 pl-2.5 space-y-0.5 pb-0.5">
                     <SubItems
                       items={entry.children}
                       activeId={activeId}

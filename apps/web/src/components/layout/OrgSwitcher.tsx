@@ -45,7 +45,7 @@ export function OrgSwitcher({
       <button
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors rounded-md px-1.5 py-1 -mx-1.5"
+        className="flex cursor-pointer items-center gap-1 text-[12px] font-medium text-zinc-200 hover:text-zinc-100 transition-colors rounded-md px-1.5 py-1 -mx-1.5"
       >
         <span className="truncate max-w-[120px] sm:max-w-[180px]">
           {currentOrgName ?? "Select org"}
@@ -55,37 +55,41 @@ export function OrgSwitcher({
 
       {open && (
         <div
-          className="fixed z-[100] w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl py-1 motion-preset-fade motion-preset-slide-down-sm motion-duration-150"
+          className="fixed z-[100] w-56 rounded-lg border border-zinc-800/70 bg-zinc-950 shadow-xl p-1"
           style={{ top: popoverPos.top, left: popoverPos.left }}
         >
-          {orgs.data?.map((org) => (
-            <button
-              key={org.id}
-              onClick={() => {
-                navigate({ to: "/org/$orgId", params: { orgId: org.id } });
-                setOpen(false);
-              }}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left text-zinc-400 hover:text-zinc-100 transition-colors"
-            >
-              <Buildings size={14} className="shrink-0 text-zinc-500" />
-              <span className="truncate flex-1">
-                {org.name}
-              </span>
-              {org.id === currentOrgId && (
-                <Check size={14} className="shrink-0 text-zinc-400" />
-              )}
-            </button>
-          ))}
+          {orgs.data?.map((org) => {
+            const isCurrent = org.id === currentOrgId;
+            return (
+              <button
+                key={org.id}
+                onClick={() => {
+                  navigate({ to: "/org/$orgId", params: { orgId: org.id } });
+                  setOpen(false);
+                }}
+                className={`flex cursor-pointer items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-left transition-colors ${
+                  isCurrent
+                    ? "text-zinc-100 font-medium"
+                    : "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40"
+                }`}
+              >
+                <Buildings size={13} className="shrink-0 text-zinc-500" />
+                <span className="truncate flex-1">{org.name}</span>
+                {isCurrent && <Check size={13} className="shrink-0 text-zinc-400" />}
+              </button>
+            );
+          })}
 
-          <div className="border-t border-zinc-800 my-1" />
+          <div className="-mx-1 my-1 border-t border-zinc-800/70" />
+
           {currentOrgId && (
             <Link
               to="/org/$orgId/settings"
               params={{ orgId: currentOrgId }}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+              className="flex cursor-pointer items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40 transition-colors"
             >
-              <Gear size={14} className="shrink-0" />
+              <Gear size={13} className="shrink-0 text-zinc-500" />
               Organization settings
             </Link>
           )}
@@ -93,9 +97,9 @@ export function OrgSwitcher({
             <Link
               to="/new-org"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+              className="flex cursor-pointer items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[12px] text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/40 transition-colors"
             >
-              <Plus size={14} className="shrink-0" />
+              <Plus size={13} className="shrink-0 text-zinc-500" />
               New organization
             </Link>
           )}

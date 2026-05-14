@@ -172,7 +172,7 @@ function OrgSettingsPage() {
         <ProjectSwitcher orgId={orgId} currentProjectName="Select project" />
       }
     >
-      <div className="px-5 py-6 sm:px-8 sm:py-8 page-container-small">
+      <div className="px-5 py-6 sm:px-6 sm:py-6 page-container-small">
         {section === "general" && <OrgGeneralSection orgId={orgId} canEdit={isAdmin} />}
         {section === "members" && (
           <MembersSection organizationId={orgId} canManage={isAdmin} myOrgRole={undefined} />
