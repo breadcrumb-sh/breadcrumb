@@ -1,12 +1,12 @@
 services:
   breadcrumb:
     build:
-      context: .
+      context: ..
       dockerfile: app/server/Dockerfile
     ports:
       - "3100:3100"
     env_file:
-      - app/server/.env
+      - ../app/server/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,8 +35,8 @@ services:
       CLICKHOUSE_DB: breadcrumb
     volumes:
       - ch_data:/var/lib/clickhouse
-      - ./infra/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./infra/clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml
+      - ./clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 5s

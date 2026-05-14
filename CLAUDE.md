@@ -63,7 +63,7 @@ npm run dev          # Watch mode
 
 ### Infrastructure
 
-Docker Compose (`infra/docker-compose.yml`) runs PostgreSQL 16 and ClickHouse 24. Required for local development.
+Docker Compose (`infra/docker-compose.dev.yml`) runs PostgreSQL 16 and ClickHouse 24. Required for local development.
 
 ### Key Patterns
 

@@ -73,12 +73,14 @@ To-confirm candidates for deletion. Nothing deleted until reviewed together.
 app/             the product (web + server live together)
   web/
   server/
-  shared/        cross-package types / db schemas (currently empty scaffold)
+    drizzle/                  Postgres migrations
+    clickhouse/migrations/    ClickHouse migrations (moved from infra/)
+  shared/        cross-package types (currently empty scaffold)
 website/         public marketing + docs (Next.js)
 packages/        published SDKs
   sdk/
   ai-sdk/
-infra/           docker, clickhouse configs
+infra/           container-level configs + both compose files (dev + prod)
 notes/
 ```
 
@@ -114,3 +116,5 @@ TBD. High-level order will follow direction decisions:
 - **2026-05-15** — `packages/sdk-typescript` and `packages/ai-sdk` stripped to empty entries. Build/release infra preserved. Downstream importers (services, apps, examples) now broken — expected, queued for next strip-down pass.
 - **2026-05-15** — npm scope renamed `@breadcrumb-sdk/*` → `@breadcrumb-sh/*` (matches the .sh domain). Old scope frozen on registry (`core@0.0.10`, `ai-sdk@0.0.5`). New scope packages: `@breadcrumb-sh/sdk` (was `core`) and `@breadcrumb-sh/ai-sdk`, both reset to `0.0.1`. Directory renamed `packages/sdk-typescript/` → `packages/sdk/`. CHANGELOGs reset with rename note. `services/server` and `examples/` dep refs updated to new scope.
 - **2026-05-15** — Repo restructure: `apps/web` → `app/web`, `services/server` → `app/server`, `apps/docs` → `website`. Old `apps/` and `services/` containers deleted. New `app/shared/` (`@breadcrumb/shared`) scaffold added for cross-package types. Root `package.json` workspaces, `docker-compose.prod.yml`, and `app/server/Dockerfile` paths updated. `examples/` was already removed by user prior to this pass. All workspace links resolve, SDK builds clean.
+- **2026-05-15** — ClickHouse migrations moved `infra/clickhouse/migrations/` → `app/server/clickhouse/migrations/` (mirrors `app/server/drizzle/` for Postgres — server now owns both migration sets). `infra/` kept lean: just container-level configs (`clickhouse/init.sql`, `clickhouse/config.xml`) + dev `docker-compose.yml`. Updated migration runner candidate paths, Dockerfile, and removed redundant Dockerfile COPY (migrations now ride along with `app/server` copy).
+- **2026-05-15** — `docker-compose.prod.yml` moved from repo root → `infra/`. Both compose files now live in `infra/`. Updated `context: . → ..`, `env_file` to `../app/server/.env`, and clickhouse mount paths from `./infra/clickhouse/...` → `./clickhouse/...` (relative to new compose location).

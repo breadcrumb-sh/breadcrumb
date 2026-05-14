@@ -17,7 +17,6 @@ COPY packages ./packages
 COPY app/shared ./app/shared
 COPY app/server ./app/server
 COPY app/web ./app/web
-COPY infra/clickhouse/migrations ./infra/clickhouse/migrations
 COPY tsconfig.base.json turbo.json ./
 
 # Build everything
@@ -39,7 +38,7 @@ COPY --from=build /repo/app/server/package.json ./
 COPY --from=build /repo/app/web/dist ./public
 
 # Copy ClickHouse migrations — read at runtime by the migration runner
-COPY --from=build /repo/infra/clickhouse/migrations ./migrations/clickhouse
+COPY --from=build /repo/app/server/clickhouse/migrations ./migrations/clickhouse
 
 # Copy Drizzle (Postgres) migrations — read at runtime by drizzle-orm migrator
 COPY --from=build /repo/app/server/drizzle ./drizzle

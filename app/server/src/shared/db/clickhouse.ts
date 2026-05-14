@@ -93,12 +93,10 @@ const TRACKING_TABLE = `
   ORDER BY version
 `;
 
-// Resolve migration files directory. In dev, the repo root is the cwd.
-// In production the Dockerfile copies migrations next to the binary.
 const MIGRATIONS_CANDIDATES = [
-  "../../infra/clickhouse/migrations",   // dev: run from services/server (tsx watch)
-  "./infra/clickhouse/migrations",       // dev: run from repo root
-  "./migrations/clickhouse",            // production: copied by Dockerfile
+  "./clickhouse/migrations",                // dev: run from app/server (tsx watch)
+  "./app/server/clickhouse/migrations",     // dev: run from repo root
+  "./migrations/clickhouse",                // production: copied by Dockerfile
 ];
 
 async function findMigrationsDir(): Promise<string> {
