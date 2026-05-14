@@ -65,13 +65,29 @@ To-confirm candidates for deletion. Nothing deleted until reviewed together.
 
 ---
 
-## Phase 2: Restructure (notes only)
+## Phase 2: Restructure (in progress)
 
-TBD once strip-down reveals what's actually left and what overlaps. Likely targets:
+**Top-level layout (locked in 2026-05-15):**
 
-- Reconsider `packages/core` vs `packages/sdk-typescript` split if proxy collapses them.
-- Re-examine `services/server/src/api/*` boundaries (trpc / mcp / v1).
-- Decide whether `apps/docs` deserves a refresh now or after Phase 3.
+```
+app/             the product (web + server live together)
+  web/
+  server/
+  shared/        cross-package types / db schemas (currently empty scaffold)
+website/         public marketing + docs (Next.js)
+packages/        published SDKs
+  sdk/
+  ai-sdk/
+infra/           docker, clickhouse configs
+notes/
+```
+
+Reasoning: `apps/` vs `services/` split was misleading — web and server are one product and belong together. `apps/docs` was actually a public website, not part of the product. The new shape names the actual groups.
+
+Still to consider:
+- Rename `docs` package → `@breadcrumb/website` to match its dir? (Currently still `name: "docs"`.)
+- Server's internal `src/shared/` may want to move up to `app/shared/` once we know what's actually cross-cutting.
+- Re-examine `app/server/src/api/*` boundaries (trpc / mcp / v1) once those are stripped.
 
 ---
 
@@ -97,3 +113,4 @@ TBD. High-level order will follow direction decisions:
 - **2026-05-15** — Process: strip down → restructure → reimplement (not clean-slate).
 - **2026-05-15** — `packages/sdk-typescript` and `packages/ai-sdk` stripped to empty entries. Build/release infra preserved. Downstream importers (services, apps, examples) now broken — expected, queued for next strip-down pass.
 - **2026-05-15** — npm scope renamed `@breadcrumb-sdk/*` → `@breadcrumb-sh/*` (matches the .sh domain). Old scope frozen on registry (`core@0.0.10`, `ai-sdk@0.0.5`). New scope packages: `@breadcrumb-sh/sdk` (was `core`) and `@breadcrumb-sh/ai-sdk`, both reset to `0.0.1`. Directory renamed `packages/sdk-typescript/` → `packages/sdk/`. CHANGELOGs reset with rename note. `services/server` and `examples/` dep refs updated to new scope.
+- **2026-05-15** — Repo restructure: `apps/web` → `app/web`, `services/server` → `app/server`, `apps/docs` → `website`. Old `apps/` and `services/` containers deleted. New `app/shared/` (`@breadcrumb/shared`) scaffold added for cross-package types. Root `package.json` workspaces, `docker-compose.prod.yml`, and `app/server/Dockerfile` paths updated. `examples/` was already removed by user prior to this pass. All workspace links resolve, SDK builds clean.

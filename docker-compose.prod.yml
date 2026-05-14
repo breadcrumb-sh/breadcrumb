@@ -2,11 +2,11 @@ services:
   breadcrumb:
     build:
       context: .
-      dockerfile: services/server/Dockerfile
+      dockerfile: app/server/Dockerfile
     ports:
       - "3100:3100"
     env_file:
-      - services/server/.env
+      - app/server/.env
     depends_on:
       postgres:
         condition: service_healthy

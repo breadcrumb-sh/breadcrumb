@@ -2,10 +2,9 @@
   "name": "breadcrumb",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "services/*",
-    "apps/*",
-    "examples"
+    "app/*",
+    "website",
+    "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
