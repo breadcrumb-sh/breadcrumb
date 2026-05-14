@@ -1,8 +1,8 @@
 # Breadcrumb SDK Packages
 
-**[Documentation](https://breadcrumb.sh/docs)**
+> **Note:** v3 rebuild in progress. Packages below are intentionally minimal until reimplementation.
 
 | Package | Description |
 |---------|-------------|
-| [`@breadcrumb-sdk/core`](./sdk-typescript) | Core SDK — manual tracing for any Node.js code |
-| [`@breadcrumb-sdk/ai-sdk`](./ai-sdk) | Vercel AI SDK integration — automatic tracing for `generateText`, `streamText`, etc. |
+| [`@breadcrumb-sh/sdk`](./sdk) | TypeScript SDK (placeholder) |
+| [`@breadcrumb-sh/ai-sdk`](./ai-sdk) | Vercel AI SDK integration (placeholder) |

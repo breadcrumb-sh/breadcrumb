@@ -25,8 +25,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.47",
     "@ai-sdk/openai": "^3.0.33",
-    "@breadcrumb-sdk/ai-sdk": "^0.0.5",
-    "@breadcrumb-sdk/core": "^0.0.10",
+    "@breadcrumb-sh/ai-sdk": "*",
+    "@breadcrumb-sh/sdk": "*",
     "@clickhouse/client": "^1",
     "@hono/mcp": "^0.2.3",
     "@hono/node-server": "^1",

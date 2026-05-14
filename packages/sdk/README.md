@@ -1,5 +1,5 @@
-# @breadcrumb-sh/ai-sdk
+# @breadcrumb-sh/sdk
 
-Vercel AI SDK integration for Breadcrumb.
+Breadcrumb SDK for Node.js / TypeScript.
 
 > **Note:** v3 rebuild in progress. This package is intentionally empty.

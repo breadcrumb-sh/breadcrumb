@@ -1,6 +1,6 @@
 {
-  "name": "@breadcrumb-sdk/ai-sdk",
-  "version": "0.0.5",
+  "name": "@breadcrumb-sh/ai-sdk",
+  "version": "0.0.1",
   "type": "module",
   "files": [
     "dist"
@@ -21,14 +21,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": {
-    "@breadcrumb-sdk/core": "*",
-    "@opentelemetry/api": "^1.9.0"
-  },
   "devDependencies": {
-    "@breadcrumb-sdk/core": "*",
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-trace-node": "^1.30.1",
     "tsdown": "^0.21.3",
     "typescript": "^5.7",
     "vitest": "^4.1.2"
