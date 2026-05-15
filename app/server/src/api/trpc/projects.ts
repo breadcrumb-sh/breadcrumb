@@ -65,9 +65,6 @@ export const projectsRouter = router({
           createdAt: new Date(),
         })
         .returning();
-      // Create default monitor labels
-      const { createDefaultLabels } = await import("../../services/monitor/labels.js");
-      await createDefaultLabels(projectId);
       void trackProjectCreated();
       return p;
     }),

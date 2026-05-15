@@ -4,7 +4,6 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { ChartBar } from "@phosphor-icons/react/ChartBar";
 import { Gear } from "@phosphor-icons/react/Gear";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { useCallback, useMemo } from "react";
@@ -21,13 +20,7 @@ export const Route = createFileRoute(
   component: ProjectLayout,
 });
 
-// ── Nav helpers ─────────────────────────────────────────────────────────────
-
-function buildNavItems(
-  isAdmin: boolean,
-  isOwner: boolean,
-  unsetModelRates: number,
-): NavEntry[] {
+function buildNavItems(isAdmin: boolean, isOwner: boolean): NavEntry[] {
   return [
     {
       kind: "leaf",
@@ -37,88 +30,36 @@ function buildNavItems(
     },
     {
       kind: "group",
-      label: "Traces",
-      icon: ChartBar,
-      children: [
-        { label: "Insights", id: "traces:insights" },
-        { label: "Raw Traces", id: "traces:raw" },
-      ],
-    },
-    {
-      kind: "group",
       label: "Settings",
       icon: Gear,
-      badge: unsetModelRates > 0,
       children: [
         ...(isAdmin ? [{ label: "General", id: "settings:general" }] : []),
         { label: "API Keys", id: "settings:api-keys" },
-        ...(isAdmin ? [{ label: "Integrations", id: "settings:integrations" }] : []),
-        {
-          label: "Model Pricing",
-          id: "settings:model-pricing",
-          badge: unsetModelRates > 0,
-        },
-        ...(isAdmin ? [{ label: "Privacy", id: "settings:privacy" }] : []),
-        ...(isAdmin ? [{
-          label: "AI",
-          children: [
-            { label: "Provider", id: "settings:ai" },
-            { label: "Agent Memory", id: "settings:memory" },
-            { label: "Limits", id: "settings:limits" },
-          ],
-        }] : []),
         ...(isOwner ? [{ label: "Danger", id: "settings:danger" }] : []),
       ],
     },
   ];
 }
 
-/** Map nav item id → route navigation params. */
 function navIdToRoute(projectId: string) {
   return (id: string) => {
     const routes: Record<string, { to: string; search?: Record<string, string> }> = {
       "overview": { to: "/projects/$projectId" },
-      "traces:insights": { to: "/projects/$projectId/traces", search: { tab: "insights" } },
-      "traces:raw": { to: "/projects/$projectId/traces", search: { tab: "raw" } },
       "settings:general": { to: "/projects/$projectId/settings", search: { tab: "general" } },
       "settings:api-keys": { to: "/projects/$projectId/settings", search: { tab: "api-keys" } },
-      "settings:integrations": { to: "/projects/$projectId/settings", search: { tab: "integrations" } },
-      "settings:model-pricing": { to: "/projects/$projectId/settings", search: { tab: "model-pricing" } },
-      "settings:ai": { to: "/projects/$projectId/settings", search: { tab: "ai" } },
-      "settings:memory": { to: "/projects/$projectId/settings", search: { tab: "memory" } },
-      "settings:limits": { to: "/projects/$projectId/settings", search: { tab: "limits" } },
-      "settings:privacy": { to: "/projects/$projectId/settings", search: { tab: "privacy" } },
       "settings:danger": { to: "/projects/$projectId/settings", search: { tab: "danger" } },
     };
     return routes[id] ?? { to: "/projects/$projectId" };
   };
 }
 
-/** Determine active nav id from current URL. */
 function getActiveId(pathname: string, base: string, tab?: string): string {
   const rel = pathname.slice(base.length) || "";
   if (rel.startsWith("/settings")) {
     return `settings:${tab ?? "general"}`;
   }
-  if (rel.startsWith("/traces") || rel.startsWith("/trace/")) {
-    return `traces:${tab ?? "insights"}`;
-  }
   return "overview";
 }
-
-/** Which groups should start expanded based on current URL. */
-function getDefaultOpen(pathname: string, base: string, tab?: string): string[] {
-  const rel = pathname.slice(base.length) || "";
-  const open: string[] = [];
-  if (rel.startsWith("/traces") || rel.startsWith("/trace/")) open.push("Traces");
-  if (rel.startsWith("/settings")) {
-    open.push("Settings");
-    if (tab === "ai" || tab === "memory" || tab === "limits") open.push("AI");
-  }
-  return open;
-}
-
-// ── Component ───────────────────────────────────────────────────────────────
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
@@ -133,20 +74,11 @@ function ProjectLayout() {
     { enabled: !!orgId, placeholderData: (prev) => prev },
   );
   const { isAdmin, isOwner } = useOrgRole(orgId ?? "");
-  const unsetModelRates = trpc.modelRates.unsetCount.useQuery(
-    { projectId },
-    { placeholderData: (prev) => prev },
-  );
 
   const base = `/projects/${projectId}`;
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   const activeId = getActiveId(pathname, base, tab);
-  const unsetCount = unsetModelRates.data ?? 0;
-  const navItems = useMemo(
-    () => buildNavItems(isAdmin, isOwner, unsetCount),
-    [isAdmin, isOwner, unsetCount],
-  );
-  const defaultOpen = useMemo(() => getDefaultOpen(pathname, base, tab), [pathname, base, tab]);
+  const navItems = useMemo(() => buildNavItems(isAdmin, isOwner), [isAdmin, isOwner]);
 
   const resolver = useMemo(() => navIdToRoute(projectId), [projectId]);
   const handleSelect = useCallback(
@@ -166,7 +98,7 @@ function ProjectLayout() {
           items={navItems}
           activeId={activeId}
           onSelect={handleSelect}
-          defaultOpen={defaultOpen}
+          defaultOpen={["Settings"]}
         />
       }
       header={

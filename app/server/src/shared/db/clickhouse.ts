@@ -25,52 +25,6 @@ export const clickhouse = createClient({
   },
 });
 
-// Read-only client for all SELECT queries. ClickHouse enforces readonly at
-// the session level — no DDL, no DML, no INSERT can slip through regardless of
-// what SQL is passed. readonly=2 (vs 1) allows per-query setting overrides
-// (e.g. max_execution_time, max_result_rows) which we use for resource limits
-// on sandboxed queries, while still blocking all writes.
-export const readonlyClickhouse = createClient({
-  url: env.clickhouseUrl,
-  username: env.clickhouseReadonlyUser ?? env.clickhouseUser,
-  password: env.clickhouseReadonlyPassword ?? env.clickhousePassword,
-  database: env.clickhouseDb,
-  application: "breadcrumb-server-ro",
-  max_open_connections: 20,
-  request_timeout: 60_000,
-  compression: {
-    response: true,
-    request: true,
-  },
-  keep_alive: {
-    enabled: true,
-    idle_socket_ttl: 2500,
-  },
-  clickhouse_settings: {
-    readonly: "2",
-  },
-});
-
-// Sandboxed client for user-provided SQL (MCP run_query, monitor agents).
-// Connects as the breadcrumb_sandbox user which has:
-//   - readonly=1: no DDL, DML, or setting overrides
-//   - Row policies: every SELECT is filtered by SQL_project_id
-//   - Resource limits baked into the role (timeouts, row caps, memory)
-// The caller passes SQL_project_id per-query via clickhouse_settings.
-export const sandboxedClickhouse = createClient({
-  url: env.clickhouseUrl,
-  username: env.clickhouseSandboxUser,
-  password: env.clickhouseSandboxPassword,
-  database: env.clickhouseDb,
-  application: "breadcrumb-server-sandbox",
-  max_open_connections: 10,
-  request_timeout: 60_000,
-  keep_alive: {
-    enabled: true,
-    idle_socket_ttl: 2500,
-  },
-});
-
 // Separate client without a database selected, used only during migration
 // setup when the database may not exist yet.
 const adminClient = createClient({

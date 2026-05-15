@@ -20,11 +20,9 @@ import { Route as AuthedProjectsProjectIdRouteImport } from './routes/_authed/pr
 import { Route as AuthedOrgOrgIdRouteImport } from './routes/_authed/org/$orgId'
 import { Route as AuthedProjectsProjectIdIndexRouteImport } from './routes/_authed/projects/$projectId/index'
 import { Route as AuthedOrgOrgIdIndexRouteImport } from './routes/_authed/org/$orgId/index'
-import { Route as AuthedProjectsProjectIdTracesRouteImport } from './routes/_authed/projects/$projectId/traces'
 import { Route as AuthedProjectsProjectIdSettingsRouteImport } from './routes/_authed/projects/$projectId/settings'
 import { Route as AuthedOrgOrgIdSettingsRouteImport } from './routes/_authed/org/$orgId/settings'
 import { Route as AuthedOrgOrgIdNewRouteImport } from './routes/_authed/org/$orgId/new'
-import { Route as AuthedProjectsProjectIdTraceTraceIdRouteImport } from './routes/_authed/projects/$projectId/trace.$traceId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -81,12 +79,6 @@ const AuthedOrgOrgIdIndexRoute = AuthedOrgOrgIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedOrgOrgIdRoute,
 } as any)
-const AuthedProjectsProjectIdTracesRoute =
-  AuthedProjectsProjectIdTracesRouteImport.update({
-    id: '/traces',
-    path: '/traces',
-    getParentRoute: () => AuthedProjectsProjectIdRoute,
-  } as any)
 const AuthedProjectsProjectIdSettingsRoute =
   AuthedProjectsProjectIdSettingsRouteImport.update({
     id: '/settings',
@@ -103,12 +95,6 @@ const AuthedOrgOrgIdNewRoute = AuthedOrgOrgIdNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthedOrgOrgIdRoute,
 } as any)
-const AuthedProjectsProjectIdTraceTraceIdRoute =
-  AuthedProjectsProjectIdTraceTraceIdRouteImport.update({
-    id: '/trace/$traceId',
-    path: '/trace/$traceId',
-    getParentRoute: () => AuthedProjectsProjectIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
@@ -122,10 +108,8 @@ export interface FileRoutesByFullPath {
   '/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/org/$orgId/': typeof AuthedOrgOrgIdIndexRoute
   '/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
-  '/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
 export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
@@ -137,10 +121,8 @@ export interface FileRoutesByTo {
   '/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
   '/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/org/$orgId': typeof AuthedOrgOrgIdIndexRoute
   '/projects/$projectId': typeof AuthedProjectsProjectIdIndexRoute
-  '/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,10 +138,8 @@ export interface FileRoutesById {
   '/_authed/org/$orgId/new': typeof AuthedOrgOrgIdNewRoute
   '/_authed/org/$orgId/settings': typeof AuthedOrgOrgIdSettingsRoute
   '/_authed/projects/$projectId/settings': typeof AuthedProjectsProjectIdSettingsRoute
-  '/_authed/projects/$projectId/traces': typeof AuthedProjectsProjectIdTracesRoute
   '/_authed/org/$orgId/': typeof AuthedOrgOrgIdIndexRoute
   '/_authed/projects/$projectId/': typeof AuthedProjectsProjectIdIndexRoute
-  '/_authed/projects/$projectId/trace/$traceId': typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,10 +155,8 @@ export interface FileRouteTypes {
     | '/org/$orgId/new'
     | '/org/$orgId/settings'
     | '/projects/$projectId/settings'
-    | '/projects/$projectId/traces'
     | '/org/$orgId/'
     | '/projects/$projectId/'
-    | '/projects/$projectId/trace/$traceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invite'
@@ -190,10 +168,8 @@ export interface FileRouteTypes {
     | '/org/$orgId/new'
     | '/org/$orgId/settings'
     | '/projects/$projectId/settings'
-    | '/projects/$projectId/traces'
     | '/org/$orgId'
     | '/projects/$projectId'
-    | '/projects/$projectId/trace/$traceId'
   id:
     | '__root__'
     | '/_authed'
@@ -208,10 +184,8 @@ export interface FileRouteTypes {
     | '/_authed/org/$orgId/new'
     | '/_authed/org/$orgId/settings'
     | '/_authed/projects/$projectId/settings'
-    | '/_authed/projects/$projectId/traces'
     | '/_authed/org/$orgId/'
     | '/_authed/projects/$projectId/'
-    | '/_authed/projects/$projectId/trace/$traceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -300,13 +274,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedOrgOrgIdIndexRouteImport
       parentRoute: typeof AuthedOrgOrgIdRoute
     }
-    '/_authed/projects/$projectId/traces': {
-      id: '/_authed/projects/$projectId/traces'
-      path: '/traces'
-      fullPath: '/projects/$projectId/traces'
-      preLoaderRoute: typeof AuthedProjectsProjectIdTracesRouteImport
-      parentRoute: typeof AuthedProjectsProjectIdRoute
-    }
     '/_authed/projects/$projectId/settings': {
       id: '/_authed/projects/$projectId/settings'
       path: '/settings'
@@ -327,13 +294,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/org/$orgId/new'
       preLoaderRoute: typeof AuthedOrgOrgIdNewRouteImport
       parentRoute: typeof AuthedOrgOrgIdRoute
-    }
-    '/_authed/projects/$projectId/trace/$traceId': {
-      id: '/_authed/projects/$projectId/trace/$traceId'
-      path: '/trace/$traceId'
-      fullPath: '/projects/$projectId/trace/$traceId'
-      preLoaderRoute: typeof AuthedProjectsProjectIdTraceTraceIdRouteImport
-      parentRoute: typeof AuthedProjectsProjectIdRoute
     }
   }
 }
@@ -356,18 +316,13 @@ const AuthedOrgOrgIdRouteWithChildren = AuthedOrgOrgIdRoute._addFileChildren(
 
 interface AuthedProjectsProjectIdRouteChildren {
   AuthedProjectsProjectIdSettingsRoute: typeof AuthedProjectsProjectIdSettingsRoute
-  AuthedProjectsProjectIdTracesRoute: typeof AuthedProjectsProjectIdTracesRoute
   AuthedProjectsProjectIdIndexRoute: typeof AuthedProjectsProjectIdIndexRoute
-  AuthedProjectsProjectIdTraceTraceIdRoute: typeof AuthedProjectsProjectIdTraceTraceIdRoute
 }
 
 const AuthedProjectsProjectIdRouteChildren: AuthedProjectsProjectIdRouteChildren =
   {
     AuthedProjectsProjectIdSettingsRoute: AuthedProjectsProjectIdSettingsRoute,
-    AuthedProjectsProjectIdTracesRoute: AuthedProjectsProjectIdTracesRoute,
     AuthedProjectsProjectIdIndexRoute: AuthedProjectsProjectIdIndexRoute,
-    AuthedProjectsProjectIdTraceTraceIdRoute:
-      AuthedProjectsProjectIdTraceTraceIdRoute,
   }
 
 const AuthedProjectsProjectIdRouteWithChildren =

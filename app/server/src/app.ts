@@ -7,13 +7,9 @@ import { rateLimiter } from "hono-rate-limiter";
 import { readFile } from "node:fs/promises";
 import { auth } from "./shared/auth/better-auth.js";
 import { requireApiKey } from "./shared/auth/api-key.js";
-import { requireMcpKey } from "./shared/auth/mcp-key.js";
 import { trpcHandler } from "./api/trpc/handler.js";
 import { ingestRoutes } from "./api/ingest/routes.js";
-import { githubIntegrationRoutes } from "./api/integrations/github-routes.js";
 import { env } from "./env.js";
-import { StreamableHTTPTransport } from "@hono/mcp";
-import { buildMcpServer } from "./api/mcp/server.js";
 
 export type AppVariables = {
   user: { id: string; email: string; name: string } | null;
@@ -54,7 +50,6 @@ const corsConfig = cors({
 app.use("/api/*", corsConfig);
 app.use("/trpc/*", corsConfig);
 app.use("/v1/*", corsConfig);
-app.use("/mcp", corsConfig);
 app.use("/health", corsConfig);
 
 // ── Rate limiting ───────────────────────────────────────────────────────────
@@ -84,17 +79,6 @@ app.use(
   }),
 );
 
-// MCP: per MCP key, 100 req / 60s
-app.use(
-  "/mcp",
-  rateLimiter({
-    windowMs: 60_000,
-    limit: 100,
-    keyGenerator: (c) => c.req.header("Authorization") ?? "anonymous",
-    standardHeaders: "draft-7",
-  }),
-);
-
 // ── Health ──────────────────────────────────────────────────────────────────
 app.get("/health", (c) => c.json({ status: "ok" }));
 
@@ -102,7 +86,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // ── Session middleware ──────────────────────────────────────────────────────
-// Only runs for /trpc/* — ingest (/v1/*) and MCP (/mcp) use their own auth.
+// Only runs for /trpc/* — ingest (/v1/*) uses its own auth.
 app.use("/trpc/*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   c.set("user", session?.user ?? null);
@@ -116,21 +100,6 @@ app.route("/v1", ingestRoutes);
 
 // ── tRPC ────────────────────────────────────────────────────────────────────
 app.use("/trpc/*", trpcHandler);
-
-// ── GitHub integration callback ─────────────────────────────────────────────
-// Handles the redirect back from github.com after a user installs the
-// GitHub App. The handler reads its own session via better-auth and
-// runs project-admin checks inline (it's not behind tRPC).
-app.route("/integrations/github", githubIntegrationRoutes);
-
-// ── MCP ─────────────────────────────────────────────────────────────────────
-app.all("/mcp", requireMcpKey, async (c) => {
-  const userId = c.get("userId");
-  const mcpServer = buildMcpServer(userId);
-  const transport = new StreamableHTTPTransport();
-  await mcpServer.connect(transport);
-  return transport.handleRequest(c);
-});
 
 // ── Telemetry proxy ─────────────────────────────────────────────────
 // Proxies frontend telemetry through our own domain so ad blockers

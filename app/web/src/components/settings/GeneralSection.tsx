@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "../../lib/trpc";
 import { TimezoneSelect } from "../common/TimezoneSelect";
-import { LabelsSection, type LabelsSectionHandle } from "./LabelsSection";
 
 export function GeneralSection({
   projectId,
@@ -19,7 +18,6 @@ export function GeneralSection({
   const current = project.data;
   const [name, setName] = useState(current?.name ?? "");
   const [timezone, setTimezone] = useState(current?.timezone ?? "UTC");
-  const labelsRef = useRef<LabelsSectionHandle>(null);
 
   useEffect(() => {
     if (current?.name !== undefined) setName(current.name);
@@ -29,26 +27,16 @@ export function GeneralSection({
     if (current?.timezone !== undefined) setTimezone(current.timezone);
   }, [current?.timezone]);
 
-  const generalDirty = name !== current?.name || timezone !== current?.timezone;
-  const labelsDirty = labelsRef.current?.isDirty ?? false;
-  const isDirty = generalDirty || labelsDirty;
-  const isSaving = updateProject.isPending || (labelsRef.current?.isSaving ?? false);
+  const isDirty = name !== current?.name || timezone !== current?.timezone;
+  const isSaving = updateProject.isPending;
 
   const handleSave = async () => {
-    const promises: Promise<unknown>[] = [];
-    if (generalDirty) {
-      promises.push(
-        updateProject.mutateAsync({
-          projectId,
-          ...(name !== current?.name && { name }),
-          ...(timezone !== current?.timezone && { timezone }),
-        }),
-      );
-    }
-    if (labelsRef.current?.isDirty) {
-      promises.push(labelsRef.current.save());
-    }
-    await Promise.all(promises);
+    if (!isDirty) return;
+    await updateProject.mutateAsync({
+      projectId,
+      ...(name !== current?.name && { name }),
+      ...(timezone !== current?.timezone && { timezone }),
+    });
   };
 
   return (
@@ -75,7 +63,6 @@ export function GeneralSection({
         </p>
         <TimezoneSelect value={timezone} onChange={setTimezone} />
       </div>
-      <LabelsSection ref={labelsRef} projectId={projectId} />
       <button
         type="button"
         onClick={handleSave}

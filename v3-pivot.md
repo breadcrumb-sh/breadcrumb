@@ -39,22 +39,20 @@ Working doc for the v3 platform pivot. Started 2026-05-15 on the `v3` branch.
 To-confirm candidates for deletion. Nothing deleted until reviewed together.
 
 **Web app routes / UI:**
-- [ ] Trace list page as primary view
-- [ ] Trace detail / span tree (move to debug drawer or remove)
-- [ ] Cost / quality dashboards as currently built
-- [ ] Model pricing UI
-- [ ] Current kanban-as-process
-- [ ] PII redaction settings UI
-- [ ] AI providers settings UI (may need a different shape)
+- [x] Stripped 2026-05-15. Deleted:
+  - Routes: `traces.tsx`, `trace.$traceId.tsx`
+  - Component dirs: `monitor/`, `overview/`, `trace-detail/`, `traces/`, `design-variants/`
+  - Settings sections: Agent Limits/Memory, AI Provider, GitHub, Labels, Model Pricing, Notifications, PII Redaction
+  - Common (orphaned after feature deletes): `ChartSkeleton`, `DataTable`, `DateRangePopover`, `MultiselectCombobox`, `Markdown`, `ProgressiveBlur`, `InlineSelect`
+  - Hooks/lib: `useProjectFilters`, `span-utils`
+- Rewrote: `projects/$projectId.tsx` (nav trimmed to just Settings group), `projects/$projectId/index.tsx` ("No features yet." placeholder), `projects/$projectId/settings.tsx` (3 tabs only)
+- `GeneralSection` trimmed (embedded LabelsSection removed)
+- Skeleton kept: auth (login/signup/accept-invite), authed shell, orgs (index/new/settings/members), projects (layout/home/settings → general+api-keys+danger), user settings
 
 **Server / packages:**
 - [x] `packages/sdk` (`@breadcrumb-sh/sdk`, v0.0.1) — stripped to empty `export {};` entry. Renamed from `packages/sdk-typescript` (`@breadcrumb-sdk/core` v0.0.10). All OpenTelemetry runtime deps removed.
 - [x] `packages/ai-sdk` (`@breadcrumb-sh/ai-sdk`, v0.0.1) — same treatment. Renamed from `@breadcrumb-sdk/ai-sdk` v0.0.5. Vitest source-alias removed.
-- [ ] MCP server (low priority for teams/startups — confirm)
-- [ ] Built-in PII patterns + custom-pattern infra
-- [ ] `modelRates` router + pricing-override flow
-- [ ] Current monitor agent + scan/job infra
-- [ ] Internal evals (`evals/monitor/`) — may be reused, may be replaced
+- [x] MCP server, PII redaction, modelRates, monitor agent, internal evals — all stripped 2026-05-15. See decisions log for full list.
 
 **Keep (foundation):**
 - ClickHouse + Postgres infrastructure
@@ -118,3 +116,5 @@ TBD. High-level order will follow direction decisions:
 - **2026-05-15** — Repo restructure: `apps/web` → `app/web`, `services/server` → `app/server`, `apps/docs` → `website`. Old `apps/` and `services/` containers deleted. New `app/shared/` (`@breadcrumb/shared`) scaffold added for cross-package types. Root `package.json` workspaces, `docker-compose.prod.yml`, and `app/server/Dockerfile` paths updated. `examples/` was already removed by user prior to this pass. All workspace links resolve, SDK builds clean.
 - **2026-05-15** — ClickHouse migrations moved `infra/clickhouse/migrations/` → `app/server/clickhouse/migrations/` (mirrors `app/server/drizzle/` for Postgres — server now owns both migration sets). `infra/` kept lean: just container-level configs (`clickhouse/init.sql`, `clickhouse/config.xml`) + dev `docker-compose.yml`. Updated migration runner candidate paths, Dockerfile, and removed redundant Dockerfile COPY (migrations now ride along with `app/server` copy).
 - **2026-05-15** — `docker-compose.prod.yml` moved from repo root → `infra/`. Both compose files now live in `infra/`. Updated `context: . → ..`, `env_file` to `../app/server/.env`, and clickhouse mount paths from `./infra/clickhouse/...` → `./clickhouse/...` (relative to new compose location).
+- **2026-05-15** — Web UI stripped to skeleton. All per-project feature pages (traces browser, trace detail/span tree, agent monitor/kanban, overview charts) and their component dirs deleted. Project sidebar nav collapsed to just "Settings" group (General / API Keys / Danger). Project home is now a "No features yet." placeholder. Org/project/member/auth skeleton preserved. Web typechecks clean. Server-side tRPC routers for the deleted features (`monitor`, `traces`, `modelRates`, `labels`, `integrations`, `github`, `piiRedaction`, `aiProviders`) are now unused — queued for server-side strip.
+- **2026-05-15** — Server + DB stripped to skeleton. **tRPC routers kept:** config, organizations, projects, api-keys, members, invitations. **Removed:** traces/, monitor, labels, ai-providers, integrations, github/, model-rates, pii-redaction, mcp-keys. **Services kept:** ingest (helpers only), cost gone. **Services removed:** monitor/, github/, explore/, mcp/, traces/, cost/, ingest/pii-*. **App routes removed:** /mcp, /integrations/github (and their middleware/rate-limiter). **Schema kept:** instance_settings, user/session/account/verification, organization/member/invitation, project (trimmed: dropped agent_memory, agent_monthly_cost_limit_cents, agent_scan_interval_seconds), api_keys, cache. **Schema removed:** mcp_keys, ai_providers, pii_redaction_settings, pii_custom_patterns, monitor_items/comments/labels/item_labels/activity/scan_runs, agent_usage, webhook_integration, github_installations/tracked_repos, model_rates. **ClickHouse tables untouched** (ingest still writes traces/spans). **Ingest reshape:** dropped PII redaction layer and DB-based cost lookup; span costs only honored if SDK supplies them. **Web cascade:** McpSection removed from `_authed/settings.tsx`. **Deps dropped:** `pg-boss`, `@hono/mcp`, `@modelcontextprotocol/sdk`, `@octokit/app`, `@octokit/core`, `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@openrouter/ai-sdk-provider`, `ai`, `evalite` (dev). **Files dropped:** `services/cost/`, `services/{monitor,github,explore,mcp,traces}/`, `services/ingest/pii-*`, `shared/auth/mcp-key.ts`, `shared/lib/{boss,litellm-catalog,model-normalization,github-app*,encryption,query-validator,sandboxed-query,state-token}.ts`, `data/litellm-snapshot.json`, `evals/monitor/`, related `__tests__/{monitor,mcp,unit/pii-redactor,unit/encryption,unit/state-token,unit/sandboxed-query,unit/query-validator,unit/clickhouse-config,auth/mcp-key-auth,routes/traces-auth,mcp-helpers}`. Both server and web typecheck clean. **Drizzle migration not yet generated** — user to run `drizzle-kit generate` (interactive prompts may appear for table renames; per memory, claude doesn't run this).

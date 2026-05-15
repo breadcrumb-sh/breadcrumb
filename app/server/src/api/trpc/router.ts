@@ -2,18 +2,9 @@ import { router, procedure } from "../../trpc.js";
 import { organizationsRouter } from "./organizations.js";
 import { projectsRouter } from "./projects.js";
 import { apiKeysRouter } from "./api-keys.js";
-import { mcpKeysRouter } from "./mcp-keys.js";
-import { tracesRouter } from "./traces/router.js";
 import { membersRouter } from "./members.js";
 import { invitationsRouter } from "./invitations.js";
-import { aiProvidersRouter } from "./ai-providers.js";
 import { configRouter } from "./config.js";
-import { monitorRouter } from "./monitor.js";
-import { labelsRouter } from "./labels.js";
-import { integrationsRouter } from "./integrations.js";
-import { githubRouter } from "./github/router.js";
-import { modelRatesRouter } from "./model-rates.js";
-import { piiRedactionRouter } from "./pii-redaction.js";
 
 export const appRouter = router({
   health: procedure.query(() => ({ status: "ok" })),
@@ -21,18 +12,8 @@ export const appRouter = router({
   organizations: organizationsRouter,
   projects: projectsRouter,
   apiKeys: apiKeysRouter,
-  mcpKeys: mcpKeysRouter,
-  traces: tracesRouter,
   members: membersRouter,
   invitations: invitationsRouter,
-  aiProviders: aiProvidersRouter,
-  monitor: monitorRouter,
-  labels: labelsRouter,
-  integrations: integrationsRouter,
-  github: githubRouter,
-  modelRates: modelRatesRouter,
-  piiRedaction: piiRedactionRouter,
 });
 
 export type AppRouter = typeof appRouter;
-

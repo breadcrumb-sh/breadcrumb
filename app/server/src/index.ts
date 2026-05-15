@@ -1,8 +1,7 @@
 import { serve } from "@hono/node-server";
 import { app } from "./app.js";
-import { boss } from "./shared/lib/boss.js";
 import { runMigrations } from "./shared/db/postgres.js";
-import { runClickhouseMigrations, clickhouse, readonlyClickhouse, sandboxedClickhouse } from "./shared/db/clickhouse.js";
+import { runClickhouseMigrations, clickhouse } from "./shared/db/clickhouse.js";
 import { traceBatcher, spanBatcher } from "./api/ingest/routes.js";
 import { env } from "./env.js";
 import { createLogger } from "./shared/lib/logger.js";
@@ -14,14 +13,6 @@ const log = createLogger("server");
 async function main() {
   await runMigrations();
   await runClickhouseMigrations();
-
-  await boss.start();
-
-  const { registerMonitorJobs } = await import("./services/monitor/jobs.js");
-  await registerMonitorJobs();
-
-  const { registerWebhookJobs } = await import("./services/monitor/webhooks.js");
-  await registerWebhookJobs();
 
   const { startCronJobs } = await import("./cron.js");
   startCronJobs();
@@ -45,13 +36,8 @@ main().catch((err) => {
 async function shutdown() {
   log.info("shutting down — flushing batchers");
   await Promise.all([traceBatcher.shutdown(), spanBatcher.shutdown()]);
-  await boss.stop();
   await shutdownTelemetry();
-  await Promise.all([
-    clickhouse.close(),
-    readonlyClickhouse.close(),
-    sandboxedClickhouse.close(),
-  ]);
+  await clickhouse.close();
   process.exit(0);
 }
 
